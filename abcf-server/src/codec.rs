@@ -8,65 +8,33 @@
 use crate::Result;
 use bytes::{Buf, BufMut, BytesMut};
 use prost::Message;
-use std::io::{Read, Write};
-use std::marker::PhantomData;
 use tendermint_proto::abci::{Request, Response};
+use tokio::net::TcpStream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-/// The maximum number of bytes we expect in a varint. We use this to check if
-/// we're encountering a decoding error for a varint.
 pub const MAX_VARINT_LENGTH: usize = 16;
 
-/// The server receives incoming requests, and sends outgoing responses.
-pub type ServerCodec<S> = Codec<S, Request, Response>;
-
-#[cfg(feature = "client")]
-/// The client sends outgoing requests, and receives incoming responses.
-pub type ClientCodec<S> = Codec<S, Response, Request>;
-
-/// Allows for iteration over `S` to produce instances of `I`, as well as
-/// sending instances of `O`.
-pub struct Codec<S, I, O> {
-    stream: S,
-    // Long-running read buffer
+pub struct Codec {
+    stream: TcpStream,
     read_buf: BytesMut,
-    // Fixed-length read window
     read_window: Vec<u8>,
     write_buf: BytesMut,
-    _incoming: PhantomData<I>,
-    _outgoing: PhantomData<O>,
 }
 
-impl<S, I, O> Codec<S, I, O>
-where
-    S: Read + Write,
-    I: Message + Default,
-    O: Message,
-{
-    /// Constructor.
-    pub fn new(stream: S, read_buf_size: usize) -> Self {
-        Self {
+impl Codec {
+    pub fn new(stream: TcpStream, read_buffer_length: usize) -> Self {
+        Codec {
             stream,
+            read_window: vec![0; read_buffer_length],
             read_buf: BytesMut::new(),
-            read_window: vec![0_u8; read_buf_size],
             write_buf: BytesMut::new(),
-            _incoming: Default::default(),
-            _outgoing: Default::default(),
         }
     }
-}
 
-// Iterating over a codec produces instances of `Result<I>`.
-impl<S, I, O> Iterator for Codec<S, I, O>
-where
-    S: Read,
-    I: Message + Default,
-{
-    type Item = Result<I>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub async fn next(&mut self) -> Option<Result<Request>> {
         loop {
             // Try to decode an incoming message from our buffer first
-            match decode_length_delimited::<I>(&mut self.read_buf) {
+            match decode_length_delimited::<Request>(&mut self.read_buf) {
                 Ok(Some(incoming)) => return Some(Ok(incoming)),
                 Err(e) => return Some(Err(e)),
                 _ => (), // not enough data to decode a message, let's continue.
@@ -74,7 +42,7 @@ where
 
             // If we don't have enough data to decode a message, try to read
             // more
-            let bytes_read = match self.stream.read(self.read_window.as_mut()) {
+            let bytes_read = match self.stream.read(self.read_window.as_mut()).await {
                 Ok(br) => br,
                 Err(e) => return Some(Err(e.into())),
             };
@@ -86,18 +54,11 @@ where
                 .extend_from_slice(&self.read_window[..bytes_read]);
         }
     }
-}
 
-impl<S, I, O> Codec<S, I, O>
-where
-    S: Write,
-    O: Message,
-{
-    /// Send a message using this codec.
-    pub fn send(&mut self, message: O) -> Result<()> {
+    pub async fn send(&mut self, message: Response) -> Result<()> {
         encode_length_delimited(message, &mut self.write_buf)?;
         while !self.write_buf.is_empty() {
-            let bytes_written = self.stream.write(self.write_buf.as_ref())?;
+            let bytes_written = self.stream.write(self.write_buf.as_ref()).await?;
             if bytes_written == 0 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::WriteZero,
@@ -107,7 +68,7 @@ where
             }
             self.write_buf.advance(bytes_written);
         }
-        Ok(self.stream.flush()?)
+        Ok(self.stream.flush().await?) 
     }
 }
 
