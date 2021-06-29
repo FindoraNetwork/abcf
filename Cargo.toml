@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "abcf-core",
+    "abcf-server",
+    "abci-codec"
+]

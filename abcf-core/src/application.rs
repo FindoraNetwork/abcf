@@ -1,6 +1,8 @@
 use crate::message::{check_tx, info};
 use crate::Transaction;
 
+use alloc::boxed::Box;
+
 #[async_trait::async_trait]
 pub trait Application<T: Transaction> {
     async fn info(&mut self, _req: &info::Request) -> info::Response {

@@ -1,6 +1,9 @@
 use crate::message::event::Event;
 use crate::Transaction;
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 pub enum CheckTxType {
     New,
     Recheck,

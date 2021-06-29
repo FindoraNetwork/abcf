@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 pub struct EventAttribute {
     pub key: Vec<u8>,
     pub value: Vec<u8>,

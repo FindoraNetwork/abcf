@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 #[derive(Default)]
 pub struct Request {
     pub version: String,
