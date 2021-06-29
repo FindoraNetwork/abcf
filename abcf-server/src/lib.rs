@@ -1,7 +1,7 @@
 mod server;
 pub use server::Server;
 
-pub mod codec;
+mod codec;
 pub use codec::Codec;
 
 use std::io;
@@ -11,6 +11,7 @@ pub enum Error {
     StdIoError(io::Error),
     ProstEncodeError(prost::EncodeError),
     ProstDecodeError(prost::DecodeError),
+    Other,
 }
 
 impl From<io::Error> for Error {

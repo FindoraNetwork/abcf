@@ -11,7 +11,7 @@ pub struct Server {
 }
 
 fn mock_handle(req: Request) -> Response {
-    println!("{:?}", req);
+    log::info!("{:?}", req);
     Response::default()
 }
 
@@ -23,7 +23,7 @@ async fn conn_handle(socket: TcpStream, addr: SocketAddr) {
             Some(result) => match result {
                 Ok(r) => r,
                 Err(e) => {
-                    log::error!(
+                    log::info!(
                         "Failed to read incoming request from client {}: {:?}",
                         addr, e
                         );
@@ -51,6 +51,7 @@ async fn conn_handle(socket: TcpStream, addr: SocketAddr) {
 impl Server {
     pub async fn bind<A: ToSocketAddrs>(addr: A) -> Result<Self> {
         let listener = TcpListener::bind(addr).await?;
+        log::info!("listen at");
         Ok(Server {
             listener
         })
@@ -59,6 +60,7 @@ impl Server {
     pub async fn run(self) -> Result<()> {
         loop {
             let (socket, addr) = self.listener.accept().await?;
+            log::info!("new connect from {}", addr);
             tokio::spawn(conn_handle(socket, addr));
         }
     }
