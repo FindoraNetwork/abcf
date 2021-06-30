@@ -77,12 +77,12 @@ where
     }
 }
 
-pub struct Server<A: abci::Application + Sync> {
+pub struct Server<A: abci::Application> {
     listener: Option<TcpListener>,
     app: Arc<Mutex<A>>,
 }
 
-impl<A: abci::Application + Sync> Server<A> {
+impl<A: abci::Application> Server<A> {
     pub fn new(app: A) -> Self {
         Server {
             listener: None,
