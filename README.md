@@ -17,3 +17,19 @@
   - [X] Basic function.
   - [X] Testing (for tendermint 0.34)
 
+### Run test
+
+Use tendermint 0.34.
+
+Start tendermint:
+
+``` bash
+TMHOME="/tmp/example1" ./tendermint node tcp://127.0.0.1:26658
+```
+
+Start mock server.
+
+``` bash
+RUST_LOG=DEBUG cargo run --example mock
+```
+
