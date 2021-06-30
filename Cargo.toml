@@ -2,6 +2,6 @@
 members = [
     "abcf-core",
     "async-abci",
-    "abcf-manager",
-    # "abcf-abci"
+    # "abcf-manager",
+    "abcf-abci"
 ]

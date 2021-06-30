@@ -3,7 +3,7 @@ use crate::{Application, Transaction};
 pub struct ModuelAttributes {}
 
 pub trait Module {
-    type Transaction: Transaction;
+    type Transaction: Transaction + Send + 'static;
 
     // type Storage;
     // type Event;

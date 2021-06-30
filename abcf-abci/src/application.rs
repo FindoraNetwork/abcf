@@ -4,16 +4,20 @@ use async_abci::abci;
 
 use std::marker::PhantomData;
 
-pub struct ApplicationWrapper<A: Application<T>, T: Transaction> {
+pub struct ApplicationWrapper<A: Application<T>, T: Transaction + Send> {
     app: A,
     _marker: PhantomData<T>,
 }
 
-impl<A, T> ApplicationWrapper<A, T> where A: Application<T>, T: Transaction {
+impl<A, T> ApplicationWrapper<A, T>
+where
+    A: Application<T>,
+    T: Transaction + Send,
+{
     pub fn new(app: A) -> Self {
         Self {
             app,
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 }
