@@ -2,5 +2,6 @@
 members = [
     "abcf-core",
     "abcf-server",
+    "abcf-manager"
     # "abci-codec"
 ]

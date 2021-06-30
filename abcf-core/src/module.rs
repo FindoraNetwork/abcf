@@ -14,7 +14,7 @@ pub trait Module {
 
     fn version(&self) -> &str;
 
-    fn application(&mut self) -> &Self::Application;
+    fn application(&mut self) -> &mut Self::Application;
 
     fn config(&self) -> ModuelAttributes;
 }
