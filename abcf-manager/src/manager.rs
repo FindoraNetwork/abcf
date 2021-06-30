@@ -5,7 +5,6 @@ use abcf_core::{Application, Module, Transaction};
 pub struct Manager<'a, T: Transaction> {
     // This allow beacuse rust compiler impl not complete.
     // ref: https://doc.rust-lang.org/reference/items/traits.html#object-safety
-    #[allow(where_clauses_object_safety)]
     apps: Vec<&'a mut (dyn Application<T> + Sync + Send)>,
 }
 
