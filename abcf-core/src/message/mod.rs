@@ -1,5 +1,8 @@
-pub mod check_tx;
 pub mod echo;
 pub mod event;
 pub mod info;
-// pub mod init_chain;
+pub mod query;
+pub mod check_tx;
+
+
+pub mod init_chain;

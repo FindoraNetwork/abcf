@@ -1,10 +1,11 @@
-use abcf_core::message;
+// use abcf_core::message;
+use crate::convert::Convert;
 use abcf_core::{Application, Transaction};
 use async_abci::abci;
 
 use std::marker::PhantomData;
 
-pub struct ApplicationWrapper<A: Application<T>, T: Transaction + Send> {
+pub struct ApplicationWrapper<A: Application<T>, T: Transaction> {
     app: A,
     _marker: PhantomData<T>,
 }
@@ -12,7 +13,7 @@ pub struct ApplicationWrapper<A: Application<T>, T: Transaction + Send> {
 impl<A, T> ApplicationWrapper<A, T>
 where
     A: Application<T>,
-    T: Transaction + Send,
+    T: Transaction,
 {
     pub fn new(app: A) -> Self {
         Self {
@@ -22,22 +23,31 @@ where
     }
 }
 
+// macro_rules! define_application_method {
+    // ($op:ident, $req:ident, $resp:ident) => {
+    //     async fn $op(&mut self, request: abci::$req) -> abci::$resp {
+    //         Application::$op(&mut self.app, request.convert())
+    //             .await
+    //             .convert()
+    //     }
+    // }
+// }
+
 #[async_trait::async_trait]
 impl<A, T> abci::Application for ApplicationWrapper<A, T>
 where
-    A: Application<T> + Send + 'static,
-    T: Transaction + Send + 'static,
+    A: Application<T> + 'static,
+    T: Transaction + 'static,
 {
     async fn echo(&mut self, request: abci::RequestEcho) -> abci::ResponseEcho {
-        let resp = Application::echo(
-            &mut self.app,
-            message::echo::Request {
-                message: request.message,
-            },
-        )
-        .await;
-        abci::ResponseEcho {
-            message: resp.message,
-        }
+        Application::echo(&mut self.app, request.convert())
+            .await
+            .convert()
+    }
+
+    async fn info(&mut self, request: abci::RequestInfo) -> abci::ResponseInfo {
+        Application::info(&mut self.app, request.convert())
+            .await
+            .convert()
     }
 }

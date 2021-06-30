@@ -3,6 +3,8 @@ pub(crate) mod application;
 mod server;
 pub use server::Server;
 
+pub(crate) mod convert;
+
 #[derive(Debug)]
 pub enum Error {
     AsyncAbciError(async_abci::Error),

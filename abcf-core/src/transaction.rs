@@ -11,7 +11,7 @@ pub trait ToBytes {
     fn to_bytes(&self) -> Vec<u8>;
 }
 
-pub trait Transaction: Default + FromBytes + ToBytes {}
+pub trait Transaction: Default + FromBytes + ToBytes + Send {}
 
 impl FromBytes for () {
     fn from_bytes(_bytes: &[u8]) -> Result<Self> {
