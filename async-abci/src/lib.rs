@@ -4,7 +4,7 @@ pub use server::Server;
 mod codec;
 pub use codec::Codec;
 
-mod abci;
+pub mod abci;
 
 use std::io;
 

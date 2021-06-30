@@ -1,4 +1,4 @@
-use tendermint_proto::abci::{
+pub use tendermint_proto::abci::{
     RequestApplySnapshotChunk, RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEcho,
     RequestEndBlock, RequestInfo, RequestInitChain, RequestLoadSnapshotChunk, RequestOfferSnapshot,
     RequestQuery, RequestSetOption, ResponseApplySnapshotChunk, ResponseBeginBlock,
