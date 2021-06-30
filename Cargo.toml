@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "abcf-core",
-    "abcf-server",
+    # "abcf-server",
+    "async-abci",
     "abcf-manager"
     # "abci-codec"
 ]

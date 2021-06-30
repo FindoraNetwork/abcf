@@ -7,9 +7,6 @@ use tendermint_proto::abci::{
     ResponseLoadSnapshotChunk, ResponseOfferSnapshot, ResponseQuery, ResponseSetOption,
 };
 
-// use abcf_core::Application as ABCFApplication;
-// use abcf_core::Transaction;
-
 #[async_trait::async_trait]
 pub trait Application: Send + 'static {
     async fn echo(&mut self, request: RequestEcho) -> ResponseEcho {

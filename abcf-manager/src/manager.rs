@@ -22,17 +22,17 @@ impl<'a, T: Transaction> Manager<'a, T> {
         self.apps.push(module.application());
     }
 
-    pub async fn dispatch_check_tx(&mut self, req: check_tx::Request<T>) -> check_tx::Response
-    where
-        T: Sync,
-    {
-        for app in &mut self.apps {
-            let res = app.check_tx(&req).await;
-            if res.code != 0 {
-                return res;
-            }
-        }
-
-        check_tx::Response::default()
-    }
+//     pub async fn dispatch_check_tx(&mut self, req: check_tx::Request<T>) -> check_tx::Response
+    // where
+    //     T: Sync,
+    // {
+    //     for app in &mut self.apps {
+    //         let res = app.check_tx(&req).await;
+    //         if res.code != 0 {
+    //             return res;
+    //         }
+    //     }
+    //
+    //     check_tx::Response::default()
+    // }
 }
