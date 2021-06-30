@@ -5,14 +5,16 @@
 ## Features (WIP)
 
 - [ ] Modular abci application
-  - [ ] Define Modular trait.
+  - [X] Define Modular trait.
   - [ ] Modular registry.
-  - [ ] Application defination.
+  - [X] Application defination.
   - [ ] Storage defination.
   - [ ] Event defination.
   - [ ] RPC defination.
 - [ ] Dynamic update.
   - [X] Modular `no_std` support.
+  - [ ] Add Webassembly engine.
+  - [ ] Running Module on Webassembly.
 - [X] ABCI interface in async.
   - [X] Basic function.
   - [X] Testing (for tendermint 0.34)
