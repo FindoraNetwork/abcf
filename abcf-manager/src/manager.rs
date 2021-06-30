@@ -1,5 +1,5 @@
 // use crate::ModuleApplications;
-use abcf_core::message::{check_tx};
+use abcf_core::message::check_tx;
 use abcf_core::{Application, Module, Transaction};
 
 pub struct Manager<'a, T: Transaction> {
@@ -29,7 +29,7 @@ impl<'a, T: Transaction> Manager<'a, T> {
         for app in &mut self.apps {
             let res = app.check_tx(&req).await;
             if res.code != 0 {
-                return res
+                return res;
             }
         }
 

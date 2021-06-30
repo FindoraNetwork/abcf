@@ -1,4 +1,4 @@
-use crate::message::{check_tx, info, echo};
+use crate::message::{check_tx, echo, info};
 use crate::Transaction;
 
 use alloc::boxed::Box;

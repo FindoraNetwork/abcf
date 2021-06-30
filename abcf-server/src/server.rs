@@ -1,26 +1,17 @@
-use crate::Codec;
-use crate::Result;
+use crate::abci;
+use crate::{Codec, Error, Result};
 use std::net::SocketAddr;
-use tendermint_proto::abci::{Request, Response};
+use std::sync::Arc;
+use tendermint_proto::abci::{request::Value, response, Request, Response};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use tokio::sync::Mutex;
 
 pub const DEFAULT_SERVER_READ_BUF_SIZE: usize = 1024 * 1024;
 
-pub struct Server {
-    listener: TcpListener,
-}
-
-fn mock_handle(req: Request) -> Response {
-    log::info!("{:?}", req);
-    match req.value {
-        Some(r) => Response {
-            value: mock::default_reqresp(r),
-        },
-        None => Response { value: None },
-    }
-}
-
-async fn conn_handle(socket: TcpStream, addr: SocketAddr) {
+async fn conn_handle<A>(socket: TcpStream, addr: SocketAddr, app: Arc<Mutex<A>>)
+where
+    A: abci::Application,
+{
     let mut codec = Codec::new(socket, DEFAULT_SERVER_READ_BUF_SIZE);
 
     loop {
@@ -42,7 +33,11 @@ async fn conn_handle(socket: TcpStream, addr: SocketAddr) {
             }
         };
 
-        let response = mock_handle(request);
+        let mut app = app.lock().await;
+
+        log::debug!("Recv packet {:?}", request);
+        let response = dispatch(&mut *app, request).await;
+        log::debug!("Return packet {:?}", response);
 
         if let Err(e) = codec.send(response).await {
             log::error!("Failed sending response to client {}: {:?}", addr, e);
@@ -51,68 +46,65 @@ async fn conn_handle(socket: TcpStream, addr: SocketAddr) {
     }
 }
 
-impl Server {
-    pub async fn bind<A: ToSocketAddrs>(addr: A) -> Result<Self> {
-        let listener = TcpListener::bind(addr).await?;
-        log::info!("listen at");
-        Ok(Server { listener })
-    }
-
-    pub async fn run(self) -> Result<()> {
-        loop {
-            let (socket, addr) = self.listener.accept().await?;
-            log::info!("new connect from {}", addr);
-            tokio::spawn(conn_handle(socket, addr));
-        }
+async fn dispatch<A>(app: &mut A, request: Request) -> Response
+where
+    A: abci::Application,
+{
+    Response {
+        value: Some(match request.value.unwrap() {
+            Value::Echo(req) => response::Value::Echo(app.echo(req).await),
+            Value::Flush(_) => response::Value::Flush(app.flush().await),
+            Value::Info(req) => response::Value::Info(app.info(req).await),
+            Value::SetOption(req) => response::Value::SetOption(app.set_option(req).await),
+            Value::InitChain(req) => response::Value::InitChain(app.init_chain(req).await),
+            Value::Query(req) => response::Value::Query(app.query(req).await),
+            Value::BeginBlock(req) => response::Value::BeginBlock(app.begin_block(req).await),
+            Value::CheckTx(req) => response::Value::CheckTx(app.check_tx(req).await),
+            Value::DeliverTx(req) => response::Value::DeliverTx(app.deliver_tx(req).await),
+            Value::EndBlock(req) => response::Value::EndBlock(app.end_block(req).await),
+            Value::Commit(_) => response::Value::Commit(app.commit().await),
+            Value::ListSnapshots(_) => response::Value::ListSnapshots(app.list_snapshots().await),
+            Value::OfferSnapshot(req) => {
+                response::Value::OfferSnapshot(app.offer_snapshot(req).await)
+            }
+            Value::LoadSnapshotChunk(req) => {
+                response::Value::LoadSnapshotChunk(app.load_snapshot_chunk(req).await)
+            }
+            Value::ApplySnapshotChunk(req) => {
+                response::Value::ApplySnapshotChunk(app.apply_snapshot_chunk(req).await)
+            }
+        }),
     }
 }
 
-mod mock {
-    use tendermint_proto::abci::{request, response};
-    use tendermint_proto::abci::{
-        ResponseApplySnapshotChunk, ResponseBeginBlock, ResponseCheckTx, ResponseCommit,
-        ResponseDeliverTx, ResponseEcho, ResponseEndBlock, ResponseFlush, ResponseInfo,
-        ResponseInitChain, ResponseListSnapshots, ResponseLoadSnapshotChunk, ResponseOfferSnapshot,
-        ResponseQuery, ResponseSetOption,
-    };
+pub struct Server<A: abci::Application + Sync> {
+    listener: Option<TcpListener>,
+    app: Arc<Mutex<A>>,
+}
 
-    pub fn default_reqresp(req: request::Value) -> Option<response::Value> {
-        match req {
-            request::Value::Echo(_) => Some(response::Value::Echo(ResponseEcho::default())),
-            request::Value::Flush(_) => Some(response::Value::Flush(ResponseFlush::default())),
-            request::Value::Info(_) => Some(response::Value::Info(ResponseInfo::default())),
-            request::Value::SetOption(_) => {
-                Some(response::Value::SetOption(ResponseSetOption::default()))
-            }
-            request::Value::InitChain(_) => {
-                Some(response::Value::InitChain(ResponseInitChain::default()))
-            }
-            request::Value::Query(_) => Some(response::Value::Query(ResponseQuery::default())),
-            request::Value::BeginBlock(_) => {
-                Some(response::Value::BeginBlock(ResponseBeginBlock::default()))
-            }
-            request::Value::CheckTx(_) => {
-                Some(response::Value::CheckTx(ResponseCheckTx::default()))
-            }
-            request::Value::DeliverTx(_) => {
-                Some(response::Value::DeliverTx(ResponseDeliverTx::default()))
-            }
-            request::Value::EndBlock(_) => {
-                Some(response::Value::EndBlock(ResponseEndBlock::default()))
-            }
-            request::Value::Commit(_) => Some(response::Value::Commit(ResponseCommit::default())),
-            request::Value::ListSnapshots(_) => Some(response::Value::ListSnapshots(
-                ResponseListSnapshots::default(),
-            )),
-            request::Value::OfferSnapshot(_) => Some(response::Value::OfferSnapshot(
-                ResponseOfferSnapshot::default(),
-            )),
-            request::Value::LoadSnapshotChunk(_) => Some(response::Value::LoadSnapshotChunk(
-                ResponseLoadSnapshotChunk::default(),
-            )),
-            request::Value::ApplySnapshotChunk(_) => Some(response::Value::ApplySnapshotChunk(
-                ResponseApplySnapshotChunk::default(),
-            )),
+impl<A: abci::Application + Sync> Server<A> {
+    pub fn new(app: A) -> Self {
+        Server {
+            listener: None,
+            app: Arc::new(Mutex::new(app)),
+        }
+    }
+
+    pub async fn bind<Addr: ToSocketAddrs>(mut self, addr: Addr) -> Result<Self> {
+        let listener = TcpListener::bind(addr).await?;
+        self.listener = Some(listener);
+        Ok(self)
+    }
+
+    pub async fn run(self) -> Result<()> {
+        if self.listener.is_none() {
+            return Err(Error::ServerNotBinding);
+        }
+        let listener = self.listener.unwrap();
+        loop {
+            let (socket, addr) = listener.accept().await?;
+            log::info!("new connect from {}", addr);
+            tokio::spawn(conn_handle(socket, addr, self.app.clone()));
         }
     }
 }

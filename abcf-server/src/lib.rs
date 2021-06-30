@@ -4,6 +4,8 @@ pub use server::Server;
 mod codec;
 pub use codec::Codec;
 
+mod abci;
+
 use std::io;
 
 #[derive(Debug)]
@@ -11,7 +13,7 @@ pub enum Error {
     StdIoError(io::Error),
     ProstEncodeError(prost::EncodeError),
     ProstDecodeError(prost::DecodeError),
-    Other,
+    ServerNotBinding,
 }
 
 impl From<io::Error> for Error {
