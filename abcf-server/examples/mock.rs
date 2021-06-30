@@ -1,5 +1,5 @@
-use std::io;
 use abcf_server::Server;
+use std::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {

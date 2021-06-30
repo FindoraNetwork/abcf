@@ -1,3 +1,1 @@
-pub trait Transaction: Default + Sync {
-
-}
+pub trait Transaction: Default + Sync {}

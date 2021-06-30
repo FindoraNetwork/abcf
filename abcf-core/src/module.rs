@@ -1,4 +1,4 @@
-use crate::{Transaction, Application};
+use crate::{Application, Transaction};
 
 pub trait Module {
     type Transaction: Transaction;

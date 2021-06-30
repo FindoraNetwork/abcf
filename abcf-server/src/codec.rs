@@ -9,8 +9,8 @@ use crate::Result;
 use bytes::{Buf, BufMut, BytesMut};
 use prost::Message;
 use tendermint_proto::abci::{Request, Response};
-use tokio::net::TcpStream;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 pub const MAX_VARINT_LENGTH: usize = 16;
 
@@ -68,7 +68,7 @@ impl Codec {
             }
             self.write_buf.advance(bytes_written);
         }
-        Ok(self.stream.flush().await?) 
+        Ok(self.stream.flush().await?)
     }
 }
 
