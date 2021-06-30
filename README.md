@@ -13,7 +13,7 @@
   - [ ] RPC defination.
 - [ ] Dynamic update.
   - [X] Modular `no_std` support.
-- [ ] ABCI interface in async.
+- [X] ABCI interface in async.
   - [X] Basic function.
-  - [ ] Testing (for tendermint 0.34)
+  - [X] Testing (for tendermint 0.34)
 
