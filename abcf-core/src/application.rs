@@ -1,10 +1,14 @@
-use crate::message::{check_tx, info};
+use crate::message::{check_tx, info, echo};
 use crate::Transaction;
 
 use alloc::boxed::Box;
 
 #[async_trait::async_trait]
 pub trait Application<T: Transaction> {
+    async fn echo(&mut self, _req: &echo::Request) -> echo::Response {
+        echo::Response::default()
+    }
+
     async fn info(&mut self, _req: &info::Request) -> info::Response {
         info::Response::default()
     }
