@@ -1,5 +1,7 @@
 use crate::{Application, Transaction};
 
+pub struct ModuelAttributes {}
+
 pub trait Module {
     type Transaction: Transaction;
 
@@ -12,5 +14,7 @@ pub trait Module {
 
     fn version(&self) -> &str;
 
-    fn get_application(&mut self) -> &Self::Application;
+    fn application(&mut self) -> &Self::Application;
+
+    fn config(&self) -> ModuelAttributes;
 }

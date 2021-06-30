@@ -11,7 +11,10 @@ pub trait Application<T: Transaction> {
 
     // ...
 
-    async fn check_tx(&mut self, _req: &check_tx::Request<T>) -> check_tx::Response {
+    async fn check_tx(&mut self, _req: &check_tx::Request<T>) -> check_tx::Response
+    where
+        T: Sync,
+    {
         check_tx::Response::default()
     }
 

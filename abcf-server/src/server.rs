@@ -13,7 +13,9 @@ pub struct Server {
 fn mock_handle(req: Request) -> Response {
     log::info!("{:?}", req);
     match req.value {
-        Some(r) => Response { value: mock::default_reqresp(r) },
+        Some(r) => Response {
+            value: mock::default_reqresp(r),
+        },
         None => Response { value: None },
     }
 }
