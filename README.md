@@ -6,7 +6,7 @@
 
 - [ ] Modular abci application
   - [X] Define Modular trait.
-  - [ ] Modular registry.
+  - [X] Modular registry.
   - [X] Application defination.
   - [ ] Storage defination.
   - [ ] Event defination.
