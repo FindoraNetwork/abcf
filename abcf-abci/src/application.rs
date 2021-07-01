@@ -23,21 +23,11 @@ where
     }
 }
 
-// macro_rules! define_application_method {
-    // ($op:ident, $req:ident, $resp:ident) => {
-    //     async fn $op(&mut self, request: abci::$req) -> abci::$resp {
-    //         Application::$op(&mut self.app, request.convert())
-    //             .await
-    //             .convert()
-    //     }
-    // }
-// }
-
 #[async_trait::async_trait]
 impl<A, T> abci::Application for ApplicationWrapper<A, T>
 where
-    A: Application<T> + 'static,
-    T: Transaction + 'static,
+    A: Application<T>,
+    T: Transaction,
 {
     async fn echo(&mut self, request: abci::RequestEcho) -> abci::ResponseEcho {
         Application::echo(&mut self.app, request.convert())

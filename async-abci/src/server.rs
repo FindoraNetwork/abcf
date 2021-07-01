@@ -82,7 +82,7 @@ pub struct Server<A: abci::Application> {
     app: Arc<Mutex<A>>,
 }
 
-impl<A: abci::Application> Server<A> {
+impl<A: abci::Application + 'static> Server<A> {
     pub fn new(app: A) -> Self {
         Server {
             listener: None,

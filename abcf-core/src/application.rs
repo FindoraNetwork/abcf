@@ -4,7 +4,7 @@ use crate::Transaction;
 use alloc::boxed::Box;
 
 #[async_trait::async_trait]
-pub trait Application<T: Transaction>: Send + 'static {
+pub trait Application<T: Transaction>: Send {
     async fn echo(&mut self, _req: echo::Request) -> echo::Response {
         echo::Response::default()
     }

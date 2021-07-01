@@ -8,7 +8,7 @@ pub use tendermint_proto::abci::{
 };
 
 #[async_trait::async_trait]
-pub trait Application: Send + 'static {
+pub trait Application: Send {
     async fn echo(&mut self, request: RequestEcho) -> ResponseEcho {
         ResponseEcho {
             message: request.message,
