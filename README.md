@@ -44,6 +44,6 @@ TMHOME="/tmp/example" ./tendermint init
 Run application.
 
 ``` bash
-cd target && ./abcf -config "/tmp/example/config/config.toml"
+cd target && RUST_LOG=debug ./abcf -config "/tmp/example/config/config.toml"
 ```
 
