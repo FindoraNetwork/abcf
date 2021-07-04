@@ -25,6 +25,7 @@ pub extern "C" fn call(req_ptr: *const u8, req_len: usize, resp_ptr: *mut u8) ->
 #[no_mangle]
 pub extern "C" fn start() {
     let (client, server) = rpc(100000, ABCIMemServer::new(ABCIApplication::default()));
+    println!("init!");
     unsafe {
         MEM_SERVER = Some(server);
         MEM_CLIENT = Some(client);

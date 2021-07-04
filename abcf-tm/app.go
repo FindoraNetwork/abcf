@@ -1,5 +1,12 @@
 package main
 
+/*
+#cgo LDFLAGS: -L${SRCDIR}/../target/release -ltokiogo -ldl -lm
+#include<stdint.h>
+size_t call(uint8_t *req_ptr, size_t req_len, uint8_t *resp_ptr);
+void start();
+*/
+import "C"
 import (
     abcitypes "github.com/tendermint/tendermint/abci/types"
 )
@@ -9,11 +16,16 @@ type ABCFApplication struct {}
 var _ abcitypes.Application = (*ABCFApplication)(nil)
 
 func NewABCFApplication() *ABCFApplication {
+    C.start()
     return &ABCFApplication{}
 }
 
 func (ABCFApplication) Info(req abcitypes.RequestInfo) abcitypes.ResponseInfo {
     return abcitypes.ResponseInfo{}
+}
+
+func (ABCFApplication) SetOption(req abcitypes.RequestSetOption) abcitypes.ResponseSetOption {
+	return abcitypes.ResponseSetOption{}
 }
 
 func (ABCFApplication) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.ResponseDeliverTx {
