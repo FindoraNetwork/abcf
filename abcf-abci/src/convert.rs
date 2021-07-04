@@ -31,12 +31,12 @@ define_type_convert!(
 );
 
 // impl Convert for abci::RequestInitChain {
-    // type Target = message::init_chain::Request;
-    //
-    // fn convert(self) -> Self::Target {
-    //     let req = message::init_chain::Request::default();
-    //     req
-    // }
+// type Target = message::init_chain::Request;
+//
+// fn convert(self) -> Self::Target {
+//     let req = message::init_chain::Request::default();
+//     req
+// }
 // }
 
 define_type_convert!(
@@ -47,7 +47,6 @@ define_type_convert!(
     height,
     prove
 );
-
 
 define_type_convert!(message::echo::Response, abci::ResponseEcho, message);
 define_type_convert!(

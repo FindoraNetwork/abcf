@@ -79,8 +79,3 @@ pub trait Application: Send {
 }
 
 impl Application for () {}
-
-// impl<T: Transaction, A: ABCFApplication<T>> Application for A {
-//
-// }
-//

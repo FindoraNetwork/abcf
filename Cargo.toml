@@ -3,5 +3,6 @@ members = [
     "abcf-core",
     "async-abci",
     # "abcf-manager",
-    "abcf-abci"
+    "abcf-abci",
+    "tokiogo"
 ]
