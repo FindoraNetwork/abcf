@@ -1,20 +1,16 @@
 use crate::server::ABCIApplication;
 use crate::ABCIMemServer;
 use crate::{rpc, MemClient, MemServer};
-use std::slice;
 use ffi_support::ByteBuffer;
+use std::slice;
 
 static mut MEM_SERVER: Option<MemServer<ABCIMemServer>> = None;
 static mut MEM_CLIENT: Option<MemClient> = None;
 
 #[no_mangle]
 pub extern "C" fn call(req_ptr: *const u8, req_len: usize) -> ByteBuffer {
-    let req_bytes = unsafe {
-        slice::from_raw_parts(req_ptr, req_len)
-    };
-    let resp = unsafe {
-        MEM_CLIENT.as_mut().unwrap().call(req_bytes)
-    };
+    let req_bytes = unsafe { slice::from_raw_parts(req_ptr, req_len) };
+    let resp = unsafe { MEM_CLIENT.as_mut().unwrap().call(req_bytes) };
     resp.into()
 }
 

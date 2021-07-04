@@ -46,7 +46,7 @@ where
     }
 }
 
-async fn dispatch<A>(app: &mut A, request: Request) -> Response
+pub async fn dispatch<A>(app: &mut A, request: Request) -> Response
 where
     A: abci::Application,
 {
