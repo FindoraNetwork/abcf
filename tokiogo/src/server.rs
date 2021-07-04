@@ -19,11 +19,11 @@ impl ABCIMemServer {
 
 #[async_trait::async_trait]
 impl Server for ABCIMemServer {
-    async fn callable(&mut self, req: Vec<u8>) -> Vec<u8> {
+    async fn callable(&mut self, req: &[u8]) -> Vec<u8> {
         use abci::request::Value as Request;
         use abci::response::Value as Response;
         let req = abci::Request::decode(req.as_ref()).unwrap();
-        // deal none
+        log::debug!("{:?}", req);
         let resp = match req.value.unwrap() {
             Request::Echo(r) => Response::Echo(self.abci_server.echo(r).await),
             Request::Flush(_) => Response::Flush(self.abci_server.flush().await),

@@ -4,21 +4,21 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[async_trait::async_trait]
 pub trait Server {
-    async fn callable(&mut self, req: Vec<u8>) -> Vec<u8>;
+    async fn callable(&mut self, req: &[u8]) -> Vec<u8>;
 }
 
-pub struct MemServer<S: Server> {
-    requester: Receiver<Vec<u8>>,
+pub struct MemServer<'a, S: Server> {
+    requester: Receiver<&'a [u8]>,
     responser: Sender<Vec<u8>>,
     server: S,
 }
 
-pub struct MemClient {
-    requester: Sender<Vec<u8>>,
+pub struct MemClient<'a> {
+    requester: Sender<&'a [u8]>,
     responser: Receiver<Vec<u8>>,
 }
 
-pub fn rpc<S: Server>(buffer: usize, server: S) -> (MemClient, MemServer<S>) {
+pub fn rpc<'a, S: Server>(buffer: usize, server: S) -> (MemClient<'a>, MemServer<'a, S>) {
     // is &[u8]
     let (in_sender, in_receiver) = mpsc::channel(buffer);
     let (out_sender, out_recevier) = mpsc::channel(buffer);
@@ -37,8 +37,8 @@ pub fn rpc<S: Server>(buffer: usize, server: S) -> (MemClient, MemServer<S>) {
     (client, server)
 }
 
-impl MemClient {
-    pub fn call(&mut self, req: Vec<u8>) -> Vec<u8> {
+impl<'a> MemClient<'a> {
+    pub fn call(&mut self, req: &'a [u8]) -> Vec<u8> {
         let rt = Runtime::new().unwrap();
 
         rt.block_on(async {
@@ -48,14 +48,16 @@ impl MemClient {
     }
 }
 
-impl<S: Server> MemServer<S> {
+impl<'a, S: Server> MemServer<'a, S> {
     pub fn start(&mut self) {
         let rt = Runtime::new().unwrap();
 
         rt.block_on(async {
-            let req = self.requester.recv().await.unwrap();
-            let resp = self.server.callable(req).await;
-            self.responser.send(resp).await.unwrap();
+            loop {
+                let req = self.requester.recv().await.unwrap();
+                let resp = self.server.callable(req).await;
+                self.responser.send(resp).await.unwrap();
+            }
         });
     }
 }

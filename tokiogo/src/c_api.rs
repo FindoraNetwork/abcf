@@ -12,15 +12,17 @@ pub extern "C" fn call(req_ptr: *const u8, req_len: usize) -> ByteBuffer {
     let req_bytes = unsafe {
         slice::from_raw_parts(req_ptr, req_len)
     };
-    let req_vec = req_bytes.to_vec();
+    // let req_vec = req_bytes.to_vec();
+    // log::debug!("recv data{:?}", req_vec);
     let resp = unsafe {
-        MEM_CLIENT.as_mut().unwrap().call(req_vec)
+        MEM_CLIENT.as_mut().unwrap().call(req_bytes)
     };
     resp.into()
 }
 
 #[no_mangle]
 pub extern "C" fn start() {
+    env_logger::init();
     let (client, server) = rpc(100000, ABCIMemServer::new(ABCIApplication::default()));
     println!("init!");
     unsafe {
