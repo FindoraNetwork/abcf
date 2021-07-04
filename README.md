@@ -18,7 +18,7 @@
 - [X] ABCI interface in async.
   - [X] Basic function.
   - [X] Testing (for tendermint 0.34)
-- [X] Compile go and rust together.
+- [X] Compile go and rust in single binary.
 
 ## Run framewrok
 
