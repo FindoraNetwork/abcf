@@ -5,7 +5,7 @@
 ## Features (WIP)
 
 - [ ] Modular abci application
-  - [X] Define Modular trait.
+  - [X] Define Module trait.
   - [X] Modular registry.
   - [X] Application defination.
   - [ ] Storage defination.
@@ -18,20 +18,32 @@
 - [X] ABCI interface in async.
   - [X] Basic function.
   - [X] Testing (for tendermint 0.34)
+- [X] Compile go and rust together.
 
-### Run test
+## Run framewrok
 
-Use tendermint 0.34.
+### Requirements
 
-Start tendermint:
+- Go
+- Rust
+- make
+- tendermint
+
+Build.
 
 ``` bash
-TMHOME="/tmp/example1" ./tendermint node tcp://127.0.0.1:26658
+make build
 ```
 
-Start mock server.
+Setup tendermint.
 
 ``` bash
-RUST_LOG=DEBUG cargo run --example mock
+TMHOME="/tmp/example" ./tendermint init
+```
+
+Run application.
+
+``` bash
+cd target && ./abcf -config "/tmp/example/config/config.toml"
 ```
 
