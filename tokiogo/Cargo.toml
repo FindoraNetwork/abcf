@@ -16,3 +16,4 @@ async-abci = {path = "../async-abci"}
 tendermint-proto = "0.20.0"
 prost = "0.7.0"
 env_logger = "0.8.4"
+ffi-support = "0.4.3"

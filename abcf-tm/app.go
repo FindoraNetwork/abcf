@@ -3,25 +3,47 @@ package main
 /*
 #cgo LDFLAGS: -L${SRCDIR}/../target/release -ltokiogo -ldl -lm
 #include<stdint.h>
-size_t call(uint8_t *req_ptr, size_t req_len, uint8_t *resp_ptr);
+
+typedef struct ByteBuffer {
+    int64_t len;
+    uint8_t *data;
+} ByteBuffer;
+
+ByteBuffer call(uint8_t *req_ptr, size_t req_len);
 void start();
 */
 import "C"
 import (
     abcitypes "github.com/tendermint/tendermint/abci/types"
+    "unsafe"
 )
+
+func start() {
+    C.start()
+}
 
 type ABCFApplication struct {}
 
 var _ abcitypes.Application = (*ABCFApplication)(nil)
 
 func NewABCFApplication() *ABCFApplication {
-    C.start()
     return &ABCFApplication{}
 }
 
+func call_abci(req *abcitypes.Request) abcitypes.Response {
+    data, _ := req.Marshal()
+
+    bb := C.call((*C.uchar)(&data[0]), C.size_t(len(data)))
+    resp_data := C.GoBytes(unsafe.Pointer(bb.data), C.int(bb.len))
+    resp := abcitypes.Response{}
+    resp.Unmarshal(resp_data)
+    return resp
+}
+
 func (ABCFApplication) Info(req abcitypes.RequestInfo) abcitypes.ResponseInfo {
-    return abcitypes.ResponseInfo{}
+    abci_req := abcitypes.ToRequestInfo(req)
+    abci_resp := call_abci(abci_req)
+    return *abci_resp.GetInfo()
 }
 
 func (ABCFApplication) SetOption(req abcitypes.RequestSetOption) abcitypes.ResponseSetOption {

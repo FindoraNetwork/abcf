@@ -28,6 +28,7 @@ func init() {
 
 func main() {
     app := NewABCFApplication()
+    go start()
 
     flag.Parse()
 
