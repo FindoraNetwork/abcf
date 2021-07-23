@@ -9,10 +9,11 @@ description = "A async abci server."
 [dependencies]
 bytes = "1.0.1"
 log = "0.4.14"
-prost = "0.7.0"
-tendermint-proto = "0.20.0"
+prost = "0.8.0"
 tokio = { version = "1", features = ["rt", "net", "io-util", "sync"] }
 async-trait = "0.1.50"
+tm-abci = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git"}
+tm-protos = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git"}
 
 [dev-dependencies]
 env_logger = "0.8.4"

@@ -1,8 +1,5 @@
 [workspace]
 members = [
-    "abcf-core",
-    "async-abci",
-    # "abcf-manager",
-    "abcf-abci",
-    "tokiogo"
+    "async-abci"
 ]
+

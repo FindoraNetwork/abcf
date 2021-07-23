@@ -8,7 +8,7 @@
 use crate::Result;
 use bytes::{Buf, BufMut, BytesMut};
 use prost::Message;
-use tendermint_proto::abci::{Request, Response};
+use tm_protos::abci::{Request, Response};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 

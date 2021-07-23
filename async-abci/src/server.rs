@@ -1,16 +1,16 @@
-use crate::abci;
 use crate::{Codec, Error, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tendermint_proto::abci::{request::Value, response, Request, Response};
+use tm_protos::abci::{request::Value, response, Request, Response};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio::sync::Mutex;
+use tm_abci::Application;
 
 pub const DEFAULT_SERVER_READ_BUF_SIZE: usize = 1024 * 1024;
 
 async fn conn_handle<A>(socket: TcpStream, addr: SocketAddr, app: Arc<Mutex<A>>)
 where
-    A: abci::Application,
+    A: Application,
 {
     let mut codec = Codec::new(socket, DEFAULT_SERVER_READ_BUF_SIZE);
 
@@ -48,7 +48,7 @@ where
 
 pub async fn dispatch<A>(app: &mut A, request: Request) -> Response
 where
-    A: abci::Application,
+    A: Application,
 {
     Response {
         value: Some(match request.value.unwrap() {
@@ -77,12 +77,12 @@ where
     }
 }
 
-pub struct Server<A: abci::Application> {
+pub struct Server<A: Application> {
     listener: Option<TcpListener>,
     app: Arc<Mutex<A>>,
 }
 
-impl<A: abci::Application + 'static> Server<A> {
+impl<A: Application + 'static> Server<A> {
     pub fn new(app: A) -> Self {
         Server {
             listener: None,
