@@ -27,4 +27,3 @@ pub struct ModuleMetadata {
     pub version: String,
     pub impl_version: String,
 }
-

@@ -6,7 +6,7 @@ pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
 /// This trait define module's main logic.
 #[async_trait::async_trait]
-pub trait Application: Send{
+pub trait Application: Send {
     /// Define how to check transaction.
     ///
     /// In this function, do some lightweight check for transaction, for example: check signature,

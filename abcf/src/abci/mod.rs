@@ -1,4 +1,4 @@
-use crate::module::{Module, Application, ModuleMetadata};
+use crate::module::{Application, Module, ModuleMetadata};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use tm_protos::abci;
 
@@ -36,9 +36,7 @@ impl tm_abci::Application for Node {
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
         self.apps.begin_block(&req).await;
-        abci::ResponseBeginBlock {
-            events: Vec::new()
-        }
+        abci::ResponseBeginBlock { events: Vec::new() }
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
