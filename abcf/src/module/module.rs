@@ -7,18 +7,15 @@ pub trait Module {
 
     // type Events: Events;
 
-    // type RPCs: RPCs;
+    type RPCs: RPCs;
 
-    // type Transaction: Transaction;
     type Application: Application;
 
-    // fn name(&self) -> &str;
-    //
     fn metadata(&self) -> ModuleMetadata;
 
     fn application(&self) -> Self::Application;
     // fn events(&self) -> Self::Events;
-    // fn rpcs(&self) -> Self::RPCs;
+    fn rpcs(&self) -> Self::RPCs;
     // fn storages(&self) -> Self::Storages;
 }
 
