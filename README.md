@@ -2,16 +2,24 @@
 
 > Application Blockchain Framework
 
+## Design principle
+
+- Try to use tendermint function.
+
 ## Features (WIP)
 
-- [ ] Module defination.
-  - [ ] Define Module trait.
-  - [ ] Application defination.
-  - [ ] Storage defination.
-  - [ ] Event defination.
-  - [ ] RPC defination.
-- [ ] Framework entry.
-- [ ] Module Register.
+- [X] Module defination.
+  - [X] Define Module trait.
+  - [X] Application defination.
+  - [X] Storage defination.
+  - [X] Event defination.
+  - [X] RPC defination.
+- [X] Framework entry(single module).
+  - [X] Module application.
+  - [ ] RPC.
+  - [ ] Event.
+  - [ ] Store.
+- [X] Module Register(multi module).
 - [ ] Dynamic update.
   - [X] Modular `no_std` support.
   - [ ] Add Webassembly engine.

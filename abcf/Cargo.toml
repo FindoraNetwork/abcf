@@ -6,3 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tm-protos = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
+tm-abci = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
+async-trait = { version = "0.1.50" }
+serde = { version = "1.0", features = ["derive", "alloc"], default-features = false }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
