@@ -10,7 +10,7 @@ pub struct Response<'a, T: Serialize> {
 }
 
 #[async_trait::async_trait]
-pub trait RPCs {
+pub trait RPCs: Send {
     // async fn call(&mut self, ctx: &mut Context, method: &str, params: Value) -> Response<Value>;
     async fn call(&mut self, method: &str, params: Value) -> Response<'_, Value>;
 }
