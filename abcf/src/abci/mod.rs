@@ -140,6 +140,8 @@ impl tm_abci::Application for Node {
 mod tests {
     use alloc::string::ToString;
 
+    use crate::module::rpcs::Response;
+
     use super::*;
 
     pub struct MockApplicaion {}
@@ -152,9 +154,10 @@ mod tests {
     impl RPCs for MockRPCs {
         async fn call(
             &mut self,
-            method: &str,
-            params: serde_json::Value,
-        ) -> crate::module::rpcs::Response<'_, serde_json::Value> {
+            _method: &str,
+            _params: serde_json::Value,
+        ) -> Response<'_, serde_json::Value> {
+            Response::default()
         }
     }
 
@@ -162,6 +165,7 @@ mod tests {
 
     impl Module for MockModule {
         type Application = MockApplicaion;
+        type RPCs = MockRPCs;
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
@@ -173,6 +177,10 @@ mod tests {
 
         fn application(&self) -> Self::Application {
             MockApplicaion {}
+        }
+
+        fn rpcs(&self) -> Self::RPCs {
+            MockRPCs {}
         }
     }
 }

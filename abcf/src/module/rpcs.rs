@@ -9,6 +9,16 @@ pub struct Response<'a, T: Serialize> {
     pub data: Option<T>,
 }
 
+impl<'a, T: Serialize> Default for Response<'a, T> {
+    fn default() -> Self {
+        Self {
+            code: 0,
+            message: "success",
+            data: None,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait RPCs: Send + Sync {
     // async fn call(&mut self, ctx: &mut Context, method: &str, params: Value) -> Response<Value>;
