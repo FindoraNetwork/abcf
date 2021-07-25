@@ -4,13 +4,13 @@ pub use application::Application;
 mod transaction;
 pub use transaction::Transaction;
 
-pub mod rpcs;
-pub use rpcs::RPCs;
+mod rpcs;
+pub use rpcs::{RPCs, Response as RPCResponse};
 
-pub mod events;
+mod events;
 pub use events::Event;
 
-pub mod storages;
+mod storages;
 pub use storages::Storages;
 
 mod module;

@@ -174,7 +174,7 @@ impl tm_abci::Application for Node {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::module::rpcs::Response;
+    use crate::module::RPCResponse;
     use alloc::string::ToString;
 
     pub struct MockApplicaion {}
@@ -190,8 +190,8 @@ mod tests {
             _context: &mut Context,
             _method: &str,
             _params: serde_json::Value,
-        ) -> Response<'_, serde_json::Value> {
-            Response::default()
+        ) -> RPCResponse<'_, serde_json::Value> {
+            RPCResponse::default()
         }
     }
 

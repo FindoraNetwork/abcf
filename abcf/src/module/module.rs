@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use super::{Application, Event, RPCs, Storages};
+use super::{Application, RPCs, Storages};
 
 /// Module.
 pub trait Module {
@@ -24,6 +24,7 @@ pub trait Module {
     fn rpcs(&self) -> Self::RPCs;
 }
 
+/// Metadata of module.
 pub struct ModuleMetadata {
     /// Name of module.
     pub name: String,

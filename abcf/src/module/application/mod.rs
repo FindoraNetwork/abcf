@@ -6,7 +6,7 @@ pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
 use crate::abci::Context;
 
-/// This trait define module's main logic.
+/// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
 pub trait Application: Send + Sync {
     /// Define how to check transaction.

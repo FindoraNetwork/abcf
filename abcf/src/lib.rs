@@ -2,7 +2,10 @@
 
 extern crate alloc;
 
-pub mod module;
+mod module;
+pub use module::{
+    Application, Event, Module, ModuleMetadata, RPCResponse, RPCs, Storages, Transaction,
+};
 
 pub mod abci;
 

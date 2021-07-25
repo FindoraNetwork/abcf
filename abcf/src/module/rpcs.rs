@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use serde::Serialize;
 use serde_json::Value;
 
-// #[derive(Serialize)]
+/// Response of RPC.
 pub struct Response<'a, T: Serialize> {
     pub code: u32,
     pub message: &'a str,
@@ -20,6 +20,7 @@ impl<'a, T: Serialize> Default for Response<'a, T> {
     }
 }
 
+/// Define module's RPC.
 #[async_trait::async_trait]
 pub trait RPCs: Send + Sync {
     async fn call(&mut self, ctx: &mut Context, method: &str, params: Value)
