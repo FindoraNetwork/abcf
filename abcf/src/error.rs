@@ -1,5 +1,6 @@
 use alloc::string::String;
 
+/// Error of abcf.
 #[derive(Debug)]
 pub enum Error {
     FromBytesError,
@@ -23,4 +24,5 @@ impl Error {
     }
 }
 
+/// Re-export `Result` for abcf.
 pub type Result<T> = core::result::Result<T, Error>;
