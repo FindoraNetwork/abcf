@@ -30,4 +30,12 @@ pub struct ModuleMetadata<'a> {
     pub version: &'a str,
     /// Version of impl. If this version change, means module only a change of impl.
     pub impl_version: &'a str,
+    /// Genesis info.
+    pub genesis: Genesis,
 }
+
+/// Genesis for module.
+pub struct Genesis {
+    pub target_hight: u64,
+}
+

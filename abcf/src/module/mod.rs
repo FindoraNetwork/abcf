@@ -14,4 +14,4 @@ mod storages;
 pub use storages::Storages;
 
 mod module;
-pub use module::{Module, ModuleMetadata};
+pub use module::{Module, ModuleMetadata, Genesis};

@@ -36,6 +36,8 @@ Framework for blockchain based on tendermint.
     - [ ] Client SDK.
 - [ ] Add example using macro.
 - [ ] Dynamic update.
+  - [X] Genesis info.
+  - [ ] Node version match.
   - [X] Modular `no_std` support.
   - [ ] Add Webassembly engine.
   - [ ] Running Module on Webassembly.

@@ -177,7 +177,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::module::RPCResponse;
+    use crate::{Genesis, module::RPCResponse};
 
     pub struct MockApplicaion {}
 
@@ -208,6 +208,9 @@ mod tests {
                 name: "mock",
                 version: "0.1.0",
                 impl_version: "0.1.0",
+                genesis: Genesis {
+                    target_hight: 1,
+                }
             }
         }
 
