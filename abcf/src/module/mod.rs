@@ -11,7 +11,7 @@ mod events;
 pub use events::Event;
 
 mod storages;
-pub use storages::Storages;
+pub use storages::{Storages, KVStore};
 
 mod module;
 pub use module::{Module, ModuleMetadata, Genesis};

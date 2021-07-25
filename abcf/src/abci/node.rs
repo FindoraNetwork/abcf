@@ -1,9 +1,5 @@
-use super::{Context, EventContext};
-use crate::{
-    abci::EventContextImpl,
-    module::{Application, Module, ModuleMetadata, RPCs},
-    Error, Result,
-};
+use super::{Context, EventContext, context::StorageContext};
+use crate::{Error, Result, abci::EventContextImpl, module::{Application, KVStore, Module, ModuleMetadata, RPCs}};
 use alloc::{
     boxed::Box,
     string::{String, ToString},
@@ -17,6 +13,10 @@ pub struct Node<'a> {
     metadatas: Vec<ModuleMetadata<'a>>,
     rpcs: Vec<Box<dyn RPCs>>,
     events: EventContextImpl,
+    // event_descriptor: Vec<EventDescriptor>,
+    // stateful_storage: Vec<SparseMerkleTree<H, Value, S>>,
+    // stateless_storage: Vec<S>,
+    // storage_descriptor: Vec<Box<StorageDescriptor>>,
 }
 
 impl<'a> Node<'a> {
@@ -61,7 +61,7 @@ impl<'a> Node<'a> {
             return Err(Error::TempOnlySupportRPC);
         }
 
-        let mut context = Context { event: None };
+        let mut context = Context { event: None, storage: StorageContext {} };
 
         let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
         let resp = rpc.call(&mut context, splited_path[1], params).await;
@@ -108,6 +108,7 @@ impl<'a> tm_abci::Application for Node<'a> {
         // construct context for call.
         let mut context = Context {
             event: Some(EventContext::new(&mut self.events.check_tx_events)),
+            storage: StorageContext {},
         };
 
         let resp = app.check_tx(&mut context, &req).await;
@@ -129,6 +130,7 @@ impl<'a> tm_abci::Application for Node<'a> {
         // construct context for call.
         let mut context = Context {
             event: Some(EventContext::new(&mut self.events.begin_block_events)),
+            storage: StorageContext {},
         };
 
         app.begin_block(&mut context, &req).await;
@@ -142,6 +144,7 @@ impl<'a> tm_abci::Application for Node<'a> {
         // construct context for call.
         let mut context = Context {
             event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+            storage: StorageContext {},
         };
 
         let resp = app.deliver_tx(&mut context, &_request).await;
@@ -163,6 +166,7 @@ impl<'a> tm_abci::Application for Node<'a> {
         // construct context for call.
         let mut context = Context {
             event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+            storage: StorageContext {},
         };
 
         let resp = app.end_block(&mut context, &_request).await;
