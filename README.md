@@ -102,7 +102,6 @@ Using macro.
 use abcf::{Module, ModuleMetadata, ModuleRegister, Node};
 
 // Define RPC
-
 struct MockRPCS {}
 
 #[rpc::rpcs]
@@ -124,7 +123,6 @@ impl MockRPCs {
 }
 
 // Define Application
-
 struct MockApplicaion {}
 
 #[async_trait::async_trait]
@@ -153,7 +151,6 @@ impl Application for MockApplicaion {
 }
 
 // Define Module
-
 struct Mock {}
 
 #[abcf::module(MockApplicaion, MockRPCs, (), ())]
