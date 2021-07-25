@@ -123,11 +123,40 @@ impl MockRPCs {
     }
 }
 
+// Define Application
+
+struct MockApplicaion {}
+
+#[async_trait::async_trait]
+impl Application for MockApplicaion {
+    async fn check_tx(&mut self, _context: &mut Context, _req: &RequestCheckTx) -> ResponseCheckTx {
+        ResponseCheckTx::default()
+    }
+
+    async fn begin_block(&mut self, _context: &mut Context, _req: &RequestBeginBlock) {}
+
+    async fn deliver_tx(
+        &mut self,
+        _context: &mut Context,
+        _req: &RequestDeliverTx,
+    ) -> ResponseDeliverTx {
+        ResponseDeliverTx::default()
+    }
+
+    async fn end_block(
+        &mut self,
+        _context: &mut Context,
+        _req: &RequestEndBlock,
+    ) -> ResponseEndBlock {
+        ResponseEndBlock::default()
+    }
+}
+
 // Define Module
 
 struct Mock {}
 
-#[abcf::module(MockRPCs, (), (), ())]
+#[abcf::module(MockApplicaion, MockRPCs, (), ())]
 impl Module for Mock {
     fn metadata(&self) -> ModuleMetadata<'_> {
         ModuleMetadata {
