@@ -46,7 +46,7 @@ Cargo.toml
 abcf = { git = "git://git@github.com/FindoraNetwork/abcf.git" }
 ```
 
-In code:
+Using raw trait:
 
 ``` rust
 use abcf::{Module, ModuleMetadata, ModuleRegister, Node};
@@ -69,6 +69,18 @@ impl Module for Mock {
             }
         }
     }
+
+    fn application(&self) -> Self::Application {
+        ()
+    }
+
+    fn events(&self) -> Self::Events {
+        ()
+    }
+
+    fn rpcs() -> Self::RPCs {
+        ()
+    }
 }
 
 fn main() {
@@ -80,6 +92,53 @@ fn main() {
     smol::block_on( async {
         node.start().await();
     });
+}
+
+```
+
+Using macro.
+
+``` rust
+use abcf::{Module, ModuleMetadata, ModuleRegister, Node};
+
+// Define RPC
+
+struct MockRPCS {}
+
+#[rpc::rpcs]
+impl RPCs for MockRPCs {}
+
+#[derive(Deserialize)]
+pub struct GetAccountRequest {}
+
+#[derive(Serialize)]
+pub struct GetAccountResponse {}
+
+#[rpc::rpcs]
+impl MockRPCs {
+    #[rpc::method("get_account")]
+    pub async fn get_account(&mut self, ctx: &mut Context, params: GetAccountRequest) 
+      -> Response<GetAccountResponse> {
+      // ..
+    }
+}
+
+// Define Module
+
+struct Mock {}
+
+#[abcf::module(MockRPCs, (), (), ())]
+impl Module for Mock {
+    fn metadata(&self) -> ModuleMetadata<'_> {
+        ModuleMetadata {
+            name: "mock",
+            version: "0.1.0",
+            impl_version: "0.1.3",
+            genesis: Genesis {
+                target_height: 1,
+            }
+        }
+    }
 }
 
 ```
