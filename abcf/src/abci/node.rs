@@ -12,14 +12,14 @@ use alloc::{
 use tm_protos::abci;
 
 /// ABCF node.
-pub struct Node {
+pub struct Node<'a> {
     apps: Vec<Box<dyn Application>>,
-    metadatas: Vec<ModuleMetadata>,
+    metadatas: Vec<ModuleMetadata<'a>>,
     rpcs: Vec<Box<dyn RPCs>>,
     events: EventContextImpl,
 }
 
-impl Node {
+impl<'a> Node<'a> {
     /// create new node for network.
     pub fn new() -> Self {
         Node {
@@ -31,7 +31,7 @@ impl Node {
     }
 
     /// regist module.
-    pub fn regist<M, A, R>(&mut self, m: &M)
+    pub fn regist<M, A, R>(&mut self, m: &'a M)
     where
         R: RPCs + 'static,
         A: Application + 'static,
@@ -43,7 +43,7 @@ impl Node {
     }
 }
 
-impl Node {
+impl<'a> Node<'a> {
     async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> Result<Vec<u8>> {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
@@ -66,7 +66,10 @@ impl Node {
         let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
         let resp = rpc.call(&mut context, splited_path[1], params).await;
         if resp.code != 0 {
-            return Err(Error::RPRApplicationError(resp.code, metadata.name.clone()));
+            return Err(Error::RPRApplicationError(
+                resp.code,
+                metadata.name.to_string(),
+            ));
         }
 
         if resp.data.is_none() {
@@ -79,7 +82,7 @@ impl Node {
 }
 
 #[async_trait::async_trait]
-impl tm_abci::Application for Node {
+impl<'a> tm_abci::Application for Node<'a> {
     async fn query(&mut self, req: abci::RequestQuery) -> abci::ResponseQuery {
         let mut resp = abci::ResponseQuery::default();
 
@@ -116,7 +119,7 @@ impl tm_abci::Application for Node {
             gas_wanted: resp.gas_wanted,
             gas_used: resp.gas_used,
             events: Vec::new(),
-            codespace: metadata.name.clone(),
+            codespace: metadata.name.to_string(),
         }
     }
 
@@ -150,7 +153,7 @@ impl tm_abci::Application for Node {
             gas_wanted: resp.gas_wanted,
             gas_used: resp.gas_used,
             events: Vec::new(),
-            codespace: metadata.name.clone(),
+            codespace: metadata.name.to_string(),
         }
     }
 
@@ -175,7 +178,6 @@ impl tm_abci::Application for Node {
 mod tests {
     use super::*;
     use crate::module::RPCResponse;
-    use alloc::string::ToString;
 
     pub struct MockApplicaion {}
 
@@ -203,9 +205,9 @@ mod tests {
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
-                name: "mock".to_string(),
-                version: "0.1.0".to_string(),
-                impl_version: "0.1.0".to_string(),
+                name: "mock",
+                version: "0.1.0",
+                impl_version: "0.1.0",
             }
         }
 
