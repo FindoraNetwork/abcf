@@ -5,6 +5,9 @@
 ## Design principle
 
 - Try to use tendermint function.
+- Simplilfy logic of blockchain.
+  - Only focus on transcation check, state change and block generate.
+  Needn't consider how to sync state, storage data and so on.
 
 ## Features (WIP)
 

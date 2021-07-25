@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use super::{Application, Events, RPCs, Storages};
+use super::{Application, Event, RPCs, Storages};
 
 pub trait Module {
     // type Storages: Storages;
