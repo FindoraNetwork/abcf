@@ -2,6 +2,8 @@
 
 > Application Blockchain Framework
 
+Framework for blockchain based on tendermint.
+
 ## Design principle
 
 - Try to use tendermint function.
