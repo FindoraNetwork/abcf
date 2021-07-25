@@ -19,12 +19,20 @@
   - [X] Event defination.
   - [X] RPC defination.
 - [X] Framework entry(single module).
-  - [X] Module application.
+  - [X] Application.
   - [X] RPC.
-    - [ ] RPC Context.
-  - [ ] Event.
+    - [X] RPC Context.
+  - [X] Event.
   - [ ] Store.
+- [ ] Add example using raw define.
 - [X] Module Register(multi module).
+  - [ ] RPC
+    - [ ] Macros.
+    - [ ] Client SDK.
+  - [ ] Event
+    - [ ] Macros
+    - [ ] Client SDK.
+- [ ] Add example using macro.
 - [ ] Dynamic update.
   - [X] Modular `no_std` support.
   - [ ] Add Webassembly engine.
