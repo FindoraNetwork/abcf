@@ -1,3 +1,4 @@
+use super::{Context, EventContext};
 use crate::{
     abci::EventContextImpl,
     module::{Application, Module, ModuleMetadata, RPCs},
@@ -9,8 +10,6 @@ use alloc::{
     vec::Vec,
 };
 use tm_protos::abci;
-
-use super::{Context, EventContext};
 
 /// ABCF node.
 pub struct Node {

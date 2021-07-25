@@ -22,12 +22,20 @@ pub trait Application: Send + Sync {
     async fn begin_block(&mut self, _context: &mut Context, _req: &RequestBeginBlock) {}
 
     /// Execute transaction on state.
-    async fn deliver_tx(&mut self, _context: &mut Context, _req: &RequestDeliverTx) -> ResponseDeliverTx {
+    async fn deliver_tx(
+        &mut self,
+        _context: &mut Context,
+        _req: &RequestDeliverTx,
+    ) -> ResponseDeliverTx {
         ResponseDeliverTx::default()
     }
 
     /// End Block.
-    async fn end_block(&mut self, _context: &mut Context , _req: &RequestEndBlock) -> ResponseEndBlock {
+    async fn end_block(
+        &mut self,
+        _context: &mut Context,
+        _req: &RequestEndBlock,
+    ) -> ResponseEndBlock {
         ResponseEndBlock::default()
     }
 }
