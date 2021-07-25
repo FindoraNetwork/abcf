@@ -1,4 +1,5 @@
 use crate::{
+    abci::EventContextImpl,
     module::{Application, Module, ModuleMetadata, RPCs},
     Error, Result,
 };
@@ -9,21 +10,28 @@ use alloc::{
 };
 use tm_protos::abci;
 
+use super::{Context, EventContext};
+
+/// ABCF node.
 pub struct Node {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata>,
     rpcs: Vec<Box<dyn RPCs>>,
+    events: EventContextImpl,
 }
 
 impl Node {
+    /// create new node for network.
     pub fn new() -> Self {
         Node {
             apps: Vec::new(),
             metadatas: Vec::new(),
             rpcs: Vec::new(),
+            events: EventContextImpl::default(),
         }
     }
 
+    /// regist module.
     pub fn regist<M, A, R>(&mut self, m: &M)
     where
         R: RPCs + 'static,
@@ -34,7 +42,9 @@ impl Node {
         self.apps.push(Box::new(m.application()));
         self.rpcs.push(Box::new(m.rpcs()));
     }
+}
 
+impl Node {
     async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> Result<Vec<u8>> {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
@@ -52,8 +62,10 @@ impl Node {
             return Err(Error::TempOnlySupportRPC);
         }
 
+        let mut context = Context { event: None };
+
         let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
-        let resp = rpc.call("", params).await;
+        let resp = rpc.call(&mut context, splited_path[1], params).await;
         if resp.code != 0 {
             return Err(Error::RPRApplicationError(resp.code, metadata.name.clone()));
         }
@@ -90,7 +102,13 @@ impl tm_abci::Application for Node {
     async fn check_tx(&mut self, req: abci::RequestCheckTx) -> abci::ResponseCheckTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
-        let resp = app.check_tx(&req).await;
+
+        // construct context for call.
+        let mut context = Context {
+            event: Some(EventContext::new(&mut self.events.check_tx_events)),
+        };
+
+        let resp = app.check_tx(&mut context, &req).await;
         abci::ResponseCheckTx {
             code: resp.code,
             data: resp.data,
@@ -105,14 +123,26 @@ impl tm_abci::Application for Node {
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
         let app = &mut self.apps[0];
-        app.begin_block(&req).await;
+
+        // construct context for call.
+        let mut context = Context {
+            event: Some(EventContext::new(&mut self.events.begin_block_events)),
+        };
+
+        app.begin_block(&mut context, &req).await;
         abci::ResponseBeginBlock { events: Vec::new() }
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
-        let resp = app.deliver_tx(&_request).await;
+
+        // construct context for call.
+        let mut context = Context {
+            event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+        };
+
+        let resp = app.deliver_tx(&mut context, &_request).await;
         abci::ResponseDeliverTx {
             code: resp.code,
             data: resp.data,
@@ -127,7 +157,13 @@ impl tm_abci::Application for Node {
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
         let app = &mut self.apps[0];
-        let resp = app.end_block(&_request).await;
+
+        // construct context for call.
+        let mut context = Context {
+            event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+        };
+
+        let resp = app.end_block(&mut context, &_request).await;
         abci::ResponseEndBlock {
             validator_updates: resp.validator_updates,
             consensus_param_updates: resp.consensus_param_updates,
@@ -138,11 +174,9 @@ impl tm_abci::Application for Node {
 
 #[cfg(test)]
 mod tests {
-    use alloc::string::ToString;
-
-    use crate::module::rpcs::Response;
-
     use super::*;
+    use crate::module::rpcs::Response;
+    use alloc::string::ToString;
 
     pub struct MockApplicaion {}
 
@@ -154,6 +188,7 @@ mod tests {
     impl RPCs for MockRPCs {
         async fn call(
             &mut self,
+            _context: &mut Context,
             _method: &str,
             _params: serde_json::Value,
         ) -> Response<'_, serde_json::Value> {

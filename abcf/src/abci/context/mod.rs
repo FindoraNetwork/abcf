@@ -1,6 +1,6 @@
 mod events;
-pub use events::EventContext;
+pub use events::{EventContext, EventContextImpl};
 
 pub struct Context<'a> {
-    pub event: EventContext<'a>,
+    pub event: Option<EventContext<'a>>,
 }

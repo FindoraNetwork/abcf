@@ -1,3 +1,4 @@
+use crate::abci::Context;
 use alloc::boxed::Box;
 use serde::Serialize;
 use serde_json::Value;
@@ -21,6 +22,6 @@ impl<'a, T: Serialize> Default for Response<'a, T> {
 
 #[async_trait::async_trait]
 pub trait RPCs: Send + Sync {
-    // async fn call(&mut self, ctx: &mut Context, method: &str, params: Value) -> Response<Value>;
-    async fn call(&mut self, method: &str, params: Value) -> Response<'_, Value>;
+    async fn call(&mut self, ctx: &mut Context, method: &str, params: Value)
+        -> Response<'_, Value>;
 }
