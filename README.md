@@ -8,6 +8,7 @@
 - Simplilfy logic of blockchain.
   - Only focus on transcation check, state change and block generate.
   Needn't consider how to sync state, storage data and so on.
+- Provide unit test, testing, and node.
 
 ## Features (WIP)
 
