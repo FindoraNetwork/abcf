@@ -120,7 +120,7 @@ pub struct GetAccountResponse {}
 #[rpc::rpcs]
 impl MockRPCs {
     #[rpc::method("get_account")]
-    pub async fn get_account(&mut self, ctx: &mut Context, params: GetAccountRequest) 
+    pub async fn get_account(&mut self, ctx: &mut Context, params: GetAccountRequest)
       -> Response<GetAccountResponse> {
       // ..
     }
@@ -188,12 +188,12 @@ make build
 Setup tendermint.
 
 ``` bash
-TMHOME="/tmp/example" ./tendermint init
+cd target && ./abcf --base-dir /tmp/example
 ```
 
 Run application.
 
 ``` bash
-cd target && RUST_LOG=debug ./abcf -config "/tmp/example/config/config.toml"
+RUST_LOG=debug ./abcf --config "/tmp/example/config/config.toml"
 ```
 

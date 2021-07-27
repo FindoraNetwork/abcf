@@ -12,7 +12,7 @@ pub struct Node<'a> {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata<'a>>,
     rpcs: Vec<Box<dyn RPCs>>,
-    events: EventContextImpl,
+    events: Vec<EventContextImpl>,
     // event_descriptor: Vec<EventDescriptor>,
     // stateful_storage: Vec<SparseMerkleTree<H, Value, S>>,
     // stateless_storage: Vec<S>,
@@ -26,7 +26,7 @@ impl<'a> Node<'a> {
             apps: Vec::new(),
             metadatas: Vec::new(),
             rpcs: Vec::new(),
-            events: EventContextImpl::default(),
+            events: Vec::new(),
         }
     }
 
@@ -37,9 +37,10 @@ impl<'a> Node<'a> {
         A: Application + 'static,
         M: Module<Application = A, RPCs = R>,
     {
-        self.metadatas.push(m.metadata());
         self.apps.push(Box::new(m.application()));
+        self.metadatas.push(m.metadata());
         self.rpcs.push(Box::new(m.rpcs()));
+        self.events.push(EventContextImpl::default());
     }
 }
 
@@ -104,10 +105,11 @@ impl<'a> tm_abci::Application for Node<'a> {
     async fn check_tx(&mut self, req: abci::RequestCheckTx) -> abci::ResponseCheckTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
+        let events = &mut self.events[0];
 
         // construct context for call.
         let mut context = Context {
-            event: Some(EventContext::new(&mut self.events.check_tx_events)),
+            event: Some(EventContext::new(&mut events.check_tx_events)),
             storage: StorageContext {},
         };
 
@@ -126,10 +128,11 @@ impl<'a> tm_abci::Application for Node<'a> {
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
         let app = &mut self.apps[0];
+        let events = &mut self.events[0];
 
         // construct context for call.
         let mut context = Context {
-            event: Some(EventContext::new(&mut self.events.begin_block_events)),
+            event: Some(EventContext::new(&mut events.begin_block_events)),
             storage: StorageContext {},
         };
 
@@ -140,10 +143,11 @@ impl<'a> tm_abci::Application for Node<'a> {
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
+        let events = &mut self.events[0];
 
         // construct context for call.
         let mut context = Context {
-            event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+            event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
         };
 
@@ -162,10 +166,11 @@ impl<'a> tm_abci::Application for Node<'a> {
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
         let app = &mut self.apps[0];
+        let events = &mut self.events[0];
 
         // construct context for call.
         let mut context = Context {
-            event: Some(EventContext::new(&mut self.events.deliver_tx_events)),
+            event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
         };
 
