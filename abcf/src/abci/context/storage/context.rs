@@ -7,5 +7,3 @@ impl StorageContext {
 
     pub fn del(&mut self, key: &str) {}
 }
-
-
