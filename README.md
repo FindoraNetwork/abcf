@@ -154,11 +154,30 @@ impl Application for MockApplicaion {
     }
 }
 
+// Define Event
+
+#[derive(Event)]
+pub struct E1 {
+  pub key1: String,
+  #[serde(index)]
+  pub key2: String,
+}
+
+#[derive(Events)]
+enum MockEvents {
+    E1(E1),
+    E2(E2),
+}
+
 // Define Module
 struct Mock {}
 
 #[abcf::module(MockApplicaion, MockRPCs, (), ())]
 impl Module for Mock {
+    type Events = MockEvent;
+    type Application = MockApplicaion;
+    type RPCs = MockRPCs;
+
     fn metadata(&self) -> ModuleMetadata<'_> {
         ModuleMetadata {
             name: "mock",

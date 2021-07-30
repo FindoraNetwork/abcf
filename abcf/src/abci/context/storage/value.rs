@@ -1,11 +1,11 @@
 use core::{fmt::Debug, marker::PhantomData};
 
 use alloc::vec::Vec;
-use sparse_merkle_tree::{H256, traits::Value};
 use digest::Digest;
 use generic_array::typenum;
+use sparse_merkle_tree::{traits::Value, H256};
 
-pub struct StoragedValue<H: Digest<OutputSize = typenum::U32>>{
+pub struct StoragedValue<H: Digest<OutputSize = typenum::U32>> {
     value: Vec<u8>,
     marker: PhantomData<H>,
 }
@@ -51,4 +51,3 @@ impl<H: Digest<OutputSize = typenum::U32>> Value for StoragedValue<H> {
         Self::default()
     }
 }
-

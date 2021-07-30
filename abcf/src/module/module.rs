@@ -38,4 +38,3 @@ pub struct ModuleMetadata<'a> {
 pub struct Genesis {
     pub target_hight: u64,
 }
-

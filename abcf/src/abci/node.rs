@@ -1,5 +1,9 @@
-use super::{Context, EventContext, context::StorageContext};
-use crate::{Error, Result, abci::EventContextImpl, module::{Application, KVStore, Module, ModuleMetadata, RPCs}};
+use super::{context::StorageContext, Context, EventContext};
+use crate::{
+    abci::EventContextImpl,
+    module::{Application, KVStore, Module, ModuleMetadata, RPCs},
+    Error, Result,
+};
 use alloc::{
     boxed::Box,
     string::{String, ToString},
@@ -62,7 +66,10 @@ impl<'a> Node<'a> {
             return Err(Error::TempOnlySupportRPC);
         }
 
-        let mut context = Context { event: None, storage: StorageContext {} };
+        let mut context = Context {
+            event: None,
+            storage: StorageContext {},
+        };
 
         let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
         let resp = rpc.call(&mut context, splited_path[1], params).await;
@@ -186,7 +193,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Genesis, module::RPCResponse};
+    use crate::{module::RPCResponse, Genesis};
 
     pub struct MockApplicaion {}
 
@@ -217,9 +224,7 @@ mod tests {
                 name: "mock",
                 version: "0.1.0",
                 impl_version: "0.1.0",
-                genesis: Genesis {
-                    target_hight: 1,
-                }
+                genesis: Genesis { target_hight: 1 },
             }
         }
 

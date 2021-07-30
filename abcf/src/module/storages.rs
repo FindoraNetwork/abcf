@@ -1,5 +1,5 @@
-use core::fmt::Debug;
 use alloc::vec::Vec;
+use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 pub trait Value: Clone + Debug + Default + Serialize + for<'de> Deserialize<'de> {}
@@ -15,7 +15,8 @@ pub trait Storages {
 pub trait Map {
     type Error;
 
-    fn set(&self, key: &[u8], value: Vec<u8>) -> core::result::Result<Option<Vec<u8>>, Self::Error>;
+    fn set(&self, key: &[u8], value: Vec<u8>)
+        -> core::result::Result<Option<Vec<u8>>, Self::Error>;
 
     fn get(&self, key: &[u8]) -> core::result::Result<Option<Vec<u8>>, Self::Error>;
 
@@ -24,7 +25,6 @@ pub trait Map {
 
 /// Define backend key-value store.
 pub trait KVStore: Map {
-
     type Iter: core::iter::Iterator;
 
     type TransactionMap: Map<Error = Self::Error>;
@@ -35,4 +35,3 @@ pub trait KVStore: Map {
 
     fn iter(&self) -> Self::Iter;
 }
-
