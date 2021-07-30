@@ -5,11 +5,9 @@ use serde::{Deserialize, Serialize};
 pub trait Value: Clone + Debug + Default + Serialize + for<'de> Deserialize<'de> {}
 
 /// Define module's storage.
-pub trait Storages {
-    fn stateless_keys() -> &'static [&'static str];
+pub trait Storage {}
 
-    fn stateful_keys() -> &'static [&'static str];
-}
+impl Storage for () {}
 
 /// Define basic key-value store.
 pub trait Map {

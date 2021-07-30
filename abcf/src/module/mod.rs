@@ -8,10 +8,10 @@ mod rpcs;
 pub use rpcs::{RPCs, Response as RPCResponse};
 
 mod events;
-pub use events::Event;
+pub use events::{Event, EventAttr};
 
 mod storages;
-pub use storages::{KVStore, Storages};
+pub use storages::{KVStore, Storage};
 
 mod module;
 pub use module::{Genesis, Module, ModuleMetadata};

@@ -11,8 +11,8 @@ impl<'a> EventContext<'a> {
         EventContext { events }
     }
 
-    pub fn emmit(&mut self, _event: impl Event) {
-        self.events.push(abci::Event::default())
+    pub fn emmit(&mut self, event: impl Event) {
+        self.events.push(event.to_abci_event())
     }
 }
 

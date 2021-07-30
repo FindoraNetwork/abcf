@@ -121,6 +121,13 @@ impl<'a> tm_abci::Application for Node<'a> {
         };
 
         let resp = app.check_tx(&mut context, &req).await;
+
+        let mut check_tx_events = Vec::with_capacity(events.check_tx_events.len());
+
+        while let Some(e) = events.check_tx_events.pop() {
+            check_tx_events.push(e);
+        }
+
         abci::ResponseCheckTx {
             code: resp.code,
             data: resp.data,
@@ -128,7 +135,7 @@ impl<'a> tm_abci::Application for Node<'a> {
             info: String::new(),
             gas_wanted: resp.gas_wanted,
             gas_used: resp.gas_used,
-            events: Vec::new(),
+            events: check_tx_events,
             codespace: metadata.name.to_string(),
         }
     }
@@ -144,7 +151,14 @@ impl<'a> tm_abci::Application for Node<'a> {
         };
 
         app.begin_block(&mut context, &req).await;
-        abci::ResponseBeginBlock { events: Vec::new() }
+
+        let mut begin_block_events = Vec::with_capacity(events.begin_block_events.len());
+
+        while let Some(e) = events.begin_block_events.pop() {
+            begin_block_events.push(e);
+        }
+
+        abci::ResponseBeginBlock { events: begin_block_events }
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
@@ -159,6 +173,13 @@ impl<'a> tm_abci::Application for Node<'a> {
         };
 
         let resp = app.deliver_tx(&mut context, &_request).await;
+
+        let mut deliver_tx_events = Vec::with_capacity(events.deliver_tx_events.len());
+
+        while let Some(e) = events.deliver_tx_events.pop() {
+            deliver_tx_events.push(e);
+        }
+
         abci::ResponseDeliverTx {
             code: resp.code,
             data: resp.data,
@@ -166,7 +187,7 @@ impl<'a> tm_abci::Application for Node<'a> {
             info: String::new(),
             gas_wanted: resp.gas_wanted,
             gas_used: resp.gas_used,
-            events: Vec::new(),
+            events: deliver_tx_events,
             codespace: metadata.name.to_string(),
         }
     }
@@ -182,10 +203,16 @@ impl<'a> tm_abci::Application for Node<'a> {
         };
 
         let resp = app.end_block(&mut context, &_request).await;
+
+        let mut end_block_events = Vec::with_capacity(events.end_block_events.len());
+
+        while let Some(e) = events.end_block_events.pop() {
+            end_block_events.push(e);
+        }
         abci::ResponseEndBlock {
             validator_updates: resp.validator_updates,
             consensus_param_updates: resp.consensus_param_updates,
-            events: Vec::new(),
+            events: end_block_events,
         }
     }
 }
@@ -193,7 +220,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::RPCResponse, Genesis};
+    use crate::{Event, Genesis, module::RPCResponse};
 
     pub struct MockApplicaion {}
 
@@ -213,11 +240,31 @@ mod tests {
         }
     }
 
+    #[derive(Debug)]
+    pub enum MockEvent {
+        Unknown
+    }
+
+    impl Event for MockEvent {
+        fn to_abci_event(&self) -> abci::Event {
+            abci::Event::default()
+        }
+
+        fn name(&self) -> &str {
+            "1000"
+        }
+
+        fn all() -> &'static [&'static str] {
+            &[]
+        }
+    }
+
     pub struct MockModule {}
 
     impl Module for MockModule {
         type Application = MockApplicaion;
         type RPCs = MockRPCs;
+        type Event = MockEvent;
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {

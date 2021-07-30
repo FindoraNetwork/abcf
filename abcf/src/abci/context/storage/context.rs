@@ -1,9 +1,11 @@
-pub struct StorageContext {}
+use crate::Storage;
 
-impl StorageContext {
-    pub fn get(&self, key: &str) {}
-
-    pub fn set(&mut self, key: &str) {}
-
-    pub fn del(&mut self, key: &str) {}
+pub struct StorageContext {
+    // stateless: &'a mut dyn Storage,
 }
+
+// impl<'a> StorageContext<'a> {
+    // fn stateless<S: Storage>(&mut self) -> &mut S {
+        // self.stateless as &mut S
+    // }
+// }

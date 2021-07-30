@@ -1,10 +1,10 @@
-use super::{Application, RPCs, Storages};
+use super::{Application, RPCs, Event};
 
 /// Module.
 pub trait Module {
     // type Storages: Storages;
 
-    // type Events: Events;
+    type Event: Event;
 
     /// This module provided RPCs.
     type RPCs: RPCs;
