@@ -159,7 +159,7 @@ impl Application for MockApplicaion {
 #[derive(Event)]
 pub struct E1 {
   pub key1: String,
-  #[serde(index)]
+  #[abcf(index)]
   pub key2: String,
 }
 
