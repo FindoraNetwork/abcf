@@ -6,7 +6,6 @@
 #![deny(missing_docs)]
 
 extern crate proc_macro;
-extern crate proc_macro2;
 
 use proc_macro::TokenStream;
 use quote::*;
@@ -46,16 +45,16 @@ pub fn event(input: TokenStream) -> TokenStream {
             fn to_abci_event(&self) -> tm_protos::abci::Event {
 
                 let mut attributes = Vec::new();
-                let yy = pnk!(serde_json::to_value(self));
-                yy.as_object().iter().for_each(|t|{
+                let json = pnk!(serde_json::to_value(self));
+                json.as_object().iter().for_each(|map|{
                     let mut count = 0;
-                    t.iter().for_each(|v|{
+                    map.iter().for_each(|(key,val)|{
                         let mut index = false;
                         if #index_is_false_str.contains(&*count.to_string()) {
                             index = true;
                         }
-                        let key_byte = pnk!(serde_json::to_vec(v.0));
-                        let value_byte = pnk!(serde_json::to_vec(v.1));
+                        let key_byte = pnk!(serde_json::to_vec(key));
+                        let value_byte = pnk!(serde_json::to_vec(val));
                         let a = tm_protos::abci::EventAttribute{
                             key: key_byte,
                             value: value_byte,

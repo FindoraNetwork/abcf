@@ -5,7 +5,7 @@ pub struct StorageContext {
 }
 
 // impl<'a> StorageContext<'a> {
-    // fn stateless<S: Storage>(&mut self) -> &mut S {
-        // self.stateless as &mut S
-    // }
+// fn stateless<S: Storage>(&mut self) -> &mut S {
+// self.stateless as &mut S
+// }
 // }
