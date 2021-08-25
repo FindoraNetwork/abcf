@@ -1,5 +1,5 @@
-use core::fmt::Debug;
 use crate::Result;
+use core::fmt::Debug;
 use tm_protos::abci;
 
 /// Define event of module.

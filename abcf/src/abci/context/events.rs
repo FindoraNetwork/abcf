@@ -1,4 +1,4 @@
-use crate::{Result, module::Event};
+use crate::{module::Event, Result};
 use alloc::vec::Vec;
 use tm_protos::abci;
 
