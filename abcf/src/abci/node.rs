@@ -221,7 +221,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::RPCResponse, Event, Genesis};
+    use crate::{module::RPCResponse, Event, Genesis, Result};
 
     pub struct MockApplicaion {}
 
@@ -247,7 +247,7 @@ mod tests {
     }
 
     impl Event for MockEvent {
-        fn to_abci_event(&self) -> abci::Event {
+        fn to_abci_event(&self) -> Result<abci::Event> {
             abci::Event::default()
         }
 

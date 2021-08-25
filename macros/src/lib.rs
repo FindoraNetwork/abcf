@@ -48,35 +48,35 @@ pub fn event(input: TokenStream) -> TokenStream {
         count += 1;
     });
 
-
     let expanded = quote! {
 
         impl abcf::Event for #struct_name {
-            fn to_abci_event(&self) -> tm_protos::abci::Event {
+            fn to_abci_event(&self) -> abcf::Result<tm_protos::abci::Event> {
 
                 let mut attributes = Vec::new();
 
                 #(
-                    let key_byte = serde_json::to_vec(#key_str_vec)
-                            .unwrap_or_else(|e|{println!("{:?}",e);vec![]});
+                    let key_byte = #key_str_vec.as_bytes().to_vec();
 
-                    let value_byte = serde_json::to_vec(&self.#key_vec)
-                            .unwrap_or_else(|e|{println!("{:?}",e);vec![]});
+                    if let Ok(value_byte) = serde_json::to_vec(&self.#key_vec) {
+                        let index = #index_vec;
 
-                    let index = #index_vec;
+                        let a = tm_protos::abci::EventAttribute{
+                            key: key_byte,
+                            value: value_byte,
+                            index,
+                        };
+                        attributes.push(a);
+                    } else {
+                        return Err(abcf::Error::JsonParseError)
+                    }
 
-                    let a = tm_protos::abci::EventAttribute{
-                        key: key_byte,
-                        value: value_byte,
-                        index,
-                    };
-                    attributes.push(a);
                 )*
 
-                abci::Event {
+                Ok(abci::Event {
                     r#type: self.name().to_string(),
                     attributes,
-                }
+                })
             }
 
             fn name(&self) -> &str {

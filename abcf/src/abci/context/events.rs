@@ -12,7 +12,9 @@ impl<'a> EventContext<'a> {
     }
 
     pub fn emmit(&mut self, event: impl Event) {
-        self.events.push(event.to_abci_event())
+        if let Ok(event) = event.to_abci_event() {
+            self.events.push(event)
+        }
     }
 }
 

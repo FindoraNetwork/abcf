@@ -3,6 +3,5 @@ members = [
     "abcf",
     "macros",
     "sdk",
-    "example"
 ]
 

@@ -1,5 +1,6 @@
 use core::fmt::Debug;
 // use alloc::{string::ToString, vec::Vec};
+use crate::error::Result;
 use tm_protos::abci;
 
 /// Define event of module.
@@ -8,7 +9,7 @@ pub trait Event: Debug {
     fn name(&self) -> &str;
 
     /// Build this event to abci event.
-    fn to_abci_event(&self) -> abci::Event;
+    fn to_abci_event(&self) -> Result<abci::Event>;
     //     fn to_abci_event(&self, attrs: &[&dyn EventAttr]) -> abci::Event {
     // let mut attributes = Vec::new();
     // for attr in attrs {
