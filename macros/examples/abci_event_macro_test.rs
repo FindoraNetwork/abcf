@@ -1,5 +1,5 @@
 use abcf::Event;
-use macros::Event;
+use abcf_macros::Event;
 use serde::{Deserialize, Serialize};
 use tm_protos::abci;
 

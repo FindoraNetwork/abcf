@@ -1,4 +1,4 @@
-use super::{Application, Event, RPCs};
+use super::{Application, RPCs};
 
 /// Module.
 pub trait Module {

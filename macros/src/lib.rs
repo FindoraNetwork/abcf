@@ -82,10 +82,6 @@ pub fn event(input: TokenStream) -> TokenStream {
             fn name(&self) -> &str {
                 #name
             }
-
-            fn all() -> &'static [&'static str] {
-                &[]
-            }
         }
     };
 
