@@ -1,7 +1,7 @@
 use super::{context::StorageContext, Context, EventContext};
 use crate::{
     abci::EventContextImpl,
-    module::{Application, KVStore, Module, ModuleMetadata, RPCs},
+    module::{Application, Module, ModuleMetadata, RPCs},
     Error, Result,
 };
 use alloc::{
@@ -16,7 +16,7 @@ pub struct Node<'a> {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata<'a>>,
     rpcs: Vec<Box<dyn RPCs>>,
-    events: Vec<EventContextImpl>,
+    events: EventContextImpl,
     // event_descriptor: Vec<EventDescriptor>,
     // stateful_storage: Vec<SparseMerkleTree<H, Value, S>>,
     // stateless_storage: Vec<S>,
@@ -30,7 +30,7 @@ impl<'a> Node<'a> {
             apps: Vec::new(),
             metadatas: Vec::new(),
             rpcs: Vec::new(),
-            events: Vec::new(),
+            events: EventContextImpl::default(),
         }
     }
 
@@ -44,7 +44,6 @@ impl<'a> Node<'a> {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
         self.rpcs.push(Box::new(m.rpcs()));
-        self.events.push(EventContextImpl::default());
     }
 }
 
@@ -112,7 +111,7 @@ impl<'a> tm_abci::Application for Node<'a> {
     async fn check_tx(&mut self, req: abci::RequestCheckTx) -> abci::ResponseCheckTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
-        let events = &mut self.events[0];
+        let events = &mut self.events;
 
         // construct context for call.
         let mut context = Context {
@@ -142,7 +141,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
         let app = &mut self.apps[0];
-        let events = &mut self.events[0];
+        let events = &mut self.events;
 
         // construct context for call.
         let mut context = Context {
@@ -164,7 +163,7 @@ impl<'a> tm_abci::Application for Node<'a> {
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
-        let events = &mut self.events[0];
+        let events = &mut self.events;
 
         // construct context for call.
         let mut context = Context {
@@ -194,7 +193,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
         let app = &mut self.apps[0];
-        let events = &mut self.events[0];
+        let events = &mut self.events;
 
         // construct context for call.
         let mut context = Context {
