@@ -157,7 +157,9 @@ impl<'a> tm_abci::Application for Node<'a> {
             begin_block_events.push(e);
         }
 
-        abci::ResponseBeginBlock { events: begin_block_events }
+        abci::ResponseBeginBlock {
+            events: begin_block_events,
+        }
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
@@ -219,7 +221,7 @@ impl<'a> tm_abci::Application for Node<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Event, Genesis, module::RPCResponse};
+    use crate::{module::RPCResponse, Event, Genesis, Result};
 
     pub struct MockApplicaion {}
 
@@ -241,20 +243,16 @@ mod tests {
 
     #[derive(Debug)]
     pub enum MockEvent {
-        Unknown
+        // Unknown,
     }
 
     impl Event for MockEvent {
-        fn to_abci_event(&self) -> abci::Event {
-            abci::Event::default()
+        fn to_abci_event(&self) -> Result<abci::Event> {
+            Ok(abci::Event::default())
         }
 
         fn name(&self) -> &str {
             "1000"
-        }
-
-        fn all() -> &'static [&'static str] {
-            &[]
         }
     }
 
@@ -263,7 +261,6 @@ mod tests {
     impl Module for MockModule {
         type Application = MockApplicaion;
         type RPCs = MockRPCs;
-        type Event = MockEvent;
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
