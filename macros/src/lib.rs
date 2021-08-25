@@ -24,7 +24,12 @@ pub fn event(input: TokenStream) -> TokenStream {
     let mut index_is_false_str = String::new();
     let mut count = 0;
 
+    let mut key_vec = vec![];
+    let mut key_str_vec = vec![];
+    let mut index_vec = vec![];
+
     parsed.fields.iter().for_each(|f| {
+        let mut index = false;
         f.attrs.iter().for_each(|a| {
             a.path
                 .segments
@@ -32,12 +37,17 @@ pub fn event(input: TokenStream) -> TokenStream {
                 .for_each(|s| match s.ident.to_string().as_str() {
                     "abcf" => {
                         index_is_false_str += &*(count.to_string() + ",");
+                        index = true;
                     }
                     _ => {}
                 });
         });
+        key_vec.push(f.ident.as_ref());
+        key_str_vec.push(f.ident.clone().unwrap().to_string());
+        index_vec.insert(count, index);
         count += 1;
     });
+
 
     let expanded = quote! {
 
@@ -45,25 +55,23 @@ pub fn event(input: TokenStream) -> TokenStream {
             fn to_abci_event(&self) -> tm_protos::abci::Event {
 
                 let mut attributes = Vec::new();
-                let json = pnk!(serde_json::to_value(self));
-                json.as_object().iter().for_each(|map|{
-                    let mut count = 0;
-                    map.iter().for_each(|(key,val)|{
-                        let mut index = false;
-                        if #index_is_false_str.contains(&*count.to_string()) {
-                            index = true;
-                        }
-                        let key_byte = pnk!(serde_json::to_vec(key));
-                        let value_byte = pnk!(serde_json::to_vec(val));
-                        let a = tm_protos::abci::EventAttribute{
-                            key: key_byte,
-                            value: value_byte,
-                            index,
-                        };
-                        attributes.push(a);
-                        count += 1;
-                    });
-                });
+
+                #(
+                    let key_byte = serde_json::to_vec(#key_str_vec)
+                            .unwrap_or_else(|e|{println!("{:?}",e);vec![]});
+
+                    let value_byte = serde_json::to_vec(&self.#key_vec)
+                            .unwrap_or_else(|e|{println!("{:?}",e);vec![]});
+
+                    let index = #index_vec;
+
+                    let a = tm_protos::abci::EventAttribute{
+                        key: key_byte,
+                        value: value_byte,
+                        index,
+                    };
+                    attributes.push(a);
+                )*
 
                 abci::Event {
                     r#type: self.name().to_string(),

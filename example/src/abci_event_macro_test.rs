@@ -1,5 +1,4 @@
 use abcf::Event;
-use ruc::*;
 use serde::{Deserialize, Serialize};
 use tm_protos::abci;
 
@@ -29,10 +28,10 @@ fn test() {
     assert_eq!(abci_event.attributes[3].index, true);
     assert_eq!(
         abci_event.attributes[0].key,
-        pnk!(serde_json::to_vec(&*"age"))
+        serde_json::to_vec(&*"age").unwrap()
     );
     assert_eq!(
         abci_event.attributes[0].value,
-        pnk!(serde_json::to_vec(&e.age))
+        serde_json::to_vec(&e.age).unwrap()
     );
 }
