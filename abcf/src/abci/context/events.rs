@@ -1,4 +1,4 @@
-use crate::module::Event;
+use crate::{Result, module::Event};
 use alloc::vec::Vec;
 use tm_protos::abci;
 
@@ -11,10 +11,10 @@ impl<'a> EventContext<'a> {
         EventContext { events }
     }
 
-    pub fn emmit(&mut self, event: impl Event) {
-        if let Ok(event) = event.to_abci_event() {
-            self.events.push(event)
-        }
+    pub fn emmit(&mut self, event: impl Event) -> Result<()> {
+        let event = event.to_abci_event()?;
+        self.events.push(event);
+        Ok(())
     }
 }
 

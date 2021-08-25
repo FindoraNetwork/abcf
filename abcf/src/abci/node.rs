@@ -243,20 +243,16 @@ mod tests {
 
     #[derive(Debug)]
     pub enum MockEvent {
-        Unknown,
+        // Unknown,
     }
 
     impl Event for MockEvent {
         fn to_abci_event(&self) -> Result<abci::Event> {
-            abci::Event::default()
+            Ok(abci::Event::default())
         }
 
         fn name(&self) -> &str {
             "1000"
-        }
-
-        fn all() -> &'static [&'static str] {
-            &[]
         }
     }
 
@@ -265,7 +261,6 @@ mod tests {
     impl Module for MockModule {
         type Application = MockApplicaion;
         type RPCs = MockRPCs;
-        type Event = MockEvent;
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
