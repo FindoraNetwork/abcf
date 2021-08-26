@@ -1,7 +1,7 @@
 mod events;
 pub use events::{EventContext, EventContextImpl};
 
-mod storage;
+pub mod storage;
 pub use storage::StorageContext;
 
 pub struct Context<'a> {
