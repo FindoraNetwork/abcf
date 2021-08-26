@@ -135,7 +135,18 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                         #fn_names
                     )* => {#(
                         let param = serde_json::from_value::<#param_idents>(params).unwrap();
-                        self.#fn_idents(ctx,param).await
+
+                        if let Ok(resp) = self.#fn_idents(ctx,param).await {
+                            if let Ok(v) = serde_json::to_value(resp){
+                                abcf::Result::Ok(v)
+                            } else {
+                                Err(abcf::Error::RPRApplicationError(10005,"call rpc error".to_string()))
+                            }
+                        } else {
+                            Err(abcf::Error::JsonParseError)
+                        }
+
+
                     )*}
                     _ => {Err(abcf::Error::TempOnlySupportRPC)}
                 } {

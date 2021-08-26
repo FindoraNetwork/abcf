@@ -2,7 +2,6 @@ use abcf::abci::{Context, StorageContext};
 use abcf::{Error, RPCResponse, RPCs, Result};
 use abcf_macros::rpcs;
 use serde::{Deserialize, Serialize};
-use serde_json::{Number, Value};
 use tm_protos::abci::Response;
 
 pub struct RpcTest {}
@@ -12,8 +11,11 @@ pub struct GetAccountRequest {
     code: u8,
 }
 
-#[derive(Serialize)]
-pub struct GetAccountResponse {}
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetAccountResponse {
+    name: String,
+    code: u8,
+}
 
 #[rpcs]
 impl RpcTest {
@@ -21,8 +23,12 @@ impl RpcTest {
         &mut self,
         ctx: &mut Context<'_>,
         params: GetAccountRequest,
-    ) -> Result<Value> {
-        Ok(Value::Number(Number::from(params.code)))
+    ) -> Result<GetAccountResponse> {
+        let resp = GetAccountResponse {
+            name: "jack".to_string(),
+            code: params.code,
+        };
+        Ok(resp)
     }
 }
 
@@ -40,5 +46,8 @@ async fn main() {
 
     let resp = rt.call(&mut context, "get_account", params).await;
 
-    assert_eq!(resp.data, Some(Value::Number(Number::from(99))));
+    let resp = serde_json::from_value::<GetAccountResponse>(resp.data.unwrap()).unwrap();
+
+    assert_eq!(resp.name, "jack");
+    assert_eq!(resp.code, 99);
 }
