@@ -128,39 +128,40 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
         #[async_trait::async_trait]
         impl abcf::RPCs for #struct_name {
-            async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) -> abcf::RPCResponse<'_, serde_json::Value> {
+            async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+            abcf::Result<abcf::RPCResponse<'_, serde_json::Value>> {
 
                 return if let Ok(resp) = match method {
                     #(
                         #fn_names
                     )* => {#(
-                        let param = serde_json::from_value::<#param_idents>(params).unwrap();
-
-                        if let Ok(resp) = self.#fn_idents(ctx,param).await {
-                            if let Ok(v) = serde_json::to_value(resp){
-                                abcf::Result::Ok(v)
+                        if let Ok(param) = serde_json::from_value::<#param_idents>(params) {
+                            if let Ok(resp) = self.#fn_idents(ctx,param).await {
+                                if let Ok(v) = serde_json::to_value(resp){
+                                    abcf::Result::Ok(v)
+                                } else {
+                                    Err(abcf::Error::RPRApplicationError(10005,"call rpc error".to_string()))
+                                }
                             } else {
-                                Err(abcf::Error::RPRApplicationError(10005,"call rpc error".to_string()))
+                                Err(abcf::Error::JsonParseError)
                             }
                         } else {
                             Err(abcf::Error::JsonParseError)
                         }
-
-
                     )*}
                     _ => {Err(abcf::Error::TempOnlySupportRPC)}
                 } {
-                    RPCResponse{
+                    Ok(RPCResponse{
                         code:0,
                         message:"success",
                         data:Some(resp),
-                    }
+                    })
                 } else {
-                    RPCResponse{
+                    Ok(RPCResponse{
                         code:1,
                         message:"failed",
                         data:None,
-                    }
+                    })
                 }
             }
         }

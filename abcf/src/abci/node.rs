@@ -71,7 +71,10 @@ impl<'a> Node<'a> {
         };
 
         let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
-        let resp = rpc.call(&mut context, splited_path[1], params).await;
+        let resp = rpc
+            .call(&mut context, splited_path[1], params)
+            .await
+            .unwrap();
         if resp.code != 0 {
             return Err(Error::RPRApplicationError(
                 resp.code,
@@ -236,8 +239,8 @@ mod tests {
             _context: &mut Context,
             _method: &str,
             _params: serde_json::Value,
-        ) -> RPCResponse<'_, serde_json::Value> {
-            RPCResponse::default()
+        ) -> Result<RPCResponse<'_, serde_json::Value>> {
+            Ok(RPCResponse::default())
         }
     }
 

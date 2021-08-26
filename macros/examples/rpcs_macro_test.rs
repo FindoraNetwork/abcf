@@ -44,7 +44,7 @@ async fn main() {
     let params = GetAccountRequest { code: 99 };
     let params = serde_json::to_value(params).unwrap();
 
-    let resp = rt.call(&mut context, "get_account", params).await;
+    let resp = rt.call(&mut context, "get_account", params).await.unwrap();
 
     let resp = serde_json::from_value::<GetAccountResponse>(resp.data.unwrap()).unwrap();
 
