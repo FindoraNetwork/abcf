@@ -1,16 +1,18 @@
 use crate::abci::Context;
 use alloc::boxed::Box;
+use core::fmt::Debug;
 use serde::Serialize;
 use serde_json::Value;
 
 /// Response of RPC.
-pub struct Response<'a, T: Serialize> {
+#[derive(Debug)]
+pub struct Response<'a, T: Serialize + Debug> {
     pub code: u32,
     pub message: &'a str,
     pub data: Option<T>,
 }
 
-impl<'a, T: Serialize> Default for Response<'a, T> {
+impl<'a, T: Serialize + Debug> Default for Response<'a, T> {
     fn default() -> Self {
         Self {
             code: 0,

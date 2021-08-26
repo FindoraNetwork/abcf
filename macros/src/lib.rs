@@ -9,7 +9,8 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::*;
-use syn::{parse_macro_input, ItemStruct};
+use std::ops::Deref;
+use syn::{parse_macro_input, FnArg, ImplItem, ItemImpl, ItemStruct, Type};
 
 ///
 /// Convert struct to abci::event
@@ -85,5 +86,73 @@ pub fn event(input: TokenStream) -> TokenStream {
         }
     };
 
+    TokenStream::from(expanded)
+}
+
+///
+///  Distribute the user-defined functions in the call function as a mapping
+///
+#[proc_macro_attribute]
+pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(input as ItemImpl);
+    let struct_name = parsed.self_ty.clone();
+
+    let mut fn_names = vec![];
+    let mut fn_idents = vec![];
+    let mut param_idents = vec![];
+
+    parsed.items.iter().for_each(|item| match item {
+        ImplItem::Const(_) => {}
+        ImplItem::Method(data) => {
+            let fn_name = data.sig.ident.clone().to_string();
+            fn_names.push(fn_name);
+            fn_idents.push(data.sig.ident.clone());
+            data.sig.inputs.iter().for_each(|input| match input {
+                FnArg::Receiver(_) => {}
+                FnArg::Typed(typed) => match typed.ty.deref() {
+                    Type::Path(p) => {
+                        p.path.segments.iter().for_each(|seg| {
+                            let param_ident = seg.ident.clone();
+                            param_idents.push(param_ident);
+                        });
+                    }
+                    _ => {}
+                },
+            });
+        }
+        _ => {}
+    });
+
+    let expanded = quote! {
+        #parsed
+
+        #[async_trait::async_trait]
+        impl abcf::RPCs for #struct_name {
+            async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) -> abcf::RPCResponse<'_, serde_json::Value> {
+
+                return if let Ok(resp) = match method {
+                    #(
+                        #fn_names
+                    )* => {#(
+                        let param = serde_json::from_value::<#param_idents>(params).unwrap();
+                        self.#fn_idents(ctx,param).await
+                    )*}
+                    _ => {Err(abcf::Error::TempOnlySupportRPC)}
+                } {
+                    RPCResponse{
+                        code:0,
+                        message:"success",
+                        data:Some(resp),
+                    }
+                } else {
+                    RPCResponse{
+                        code:1,
+                        message:"failed",
+                        data:None,
+                    }
+                }
+            }
+        }
+    };
     TokenStream::from(expanded)
 }

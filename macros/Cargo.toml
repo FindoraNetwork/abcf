@@ -11,6 +11,7 @@ proc-macro = true
 [dependencies]
 quote = "1.0"
 syn = {version = "1.0", features = ['full', 'extra-traits']}
+async-trait = { version = "0.1.50" }
 
 [dev-dependencies]
 
@@ -18,3 +19,4 @@ serde = { version = "1.0.124", features = ["derive"] }
 serde_json = "1.0"
 tm-protos = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
 abcf = { path="../abcf" }
+tokio = { version = "1", features = ["full"] }
