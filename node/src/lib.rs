@@ -30,6 +30,7 @@ impl Node {
             path,
             self.node,
         )?;
+        td_node.start()?;
         Ok(td_node)
     }
 }

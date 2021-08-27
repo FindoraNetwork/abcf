@@ -75,10 +75,9 @@ impl Module for MockModule {
 
 fn main() {
     env_logger::init();
-    let mut node = Node::new("./target/abcf").unwrap();
+    let mut node = Node::new("./target/tendermint").unwrap();
     let mock_module = MockModule {};
     node.regist(&mock_module);
     node.start().unwrap();
-    println!("asdasd");
     std::thread::park();
 }
