@@ -94,7 +94,13 @@ impl Node {
 
 #[async_trait::async_trait]
 impl tm_abci::Application for Node {
+    async fn info(&mut self, _request: abci::RequestInfo) -> abci::ResponseInfo {
+        log::info!("info");
+        Default::default()
+    }
+
     async fn query(&mut self, req: abci::RequestQuery) -> abci::ResponseQuery {
+        log::info!("query");
         let mut resp = abci::ResponseQuery::default();
 
         match self.match_and_call_query(req).await {
@@ -109,10 +115,12 @@ impl tm_abci::Application for Node {
                 }
             }
         }
+        log::info!("query end");
         resp
     }
 
     async fn check_tx(&mut self, req: abci::RequestCheckTx) -> abci::ResponseCheckTx {
+        log::info!("check_tx");
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
         let events = &mut self.events;
@@ -144,6 +152,7 @@ impl tm_abci::Application for Node {
     }
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
+        log::info!("begin_block");
         let app = &mut self.apps[0];
         let events = &mut self.events;
 
@@ -167,6 +176,7 @@ impl tm_abci::Application for Node {
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
+        log::info!("deliver_tx");
         let app = &mut self.apps[0];
         let metadata = &self.metadatas[0];
         let events = &mut self.events;
@@ -198,6 +208,7 @@ impl tm_abci::Application for Node {
     }
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
+        log::info!("deliver_tx");
         let app = &mut self.apps[0];
         let events = &mut self.events;
 
