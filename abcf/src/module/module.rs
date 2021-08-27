@@ -1,3 +1,5 @@
+use alloc::string::String;
+
 use super::{Application, RPCs};
 
 /// Module.
@@ -21,13 +23,13 @@ pub trait Module {
 }
 
 /// Metadata of module.
-pub struct ModuleMetadata<'a> {
+pub struct ModuleMetadata {
     /// Name of module.
-    pub name: &'a str,
+    pub name: String,
     /// Version of module. If this version change, means module need update.
-    pub version: &'a str,
+    pub version: String,
     /// Version of impl. If this version change, means module only a change of impl.
-    pub impl_version: &'a str,
+    pub impl_version: String,
     /// Genesis info.
     pub genesis: Genesis,
 }

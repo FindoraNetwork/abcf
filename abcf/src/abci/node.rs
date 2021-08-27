@@ -12,9 +12,9 @@ use alloc::{
 use tm_protos::abci;
 
 /// ABCF node.
-pub struct Node<'a> {
+pub struct Node {
     apps: Vec<Box<dyn Application>>,
-    metadatas: Vec<ModuleMetadata<'a>>,
+    metadatas: Vec<ModuleMetadata>,
     rpcs: Vec<Box<dyn RPCs>>,
     events: EventContextImpl,
     // event_descriptor: Vec<EventDescriptor>,
@@ -23,7 +23,7 @@ pub struct Node<'a> {
     // storage_descriptor: Vec<Box<StorageDescriptor>>,
 }
 
-impl<'a> Node<'a> {
+impl Node {
     /// create new node for network.
     pub fn new() -> Self {
         Node {
@@ -35,7 +35,7 @@ impl<'a> Node<'a> {
     }
 
     /// regist module.
-    pub fn regist<M, A, R>(&mut self, m: &'a M)
+    pub fn regist<M, A, R>(&mut self, m: &M) -> &mut Self
     where
         R: RPCs + 'static,
         A: Application + 'static,
@@ -44,10 +44,11 @@ impl<'a> Node<'a> {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
         self.rpcs.push(Box::new(m.rpcs()));
+        self
     }
 }
 
-impl<'a> Node<'a> {
+impl Node {
     async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> Result<Vec<u8>> {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
@@ -92,7 +93,7 @@ impl<'a> Node<'a> {
 }
 
 #[async_trait::async_trait]
-impl<'a> tm_abci::Application for Node<'a> {
+impl tm_abci::Application for Node {
     async fn query(&mut self, req: abci::RequestQuery) -> abci::ResponseQuery {
         let mut resp = abci::ResponseQuery::default();
 
@@ -245,9 +246,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    pub enum MockEvent {
-        // Unknown,
-    }
+    pub enum MockEvent {}
 
     impl Event for MockEvent {
         fn to_abci_event(&self) -> Result<abci::Event> {
@@ -267,9 +266,9 @@ mod tests {
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
-                name: "mock",
-                version: "0.1.0",
-                impl_version: "0.1.0",
+                name: "mock".to_string(),
+                version: "0.1.0".to_string(),
+                impl_version: "0.1.0".to_string(),
                 genesis: Genesis { target_hight: 1 },
             }
         }
