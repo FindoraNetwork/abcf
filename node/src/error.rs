@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
     TendermintError(tendermint_sys::Error),
+    PathError,
 }
 
 impl From<tendermint_sys::Error> for Error {
