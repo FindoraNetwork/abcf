@@ -3,7 +3,6 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-
 use abcf::{abci::Context, Application, Genesis, Module, ModuleMetadata, RPCResponse};
 use abcf_macros::rpcs;
 use abcf_node::Node;
@@ -37,12 +36,12 @@ impl MockRPCs {
         &mut self,
         _ctx: &mut Context<'_>,
         params: GetAccountRequest,
-    ) -> abcf::Result<GetAccountResponse> {
+    ) -> RPCResponse<'_, GetAccountResponse> {
         let resp = GetAccountResponse {
             name: "jack".to_string(),
             code: params.code,
         };
-        Ok(resp)
+        abcf::RPCResponse::new(resp)
     }
 }
 

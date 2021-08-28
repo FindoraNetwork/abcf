@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock};
 
-mod types;
+pub mod types;
 pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
 use crate::abci::Context;

@@ -26,10 +26,7 @@ impl Node {
     pub fn start(self) -> Result<tendermint_sys::Node> {
         let path_buf = self.path.join("config/config.toml");
         let path = path_buf.to_str().ok_or(Error::PathError)?;
-        let td_node = tendermint_sys::Node::new(
-            path,
-            self.node,
-        )?;
+        let td_node = tendermint_sys::Node::new(path, self.node)?;
         td_node.start()?;
         Ok(td_node)
     }
