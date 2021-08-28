@@ -7,18 +7,28 @@ use serde_json::Value;
 
 /// Response of RPC.
 #[derive(Debug)]
-pub struct Response<'a, T: Serialize + Debug> {
+pub struct Response<'a, T: Serialize> {
     pub code: u32,
     pub message: &'a str,
     pub data: Option<T>,
 }
 
-impl<'a, T: Serialize + Debug> Default for Response<'a, T> {
+impl<'a, T: Serialize> Default for Response<'a, T> {
     fn default() -> Self {
         Self {
             code: 0,
             message: "success",
             data: None,
+        }
+    }
+}
+
+impl<'a, T: Serialize> Response<'a, T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            code: 0,
+            message: "success",
+            data: Some(t)
         }
     }
 }
@@ -31,5 +41,5 @@ pub trait RPCs: Send + Sync {
         ctx: &mut Context,
         method: &str,
         params: Value,
-    ) -> Result<Response<'_, Value>>;
+    ) -> Result<Option<Value>>;
 }

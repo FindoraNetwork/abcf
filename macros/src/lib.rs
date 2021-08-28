@@ -59,18 +59,15 @@ pub fn event(input: TokenStream) -> TokenStream {
                 #(
                     let key_byte = #key_str_vec.as_bytes().to_vec();
 
-                    if let Ok(value_byte) = serde_json::to_vec(&self.#key_vec) {
-                        let index = #index_vec;
+                    let value_byte = serde_json::to_vec(&self.#key_vec)?;
+                    let index = #index_vec;
 
-                        let a = tm_protos::abci::EventAttribute{
-                            key: key_byte,
-                            value: value_byte,
-                            index,
-                        };
-                        attributes.push(a);
-                    } else {
-                        return Err(abcf::Error::JsonParseError)
-                    }
+                    let a = tm_protos::abci::EventAttribute{
+                        key: key_byte,
+                        value: value_byte,
+                        index,
+                    };
+                    attributes.push(a);
 
                 )*
 
@@ -129,39 +126,25 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         #[async_trait::async_trait]
         impl abcf::RPCs for #struct_name {
             async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
-            abcf::Result<abcf::RPCResponse<'_, serde_json::Value>> {
+            abcf::Result<Option<serde_json::Value>> {
 
-                return if let Ok(resp) = match method {
+                match method {
                     #(
                         #fn_names
                     )* => {#(
-                        if let Ok(param) = serde_json::from_value::<#param_idents>(params) {
-                            if let Ok(resp) = self.#fn_idents(ctx,param).await {
-                                if let Ok(v) = serde_json::to_value(resp){
-                                    abcf::Result::Ok(v)
-                                } else {
-                                    Err(abcf::Error::RPRApplicationError(10005,"call rpc error".to_string()))
-                                }
-                            } else {
-                                Err(abcf::Error::JsonParseError)
-                            }
+                        let param = serde_json::from_value::<#param_idents>(params)?;
+
+                        let response = self.#fn_idents(ctx, param).await;
+
+                        if response.code != 0 {
+                            Err(abcf::Error::new_rpc_error(response.code, response.message))
+                        } else if let Some(v) = response.data {
+                            Ok(Some(serde_json::to_value(v)?))
                         } else {
-                            Err(abcf::Error::JsonParseError)
+                            Ok(None)
                         }
                     )*}
                     _ => {Err(abcf::Error::TempOnlySupportRPC)}
-                } {
-                    Ok(RPCResponse{
-                        code:0,
-                        message:"success",
-                        data:Some(resp),
-                    })
-                } else {
-                    Ok(RPCResponse{
-                        code:1,
-                        message:"failed",
-                        data:None,
-                    })
                 }
             }
         }

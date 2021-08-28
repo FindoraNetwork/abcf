@@ -16,7 +16,9 @@ use tm_protos::abci;
 pub struct Node {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata>,
-    rpcs: BTreeMap<String, Box<dyn RPCs>>,
+    // rpcs: BTreeMap<String, Box<dyn RPCs>>,
+    rpcs: Vec<Box<dyn RPCs>>,
+    name_index: BTreeMap<String, usize>,
     events: EventContextImpl,
     // event_descriptor: Vec<EventDescriptor>,
     // stateful_storage: Vec<SparseMerkleTree<H, Value, S>>,
@@ -30,7 +32,8 @@ impl Node {
         Node {
             apps: Vec::new(),
             metadatas: Vec::new(),
-            rpcs: BTreeMap::new(),
+            rpcs: Vec::new(),
+            name_index: BTreeMap::new(),
             events: EventContextImpl::default(),
         }
     }
@@ -44,8 +47,10 @@ impl Node {
     {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
-        self.rpcs
-            .insert(m.metadata().name.to_string(), Box::new(m.rpcs()));
+        self.rpcs.push(Box::new(m.rpcs()));
+
+        self.name_index
+            .insert(m.metadata().name, self.apps.len() - 1);
         self
     }
 }
@@ -55,10 +60,8 @@ impl Node {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
         // then call rpc.
-        let metadata = &self.metadatas[0];
-
         let splited_path: Vec<&str> = req.path.split('/').collect();
-        if splited_path.len() < 1 {
+        if splited_path.len() < 2 {
             return Err(Error::QueryPathFormatError);
         }
 
@@ -66,50 +69,44 @@ impl Node {
             // Curren version, path only support query rpc. This error is temp error.
             return Err(Error::TempOnlySupportRPC);
         }
-        let rpc = self.rpcs.get_mut(splited_path[1]).unwrap();
+        
+        if let Some(rpc_index) = self.name_index.get(splited_path[1]) {
+            if let Some(rpc) = self.rpcs.get_mut(*rpc_index) {
+                let mut context = Context {
+                    event: None,
+                    storage: StorageContext {},
+                };
+                let params = serde_json::from_slice(&req.data)?;
+                let resp = rpc
+                    .call(&mut context, splited_path[2], params)
+                    .await?;
 
-        let mut context = Context {
-            event: None,
-            storage: StorageContext {},
-        };
-
-        let params = serde_json::from_slice(&req.data).map_err(|_e| Error::JsonParseError)?;
-
-        let resp = rpc
-            .call(&mut context, splited_path[1], params)
-            .await
-            .unwrap();
-        if resp.code != 0 {
-            return Err(Error::RPRApplicationError(
-                resp.code,
-                metadata.name.to_string(),
-            ));
+                Ok(match resp {
+                    Some(v) => serde_json::to_vec(&v)?,
+                    None => Vec::new()
+                })
+            } else {
+                Err(Error::NoModule)
+            }
+        } else {
+            Err(Error::NoModule)
         }
-
-        if resp.data.is_none() {
-            return Ok(Vec::new());
-        }
-
-        let resp_bytes = serde_json::to_vec(&resp.data).map_err(|_e| Error::JsonDumpError)?;
-        Ok(resp_bytes)
     }
 }
 
 #[async_trait::async_trait]
 impl tm_abci::Application for Node {
     async fn info(&mut self, _request: abci::RequestInfo) -> abci::ResponseInfo {
-        log::info!("info");
         Default::default()
     }
 
     async fn query(&mut self, req: abci::RequestQuery) -> abci::ResponseQuery {
-        log::info!("query");
         let mut resp = abci::ResponseQuery::default();
 
         match self.match_and_call_query(req).await {
             Ok(bytes) => resp.value = bytes,
             Err(e) => {
-                if let Error::RPRApplicationError(code, codespace) = e {
+                if let Error::RPCApplicationError(code, codespace) = e {
                     resp.code = code;
                     resp.codespace = codespace;
                 } else {
@@ -118,7 +115,6 @@ impl tm_abci::Application for Node {
                 }
             }
         }
-        log::info!("query end");
         resp
     }
 
@@ -271,7 +267,7 @@ impl tm_abci::Application for Node {
 mod tests {
     use super::*;
     use crate::{
-        module::{types, Application, RPCResponse},
+        module::{types, Application},
         Genesis, Result,
     };
     use tm_abci::Application as app;
@@ -291,8 +287,8 @@ mod tests {
             _context: &mut Context,
             _method: &str,
             _params: serde_json::Value,
-        ) -> Result<RPCResponse<'_, serde_json::Value>> {
-            Ok(RPCResponse::default())
+        ) -> Result<Option<serde_json::Value>> {
+            Ok(Default::default())
         }
     }
 
@@ -347,8 +343,8 @@ mod tests {
             _context: &mut Context,
             _method: &str,
             _params: serde_json::Value,
-        ) -> Result<RPCResponse<'_, serde_json::Value>> {
-            Ok(RPCResponse::default())
+        ) -> Result<Option<serde_json::Value>> {
+            Ok(Some(Default::default()))
         }
     }
 
