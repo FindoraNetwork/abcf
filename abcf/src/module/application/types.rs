@@ -4,8 +4,6 @@ use tm_protos::abci::{ConsensusParams, ValidatorUpdate};
 /// Response for deliver_tx.
 #[derive(Debug, Default)]
 pub struct ResponseDeliverTx {
-    /// Result code.
-    pub code: u32,
     /// Result data.
     pub data: Vec<u8>,
     /// Amount of gas requested for transaction.
@@ -17,8 +15,6 @@ pub struct ResponseDeliverTx {
 /// Response for check_tx
 #[derive(Debug, Default)]
 pub struct ResponseCheckTx {
-    /// Result code.
-    pub code: u32,
     /// Result data.
     pub data: Vec<u8>,
     /// Amount of gas requested for transaction.

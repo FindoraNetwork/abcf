@@ -10,6 +10,7 @@ pub enum Error {
     NoRPCMethod,
 
     RPCApplicationError(u32, String),
+    ABCIApplicationError(u32, String),
     TempOnlySupportRPC,
 }
 

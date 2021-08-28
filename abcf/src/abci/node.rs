@@ -7,6 +7,7 @@ use alloc::{
     vec::Vec,
 };
 use tm_protos::abci;
+use core::mem;
 
 /// ABCF node.
 pub struct Node {
@@ -140,35 +141,31 @@ impl tm_abci::Application for Node {
             storage: StorageContext {},
         };
 
-        let mut resp_check_tx: abci::ResponseCheckTx = abci::ResponseCheckTx::default();
+        let mut resp = abci::ResponseCheckTx::default();
         let mut data_map = BTreeMap::new();
 
         for (index, app) in self.apps.iter_mut().enumerate() {
             let metadata = &self.metadatas[index];
             let resp = app.check_tx(&mut context, &req).await;
             data_map.insert(metadata.name.to_string(), resp.data);
-            resp_check_tx.gas_used += resp.gas_used;
-            resp_check_tx.gas_wanted += resp.gas_wanted;
-            resp_check_tx.codespace = metadata.name.to_string();
+            resp.gas_used += resp.gas_used;
+            resp.gas_wanted += resp.gas_wanted;
+            resp.codespace = metadata.name.to_string();
 
             if resp.code != 0 {
-                resp_check_tx.code = 1;
+                resp.code = 1;
                 break;
             } else {
-                resp_check_tx.code = 0;
+                resp.code = 0;
             }
         }
 
-        let mut check_tx_events = Vec::with_capacity(events.check_tx_events.len());
+        let check_tx_events = mem::replace(&mut events.check_tx_events, Vec::new());
 
-        while let Some(e) = events.check_tx_events.pop() {
-            check_tx_events.push(e);
-        }
-
-        resp_check_tx.events = check_tx_events;
-        resp_check_tx.info = String::new();
-        resp_check_tx.log = String::new();
-        resp_check_tx
+        resp.events = check_tx_events;
+        resp.info = String::new();
+        resp.log = String::new();
+        resp
     }
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
@@ -184,11 +181,7 @@ impl tm_abci::Application for Node {
             app.begin_block(&mut context, &req).await;
         }
 
-        let mut begin_block_events = Vec::with_capacity(events.begin_block_events.len());
-
-        while let Some(e) = events.begin_block_events.pop() {
-            begin_block_events.push(e);
-        }
+        let begin_block_events = mem::replace(&mut events.begin_block_events, Vec::new());
 
         abci::ResponseBeginBlock {
             events: begin_block_events,
@@ -204,38 +197,34 @@ impl tm_abci::Application for Node {
             storage: StorageContext {},
         };
 
-        let mut resp_deliver_tx: abci::ResponseDeliverTx = abci::ResponseDeliverTx::default();
+        let mut resp: abci::ResponseDeliverTx = abci::ResponseDeliverTx::default();
         let mut data_map = BTreeMap::new();
 
         for (index, app) in self.apps.iter_mut().enumerate() {
             let metadata = &self.metadatas[index];
             let resp = app.deliver_tx(&mut context, &_request).await;
             data_map.insert(metadata.name.to_string(), resp.data);
-            resp_deliver_tx.gas_used += resp.gas_used;
-            resp_deliver_tx.gas_wanted += resp.gas_wanted;
-            resp_deliver_tx.codespace = metadata.name.to_string();
+            resp.gas_used += resp.gas_used;
+            resp.gas_wanted += resp.gas_wanted;
+            resp.codespace = metadata.name.to_string();
 
             if resp.code != 0 {
-                resp_deliver_tx.code = 1;
+                resp.code = 1;
                 break;
             } else {
-                resp_deliver_tx.code = 0;
+                resp.code = 0;
             }
         }
 
-        let mut deliver_tx_events = Vec::with_capacity(events.deliver_tx_events.len());
-
-        while let Some(e) = events.deliver_tx_events.pop() {
-            deliver_tx_events.push(e);
-        }
+        let deliver_tx_events = mem::replace(&mut events.deliver_tx_events, Vec::new());
 
         let data_map_json = serde_json::to_string(&data_map).unwrap();
 
-        resp_deliver_tx.events = deliver_tx_events;
-        resp_deliver_tx.info = String::new();
-        resp_deliver_tx.log = String::new();
-        resp_deliver_tx.data = data_map_json.as_bytes().to_vec();
-        resp_deliver_tx
+        resp.events = deliver_tx_events;
+        resp.info = String::new();
+        resp.log = String::new();
+        resp.data = data_map_json.as_bytes().to_vec();
+        resp
     }
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
@@ -248,7 +237,7 @@ impl tm_abci::Application for Node {
         };
 
         let mut validator_updates_vec = Vec::new();
-        let mut resp_end_block: abci::ResponseEndBlock = abci::ResponseEndBlock::default();
+        let mut resp: abci::ResponseEndBlock = abci::ResponseEndBlock::default();
 
         for app in self.apps.iter_mut() {
             let resp = app.end_block(&mut context, &_request).await;
@@ -257,18 +246,14 @@ impl tm_abci::Application for Node {
                     validator_updates_vec.push(v);
                 }
             });
-            resp_end_block.consensus_param_updates = resp.consensus_param_updates;
+            resp.consensus_param_updates = resp.consensus_param_updates;
         }
 
-        let mut end_block_events = Vec::with_capacity(events.end_block_events.len());
+        let end_block_events = mem::replace(&mut events.end_block_events, Vec::new());
 
-        while let Some(e) = events.end_block_events.pop() {
-            end_block_events.push(e);
-        }
-
-        resp_end_block.validator_updates = validator_updates_vec;
-        resp_end_block.events = end_block_events;
-        resp_end_block
+        resp.validator_updates = validator_updates_vec;
+        resp.events = end_block_events;
+        resp
     }
 }
 
