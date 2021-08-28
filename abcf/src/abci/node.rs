@@ -1,9 +1,5 @@
 use super::{context::StorageContext, Context, EventContext};
-use crate::{
-    abci::EventContextImpl,
-    module::{Application, Module, ModuleMetadata, RPCs},
-    Error, Result,
-};
+use crate::{Error, ModuleError, ModuleResult, Result, abci::EventContextImpl, module::{Application, Module, ModuleMetadata, RPCs}};
 use alloc::collections::BTreeMap;
 use alloc::{
     boxed::Box,
@@ -20,10 +16,6 @@ pub struct Node {
     rpcs: Vec<Box<dyn RPCs>>,
     name_index: BTreeMap<String, usize>,
     events: EventContextImpl,
-    // event_descriptor: Vec<EventDescriptor>,
-    // stateful_storage: Vec<SparseMerkleTree<H, Value, S>>,
-    // stateless_storage: Vec<S>,
-    // storage_descriptor: Vec<Box<StorageDescriptor>>,
 }
 
 impl Node {
@@ -56,40 +48,57 @@ impl Node {
 }
 
 impl Node {
-    async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> Result<Vec<u8>> {
+    async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> ModuleResult<Vec<u8>> {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
         // then call rpc.
+        
+        const ABCF_RPC_NAMESPAC: &str = "abcf.rpc";
+
+        async fn call_rpc(context: &mut Context<'_>, method: &str, rpc: &mut dyn RPCs, req: Vec<u8>) -> Result<Vec<u8>> {
+            let params = serde_json::from_slice(&req)?;
+
+            let resp = rpc
+                .call(context, method, params)
+                .await?;
+
+            Ok(match resp {
+                Some(v) => serde_json::to_vec(&v)?,
+                None => Vec::new()
+            })
+        }
+
+
         let splited_path: Vec<&str> = req.path.split('/').collect();
         if splited_path.len() < 2 {
-            return Err(Error::QueryPathFormatError);
+            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::QueryPathFormatError));
         }
 
         if splited_path[0] != "rpc" {
             // Curren version, path only support query rpc. This error is temp error.
-            return Err(Error::TempOnlySupportRPC);
+            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::TempOnlySupportRPC));
         }
-        
-        if let Some(rpc_index) = self.name_index.get(splited_path[1]) {
+
+        let module_name = splited_path[1];
+        let method_name = splited_path[2];
+
+        if let Some(rpc_index) = self.name_index.get(module_name) {
             if let Some(rpc) = self.rpcs.get_mut(*rpc_index) {
                 let mut context = Context {
                     event: None,
                     storage: StorageContext {},
                 };
-                let params = serde_json::from_slice(&req.data)?;
-                let resp = rpc
-                    .call(&mut context, splited_path[2], params)
-                    .await?;
 
-                Ok(match resp {
-                    Some(v) => serde_json::to_vec(&v)?,
-                    None => Vec::new()
-                })
+                log::info!("rpc query {}: {}", module_name, method_name);
+                match call_rpc(&mut context, method_name, rpc.as_mut(), req.data).await {
+                    Ok(v) => Ok(v),
+                    Err(e) => Err(ModuleError::new(module_name, e))
+                }
             } else {
-                Err(Error::NoModule)
+                Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::NoModule))
             }
         } else {
-            Err(Error::NoModule)
+            Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::NoModule))
         }
     }
 }
@@ -103,15 +112,19 @@ impl tm_abci::Application for Node {
     async fn query(&mut self, req: abci::RequestQuery) -> abci::ResponseQuery {
         let mut resp = abci::ResponseQuery::default();
 
-        match self.match_and_call_query(req).await {
+        let result = self.match_and_call_query(req).await;
+
+        match result {
             Ok(bytes) => resp.value = bytes,
             Err(e) => {
-                if let Error::RPCApplicationError(code, codespace) = e {
+                if let Error::RPCApplicationError(code, error) = e.error {
                     resp.code = code;
-                    resp.codespace = codespace;
+                    resp.log = error;
+                    resp.codespace = e.namespace;
                 } else {
-                    resp.code = e.to_code();
-                    resp.codespace = "abcf.rpc".to_string();
+                    resp.code = e.error.to_code();
+                    resp.log = alloc::format!("{:?}", e.error);
+                    resp.codespace = e.namespace;
                 }
             }
         }
@@ -119,7 +132,6 @@ impl tm_abci::Application for Node {
     }
 
     async fn check_tx(&mut self, req: abci::RequestCheckTx) -> abci::ResponseCheckTx {
-        log::info!("check_tx");
         let events = &mut self.events;
 
         // construct context for call.
@@ -160,7 +172,6 @@ impl tm_abci::Application for Node {
     }
 
     async fn begin_block(&mut self, req: abci::RequestBeginBlock) -> abci::ResponseBeginBlock {
-        log::info!("begin_block");
         let events = &mut self.events;
 
         // construct context for call.
@@ -185,7 +196,6 @@ impl tm_abci::Application for Node {
     }
 
     async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
-        log::info!("deliver_tx");
         let events = &mut self.events;
 
         // construct context for call.
@@ -229,7 +239,6 @@ impl tm_abci::Application for Node {
     }
 
     async fn end_block(&mut self, _request: abci::RequestEndBlock) -> abci::ResponseEndBlock {
-        log::info!("deliver_tx");
         let events = &mut self.events;
 
         // construct context for call.

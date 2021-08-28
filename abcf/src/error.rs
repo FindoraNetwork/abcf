@@ -40,3 +40,20 @@ impl Error {
 
 /// Re-export `Result` for abcf.
 pub type Result<T> = core::result::Result<T, Error>;
+
+pub struct ModuleError {
+    pub namespace: String,
+    pub error: Error,
+}
+
+impl ModuleError {
+    pub fn new(namespace: &str, e: Error) -> Self {
+        Self {
+            namespace: String::from(namespace),
+            error: e,
+        }
+    }
+}
+
+pub type ModuleResult<T> = core::result::Result<T, ModuleError>;
+
