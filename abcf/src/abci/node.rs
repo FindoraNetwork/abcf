@@ -44,7 +44,8 @@ impl Node {
     {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
-        self.rpcs.insert(m.metadata().name.to_string(), Box::new(m.rpcs()));
+        self.rpcs
+            .insert(m.metadata().name.to_string(), Box::new(m.rpcs()));
         self
     }
 }
@@ -269,7 +270,10 @@ impl tm_abci::Application for Node {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::{RPCResponse, types, Application}, Genesis, Result};
+    use crate::{
+        module::{types, Application, RPCResponse},
+        Genesis, Result,
+    };
     use tm_abci::Application as app;
     use tm_protos::abci::RequestDeliverTx;
     use tokio::runtime::Runtime;

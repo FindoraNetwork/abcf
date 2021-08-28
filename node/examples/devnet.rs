@@ -3,7 +3,6 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-
 use abcf::{abci::Context, Application, Genesis, Module, ModuleMetadata, RPCResponse};
 use abcf_macros::rpcs;
 use abcf_node::Node;
