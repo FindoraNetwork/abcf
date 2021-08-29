@@ -146,25 +146,42 @@ impl tm_abci::Application for Node {
 
         for (index, app) in self.apps.iter_mut().enumerate() {
             let metadata = &self.metadatas[index];
-            let resp = app.check_tx(&mut context, &req).await;
-            data_map.insert(metadata.name.to_string(), resp.data);
-            resp.gas_used += resp.gas_used;
-            resp.gas_wanted += resp.gas_wanted;
-            resp.codespace = metadata.name.to_string();
-
-            if resp.code != 0 {
-                resp.code = 1;
-                break;
-            } else {
-                resp.code = 0;
+            match app.check_tx(&mut context, &req).await {
+                Ok(module_resp) => {
+                    data_map.insert(metadata.name.clone(), module_resp.data);
+                    resp.gas_used += module_resp.gas_used;
+                    resp.gas_wanted += module_resp.gas_wanted;
+                }
+                Err(e) => {
+                    resp.codespace = metadata.name.clone();
+                    match e {
+                        Error::ABCIApplicationError(code, message) => {
+                            resp.code = code;
+                            resp.log = message;
+                        },
+                        _ => {
+                            resp.code = e.to_code();
+                            resp.log = alloc::format!("{:?}", e);
+                        }
+                    }
+                    return resp;
+                }
             }
         }
 
         let check_tx_events = mem::replace(&mut events.check_tx_events, Vec::new());
 
+        match serde_json::to_vec(&data_map) {
+            Ok(v) => resp.data = v,
+            Err(e) => {
+                let err = Error::JsonError(e);
+                resp.code = err.to_code();
+                resp.log = alloc::format!("{:?}", err);
+                resp.codespace = String::from("abcf.application");
+            }
+        }
+
         resp.events = check_tx_events;
-        resp.info = String::new();
-        resp.log = String::new();
         resp
     }
 
@@ -188,7 +205,7 @@ impl tm_abci::Application for Node {
         }
     }
 
-    async fn deliver_tx(&mut self, _request: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
+    async fn deliver_tx(&mut self, req: abci::RequestDeliverTx) -> abci::ResponseDeliverTx {
         let events = &mut self.events;
 
         // construct context for call.
@@ -202,28 +219,42 @@ impl tm_abci::Application for Node {
 
         for (index, app) in self.apps.iter_mut().enumerate() {
             let metadata = &self.metadatas[index];
-            let resp = app.deliver_tx(&mut context, &_request).await;
-            data_map.insert(metadata.name.to_string(), resp.data);
-            resp.gas_used += resp.gas_used;
-            resp.gas_wanted += resp.gas_wanted;
-            resp.codespace = metadata.name.to_string();
-
-            if resp.code != 0 {
-                resp.code = 1;
-                break;
-            } else {
-                resp.code = 0;
+            match app.deliver_tx(&mut context, &req).await {
+                Ok(module_resp) => {
+                    data_map.insert(metadata.name.to_string(), module_resp.data);
+                    resp.gas_used += module_resp.gas_used;
+                    resp.gas_wanted += module_resp.gas_wanted;
+                }
+                Err(e) => {
+                    resp.codespace = metadata.name.clone();
+                    match e {
+                        Error::ABCIApplicationError(code, message) => {
+                            resp.code = code;
+                            resp.log = message;
+                        },
+                        _ => {
+                            resp.code = e.to_code();
+                            resp.log = alloc::format!("{:?}", e);
+                        }
+                    }
+                    return resp;
+                }
             }
         }
 
         let deliver_tx_events = mem::replace(&mut events.deliver_tx_events, Vec::new());
 
-        let data_map_json = serde_json::to_string(&data_map).unwrap();
+        match serde_json::to_vec(&data_map) {
+            Ok(v) => resp.data = v,
+            Err(e) => {
+                let err = Error::JsonError(e);
+                resp.code = err.to_code();
+                resp.log = alloc::format!("{:?}", err);
+                resp.codespace = String::from("abcf.application");
+            }
+        }
 
         resp.events = deliver_tx_events;
-        resp.info = String::new();
-        resp.log = String::new();
-        resp.data = data_map_json.as_bytes().to_vec();
         resp
     }
 
@@ -240,8 +271,8 @@ impl tm_abci::Application for Node {
         let mut resp: abci::ResponseEndBlock = abci::ResponseEndBlock::default();
 
         for app in self.apps.iter_mut() {
-            let resp = app.end_block(&mut context, &_request).await;
-            resp.validator_updates.into_iter().for_each(|v| {
+            let module_resp = app.end_block(&mut context, &_request).await;
+            module_resp.validator_updates.into_iter().for_each(|v| {
                 if !validator_updates_vec.contains(&v) {
                     validator_updates_vec.push(v);
                 }
@@ -318,13 +349,12 @@ mod tests {
             &mut self,
             _context: &mut Context,
             _req: &RequestDeliverTx,
-        ) -> types::ResponseDeliverTx {
+        ) -> Result<types::ResponseDeliverTx> {
             let mut resp: types::ResponseDeliverTx = types::ResponseDeliverTx::default();
-            resp.code = 1;
             resp.data = "error from me".as_bytes().to_vec();
             resp.gas_wanted = 1;
             resp.gas_used = 20;
-            resp
+            Err(Error::ABCIApplicationError(1, String::from("mock error")))
         }
     }
 
@@ -367,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mock() {
+    fn test_mock_failed_fallback() {
         let mut node = Node::new();
         let module = MockModule {};
         let module2 = MockModule2 {};
@@ -381,19 +411,19 @@ mod tests {
             let resp = node.deliver_tx(request).await;
             assert_eq!(resp.code, 1);
             assert_eq!(resp.codespace, "mock2".to_string());
-            assert_eq!(resp.gas_used, 20);
-            assert_eq!(resp.gas_wanted, 1);
+            assert_eq!(resp.gas_used, 0);
+            assert_eq!(resp.gas_wanted, 0);
             assert_eq!(resp.events.len(), 0);
-            {
-                let mut data_map = BTreeMap::new();
-                data_map.insert("mock", "".as_bytes().to_vec());
-                data_map.insert("mock2", "error from me".as_bytes().to_vec());
-                let data_map_json = serde_json::to_string(&data_map)
-                    .unwrap()
-                    .as_bytes()
-                    .to_vec();
-                assert_eq!(resp.data, data_map_json);
-            }
+            // {
+                // let mut data_map = BTreeMap::new();
+                // data_map.insert("mock", "".as_bytes().to_vec());
+                // data_map.insert("mock2", "error from me".as_bytes().to_vec());
+                // let data_map_json = serde_json::to_string(&data_map)
+                //     .unwrap()
+                //     .as_bytes()
+                //     .to_vec();
+                // assert_eq!(resp.data, data_map_json);
+            // }
         });
     }
 }

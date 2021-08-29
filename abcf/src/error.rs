@@ -35,6 +35,7 @@ impl Error {
 
             Error::TempOnlySupportRPC => 90001,
             Error::RPCApplicationError(code, _) => code.clone(),
+            Error::ABCIApplicationError(code, _) => code.clone(),
         }
     }
 }
