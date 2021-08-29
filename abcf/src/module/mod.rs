@@ -16,3 +16,6 @@ pub use storages::{KVStore, Storage};
 
 mod module;
 pub use module::{Genesis, Module, ModuleMetadata};
+
+mod callable;
+pub use callable::Callable;

@@ -28,7 +28,7 @@ impl<'a, T: Serialize> Response<'a, T> {
         Self {
             code: 0,
             message: "success",
-            data: Some(t)
+            data: Some(t),
         }
     }
 }

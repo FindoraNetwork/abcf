@@ -1,5 +1,11 @@
+use core::any::Any;
+
 use super::{context::StorageContext, Context, EventContext};
-use crate::{Error, ModuleError, ModuleResult, Result, abci::EventContextImpl, module::{Application, Module, ModuleMetadata, RPCs}};
+use crate::{
+    abci::{context::CallContext, EventContextImpl},
+    module::{Application, Module, ModuleMetadata, RPCs},
+    Error, ModuleError, ModuleResult, Result,
+};
 use alloc::collections::BTreeMap;
 use alloc::{
     boxed::Box,
@@ -12,10 +18,10 @@ use tm_protos::abci;
 pub struct Node {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata>,
-    // rpcs: BTreeMap<String, Box<dyn RPCs>>,
     rpcs: Vec<Box<dyn RPCs>>,
     name_index: BTreeMap<String, usize>,
     events: EventContextImpl,
+    callables: Vec<Box<dyn Any + Send + Sync>>,
 }
 
 impl Node {
@@ -27,6 +33,7 @@ impl Node {
             rpcs: Vec::new(),
             name_index: BTreeMap::new(),
             events: EventContextImpl::default(),
+            callables: Vec::new(),
         }
     }
 
@@ -40,6 +47,7 @@ impl Node {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
         self.rpcs.push(Box::new(m.rpcs()));
+        self.callables.push(Box::new(m.callable()));
 
         self.name_index
             .insert(m.metadata().name, self.apps.len() - 1);
@@ -52,31 +60,39 @@ impl Node {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
         // then call rpc.
-        
+
         const ABCF_RPC_NAMESPAC: &str = "abcf.rpc";
 
-        async fn call_rpc(context: &mut Context<'_>, method: &str, rpc: &mut dyn RPCs, req: Vec<u8>) -> Result<Vec<u8>> {
+        async fn call_rpc(
+            context: &mut Context<'_>,
+            method: &str,
+            rpc: &mut dyn RPCs,
+            req: Vec<u8>,
+        ) -> Result<Vec<u8>> {
             let params = serde_json::from_slice(&req)?;
 
-            let resp = rpc
-                .call(context, method, params)
-                .await?;
+            let resp = rpc.call(context, method, params).await?;
 
             Ok(match resp {
                 Some(v) => serde_json::to_vec(&v)?,
-                None => Vec::new()
+                None => Vec::new(),
             })
         }
 
-
         let splited_path: Vec<&str> = req.path.split('/').collect();
         if splited_path.len() < 2 {
-            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::QueryPathFormatError));
+            return Err(ModuleError::new(
+                ABCF_RPC_NAMESPAC,
+                Error::QueryPathFormatError,
+            ));
         }
 
         if splited_path[0] != "rpc" {
             // Curren version, path only support query rpc. This error is temp error.
-            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::TempOnlySupportRPC));
+            return Err(ModuleError::new(
+                ABCF_RPC_NAMESPAC,
+                Error::TempOnlySupportRPC,
+            ));
         }
 
         let module_name = splited_path[1];
@@ -87,12 +103,16 @@ impl Node {
                 let mut context = Context {
                     event: None,
                     storage: StorageContext {},
+                    calls: CallContext {
+                        name_index: &self.name_index,
+                        calls: &mut self.callables,
+                    },
                 };
 
                 log::info!("rpc query {}: {}", module_name, method_name);
                 match call_rpc(&mut context, method_name, rpc.as_mut(), req.data).await {
                     Ok(v) => Ok(v),
-                    Err(e) => Err(ModuleError::new(module_name, e))
+                    Err(e) => Err(ModuleError::new(module_name, e)),
                 }
             } else {
                 Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::NoModule))
@@ -138,6 +158,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.check_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut resp_check_tx: abci::ResponseCheckTx = abci::ResponseCheckTx::default();
@@ -178,6 +202,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.begin_block_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         for app in self.apps.iter_mut() {
@@ -202,6 +230,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut resp_deliver_tx: abci::ResponseDeliverTx = abci::ResponseDeliverTx::default();
@@ -245,6 +277,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut validator_updates_vec = Vec::new();
@@ -306,6 +342,7 @@ mod tests {
     impl Module for MockModule {
         type Application = MockApplicaion;
         type RPCs = MockRPCs;
+        type Callable = ();
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
@@ -322,6 +359,10 @@ mod tests {
 
         fn rpcs(&self) -> Self::RPCs {
             MockRPCs {}
+        }
+
+        fn callable(&self) -> Self::Callable {
+            ()
         }
     }
 
@@ -362,6 +403,7 @@ mod tests {
     impl Module for MockModule2 {
         type Application = MockApplicaion2;
         type RPCs = MockRPCs2;
+        type Callable = ();
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
@@ -378,6 +420,10 @@ mod tests {
 
         fn rpcs(&self) -> Self::RPCs {
             MockRPCs2 {}
+        }
+
+        fn callable(&self) -> Self::Callable {
+            ()
         }
     }
 
