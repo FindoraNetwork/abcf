@@ -1,6 +1,8 @@
+use core::any::Any;
+
 use super::{context::StorageContext, Context, EventContext};
 use crate::{
-    abci::EventContextImpl,
+    abci::{context::CallContext, EventContextImpl},
     module::{Application, Module, ModuleMetadata, RPCs},
     Error, ModuleError, ModuleResult, Result,
 };
@@ -17,10 +19,10 @@ use tm_protos::abci;
 pub struct Node {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata>,
-    // rpcs: BTreeMap<String, Box<dyn RPCs>>,
     rpcs: Vec<Box<dyn RPCs>>,
     name_index: BTreeMap<String, usize>,
     events: EventContextImpl,
+    callables: Vec<Box<dyn Any + Send + Sync>>,
 }
 
 impl Node {
@@ -32,6 +34,7 @@ impl Node {
             rpcs: Vec::new(),
             name_index: BTreeMap::new(),
             events: EventContextImpl::default(),
+            callables: Vec::new(),
         }
     }
 
@@ -45,6 +48,7 @@ impl Node {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
         self.rpcs.push(Box::new(m.rpcs()));
+        self.callables.push(Box::new(m.callable()));
 
         self.name_index
             .insert(m.metadata().name, self.apps.len() - 1);
@@ -100,6 +104,10 @@ impl Node {
                 let mut context = Context {
                     event: None,
                     storage: StorageContext {},
+                    calls: CallContext {
+                        name_index: &self.name_index,
+                        calls: &mut self.callables,
+                    },
                 };
 
                 log::info!("rpc query {}: {}", module_name, method_name);
@@ -151,6 +159,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.check_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut resp = abci::ResponseCheckTx::default();
@@ -204,6 +216,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.begin_block_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         for app in self.apps.iter_mut() {
@@ -224,6 +240,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut resp: abci::ResponseDeliverTx = abci::ResponseDeliverTx::default();
@@ -277,6 +297,10 @@ impl tm_abci::Application for Node {
         let mut context = Context {
             event: Some(EventContext::new(&mut events.deliver_tx_events)),
             storage: StorageContext {},
+            calls: CallContext {
+                name_index: &self.name_index,
+                calls: &mut self.callables,
+            },
         };
 
         let mut validator_updates_vec = Vec::new();
@@ -334,6 +358,7 @@ mod tests {
     impl Module for MockModule {
         type Application = MockApplicaion;
         type RPCs = MockRPCs;
+        type Callable = ();
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
@@ -350,6 +375,10 @@ mod tests {
 
         fn rpcs(&self) -> Self::RPCs {
             MockRPCs {}
+        }
+
+        fn callable(&self) -> Self::Callable {
+            ()
         }
     }
 
@@ -389,6 +418,7 @@ mod tests {
     impl Module for MockModule2 {
         type Application = MockApplicaion2;
         type RPCs = MockRPCs2;
+        type Callable = ();
 
         fn metadata(&self) -> ModuleMetadata {
             ModuleMetadata {
@@ -405,6 +435,10 @@ mod tests {
 
         fn rpcs(&self) -> Self::RPCs {
             MockRPCs2 {}
+        }
+
+        fn callable(&self) -> Self::Callable {
+            ()
         }
     }
 
