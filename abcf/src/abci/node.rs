@@ -12,8 +12,8 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use tm_protos::abci;
 use core::mem;
+use tm_protos::abci;
 
 /// ABCF node.
 pub struct Node {
@@ -182,7 +182,7 @@ impl tm_abci::Application for Node {
                         Error::ABCIApplicationError(code, message) => {
                             resp.code = code;
                             resp.log = message;
-                        },
+                        }
                         _ => {
                             resp.code = e.to_code();
                             resp.log = alloc::format!("{:?}", e);
@@ -263,7 +263,7 @@ impl tm_abci::Application for Node {
                         Error::ABCIApplicationError(code, message) => {
                             resp.code = code;
                             resp.log = message;
-                        },
+                        }
                         _ => {
                             resp.code = e.to_code();
                             resp.log = alloc::format!("{:?}", e);
@@ -461,14 +461,14 @@ mod tests {
             assert_eq!(resp.gas_wanted, 0);
             assert_eq!(resp.events.len(), 0);
             // {
-                // let mut data_map = BTreeMap::new();
-                // data_map.insert("mock", "".as_bytes().to_vec());
-                // data_map.insert("mock2", "error from me".as_bytes().to_vec());
-                // let data_map_json = serde_json::to_string(&data_map)
-                //     .unwrap()
-                //     .as_bytes()
-                //     .to_vec();
-                // assert_eq!(resp.data, data_map_json);
+            // let mut data_map = BTreeMap::new();
+            // data_map.insert("mock", "".as_bytes().to_vec());
+            // data_map.insert("mock2", "error from me".as_bytes().to_vec());
+            // let data_map_json = serde_json::to_string(&data_map)
+            //     .unwrap()
+            //     .as_bytes()
+            //     .to_vec();
+            // assert_eq!(resp.data, data_map_json);
             // }
         });
     }

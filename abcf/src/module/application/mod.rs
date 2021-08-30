@@ -4,7 +4,7 @@ pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, R
 pub mod types;
 pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
-use crate::{Result, abci::Context};
+use crate::{abci::Context, Result};
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
@@ -14,7 +14,11 @@ pub trait Application: Send + Sync {
     /// In this function, do some lightweight check for transaction, for example: check signature,
     /// check balance and so on.
     /// This method will be called at external user or another node.
-    async fn check_tx(&mut self, _context: &mut Context, _req: &RequestCheckTx) -> Result<ResponseCheckTx> {
+    async fn check_tx(
+        &mut self,
+        _context: &mut Context,
+        _req: &RequestCheckTx,
+    ) -> Result<ResponseCheckTx> {
         Ok(Default::default())
     }
 
