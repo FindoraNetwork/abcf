@@ -10,6 +10,7 @@ pub enum Error {
     NoRPCMethod,
 
     RPCApplicationError(u32, String),
+    ABCIApplicationError(u32, String),
     TempOnlySupportRPC,
 }
 
@@ -34,6 +35,7 @@ impl Error {
 
             Error::TempOnlySupportRPC => 90001,
             Error::RPCApplicationError(code, _) => code.clone(),
+            Error::ABCIApplicationError(code, _) => code.clone(),
         }
     }
 }
