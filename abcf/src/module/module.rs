@@ -1,5 +1,7 @@
 use alloc::string::String;
 
+use crate::Callable;
+
 use super::{Application, RPCs};
 
 /// Module.
@@ -12,6 +14,8 @@ pub trait Module {
     /// This module provided Application.
     type Application: Application;
 
+    type Callable: Callable;
+
     /// Get module metadata.
     fn metadata(&self) -> ModuleMetadata;
 
@@ -20,6 +24,8 @@ pub trait Module {
 
     /// Return rpcs instance.
     fn rpcs(&self) -> Self::RPCs;
+
+    fn callable(&self) -> Self::Callable;
 }
 
 /// Metadata of module.
