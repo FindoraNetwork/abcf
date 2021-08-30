@@ -97,6 +97,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut fn_names = vec![];
     let mut fn_idents = vec![];
     let mut param_idents = vec![];
+    let mut is_empty_impl = true;
 
     parsed.items.iter().for_each(|item| match item {
         ImplItem::Const(_) => {}
@@ -116,38 +117,53 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     _ => {}
                 },
             });
+            is_empty_impl = false;
         }
         _ => {}
     });
 
-    let expanded = quote! {
-        #parsed
+    let expanded = if is_empty_impl {
+        quote! {
 
-        #[async_trait::async_trait]
-        impl abcf::RPCs for #struct_name {
-            async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
-            abcf::Result<Option<serde_json::Value>> {
+            #[async_trait::async_trait]
+           impl abcf::RPCs for #struct_name {
+               async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+               abcf::Result<Option<serde_json::Value>> {
+                    Ok(None)
+                }
+           }
+        }
+    } else {
+        quote! {
+            #parsed
 
-                match method {
-                    #(
-                        #fn_names
-                    )* => {#(
-                        let param = serde_json::from_value::<#param_idents>(params)?;
+            #[async_trait::async_trait]
+            impl abcf::RPCs for #struct_name {
+                async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+                abcf::Result<Option<serde_json::Value>> {
 
-                        let response = self.#fn_idents(ctx, param).await;
+                    match method {
+                        #(
+                            #fn_names
+                        )* => {#(
+                            let param = serde_json::from_value::<#param_idents>(params)?;
 
-                        if response.code != 0 {
-                            Err(abcf::Error::new_rpc_error(response.code, response.message))
-                        } else if let Some(v) = response.data {
-                            Ok(Some(serde_json::to_value(v)?))
-                        } else {
-                            Ok(None)
-                        }
-                    )*}
-                    _ => {Err(abcf::Error::TempOnlySupportRPC)}
+                            let response = self.#fn_idents(ctx, param).await;
+
+                            if response.code != 0 {
+                                Err(abcf::Error::new_rpc_error(response.code, response.message))
+                            } else if let Some(v) = response.data {
+                                Ok(Some(serde_json::to_value(v)?))
+                            } else {
+                                Ok(None)
+                            }
+                        )*}
+                        _ => {Err(abcf::Error::TempOnlySupportRPC)}
+                    }
                 }
             }
         }
     };
+
     TokenStream::from(expanded)
 }

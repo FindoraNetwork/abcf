@@ -11,4 +11,4 @@ pub mod abci;
 pub use abci::Node;
 
 mod error;
-pub use error::{Error, Result, ModuleError, ModuleResult};
+pub use error::{Error, ModuleError, ModuleResult, Result};

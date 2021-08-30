@@ -1,13 +1,17 @@
 use super::{context::StorageContext, Context, EventContext};
-use crate::{Error, ModuleError, ModuleResult, Result, abci::EventContextImpl, module::{Application, Module, ModuleMetadata, RPCs}};
+use crate::{
+    abci::EventContextImpl,
+    module::{Application, Module, ModuleMetadata, RPCs},
+    Error, ModuleError, ModuleResult, Result,
+};
 use alloc::collections::BTreeMap;
 use alloc::{
     boxed::Box,
     string::{String, ToString},
     vec::Vec,
 };
-use tm_protos::abci;
 use core::mem;
+use tm_protos::abci;
 
 /// ABCF node.
 pub struct Node {
@@ -53,31 +57,39 @@ impl Node {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
         // then call rpc.
-        
+
         const ABCF_RPC_NAMESPAC: &str = "abcf.rpc";
 
-        async fn call_rpc(context: &mut Context<'_>, method: &str, rpc: &mut dyn RPCs, req: Vec<u8>) -> Result<Vec<u8>> {
+        async fn call_rpc(
+            context: &mut Context<'_>,
+            method: &str,
+            rpc: &mut dyn RPCs,
+            req: Vec<u8>,
+        ) -> Result<Vec<u8>> {
             let params = serde_json::from_slice(&req)?;
 
-            let resp = rpc
-                .call(context, method, params)
-                .await?;
+            let resp = rpc.call(context, method, params).await?;
 
             Ok(match resp {
                 Some(v) => serde_json::to_vec(&v)?,
-                None => Vec::new()
+                None => Vec::new(),
             })
         }
 
-
         let splited_path: Vec<&str> = req.path.split('/').collect();
         if splited_path.len() < 2 {
-            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::QueryPathFormatError));
+            return Err(ModuleError::new(
+                ABCF_RPC_NAMESPAC,
+                Error::QueryPathFormatError,
+            ));
         }
 
         if splited_path[0] != "rpc" {
             // Curren version, path only support query rpc. This error is temp error.
-            return Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::TempOnlySupportRPC));
+            return Err(ModuleError::new(
+                ABCF_RPC_NAMESPAC,
+                Error::TempOnlySupportRPC,
+            ));
         }
 
         let module_name = splited_path[1];
@@ -93,7 +105,7 @@ impl Node {
                 log::info!("rpc query {}: {}", module_name, method_name);
                 match call_rpc(&mut context, method_name, rpc.as_mut(), req.data).await {
                     Ok(v) => Ok(v),
-                    Err(e) => Err(ModuleError::new(module_name, e))
+                    Err(e) => Err(ModuleError::new(module_name, e)),
                 }
             } else {
                 Err(ModuleError::new(ABCF_RPC_NAMESPAC, Error::NoModule))
@@ -158,7 +170,7 @@ impl tm_abci::Application for Node {
                         Error::ABCIApplicationError(code, message) => {
                             resp.code = code;
                             resp.log = message;
-                        },
+                        }
                         _ => {
                             resp.code = e.to_code();
                             resp.log = alloc::format!("{:?}", e);
@@ -231,7 +243,7 @@ impl tm_abci::Application for Node {
                         Error::ABCIApplicationError(code, message) => {
                             resp.code = code;
                             resp.log = message;
-                        },
+                        }
                         _ => {
                             resp.code = e.to_code();
                             resp.log = alloc::format!("{:?}", e);
@@ -415,14 +427,14 @@ mod tests {
             assert_eq!(resp.gas_wanted, 0);
             assert_eq!(resp.events.len(), 0);
             // {
-                // let mut data_map = BTreeMap::new();
-                // data_map.insert("mock", "".as_bytes().to_vec());
-                // data_map.insert("mock2", "error from me".as_bytes().to_vec());
-                // let data_map_json = serde_json::to_string(&data_map)
-                //     .unwrap()
-                //     .as_bytes()
-                //     .to_vec();
-                // assert_eq!(resp.data, data_map_json);
+            // let mut data_map = BTreeMap::new();
+            // data_map.insert("mock", "".as_bytes().to_vec());
+            // data_map.insert("mock2", "error from me".as_bytes().to_vec());
+            // let data_map_json = serde_json::to_string(&data_map)
+            //     .unwrap()
+            //     .as_bytes()
+            //     .to_vec();
+            // assert_eq!(resp.data, data_map_json);
             // }
         });
     }

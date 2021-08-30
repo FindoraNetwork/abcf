@@ -16,6 +16,11 @@ pub struct GetAccountResponse {
     code: u8,
 }
 
+pub struct EmptyStruct {}
+
+#[rpcs]
+impl EmptyStruct {}
+
 #[rpcs]
 impl RpcTest {
     pub async fn get_account(
@@ -33,6 +38,8 @@ impl RpcTest {
 
 #[tokio::main]
 async fn main() {
+    let _es = EmptyStruct {};
+
     let mut rt = RpcTest {};
 
     let mut context = Context {
