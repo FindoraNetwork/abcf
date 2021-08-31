@@ -5,6 +5,7 @@ use alloc::string::String;
 pub enum Error {
     FromBytesError,
     JsonError(serde_json::Error),
+    ReqWest(reqwest::Error),
     QueryPathFormatError,
     NoModule,
     NoRPCMethod,
@@ -20,6 +21,12 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        Error::ReqWest(e)
+    }
+}
+
 impl Error {
     pub fn new_rpc_error(code: u32, message: &str) -> Self {
         Self::RPCApplicationError(code, String::from(message))
@@ -29,6 +36,7 @@ impl Error {
         match self {
             Error::FromBytesError => 10001,
             Error::JsonError(_) => 10002,
+            Error::ReqWest(_) => 10003,
             Error::QueryPathFormatError => 10004,
             Error::NoModule => 10005,
             Error::NoRPCMethod => 10006,
