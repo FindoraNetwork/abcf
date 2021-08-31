@@ -16,4 +16,3 @@ pub trait Storage<S: Store> {
 
     fn execute(&mut self, transaction: Self::Transaction);
 }
-
