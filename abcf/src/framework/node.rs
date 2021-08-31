@@ -16,16 +16,17 @@ use core::mem;
 use tm_protos::abci;
 
 /// ABCF node.
-pub struct Node {
+pub struct Node<S: bs3::Store> {
     apps: Vec<Box<dyn Application>>,
     metadatas: Vec<ModuleMetadata>,
     rpcs: Vec<Box<dyn RPCs>>,
     name_index: BTreeMap<String, usize>,
     events: EventContextImpl,
     callables: Vec<Box<dyn Any + Send + Sync>>,
+    store: Vec<S>,
 }
 
-impl Node {
+impl<S: bs3::Store> Node<S> {
     /// create new node for network.
     pub fn new() -> Self {
         Node {
@@ -35,6 +36,7 @@ impl Node {
             name_index: BTreeMap::new(),
             events: EventContextImpl::default(),
             callables: Vec::new(),
+            store: Vec::new(),
         }
     }
 
@@ -43,7 +45,7 @@ impl Node {
     where
         R: RPCs + 'static,
         A: Application + 'static,
-        M: Module<Application = A, RPCs = R>,
+        M: Module<S, Application = A, RPCs = R>,
     {
         self.apps.push(Box::new(m.application()));
         self.metadatas.push(m.metadata());
@@ -56,7 +58,7 @@ impl Node {
     }
 }
 
-impl Node {
+impl<S: bs3::Store> Node<S> {
     async fn match_and_call_query(&mut self, req: abci::RequestQuery) -> ModuleResult<Vec<u8>> {
         // ignore block height for this version.
         // For future, framewrok can roll back storage to special block height,
@@ -125,7 +127,7 @@ impl Node {
 }
 
 #[async_trait::async_trait]
-impl tm_abci::Application for Node {
+impl<S: bs3::Store> tm_abci::Application for Node<S> {
     async fn info(&mut self, _request: abci::RequestInfo) -> abci::ResponseInfo {
         Default::default()
     }
