@@ -1,35 +1,19 @@
-use alloc::vec::Vec;
-use core::fmt::Debug;
-use serde::{Deserialize, Serialize};
+use bs3::Store;
 
-pub trait Value: Clone + Debug + Default + Serialize + for<'de> Deserialize<'de> {}
+use crate::Result;
 
 /// Define module's storage.
-pub trait Storage {}
+pub trait Storage<S: Store> {
+    type Transaction;
 
-impl Storage for () {}
+    fn rollback(&mut self, height: u64) -> Result<()>;
 
-/// Define basic key-value store.
-pub trait Map {
-    type Error;
+    fn height(&self) -> u64;
 
-    fn set(&self, key: &[u8], value: Vec<u8>)
-        -> core::result::Result<Option<Vec<u8>>, Self::Error>;
+    fn commit(&mut self) -> Result<()>;
 
-    fn get(&self, key: &[u8]) -> core::result::Result<Option<Vec<u8>>, Self::Error>;
+    fn transaction(&mut self) -> Self::Transaction;
 
-    fn has(&self, key: &[u8]) -> core::result::Result<bool, Self::Error>;
+    fn execute(&mut self, transaction: Self::Transaction);
 }
 
-/// Define backend key-value store.
-pub trait KVStore: Map {
-    type Iter: core::iter::Iterator;
-
-    type TransactionMap: Map<Error = Self::Error>;
-
-    fn transaction(&self, tx: Self::TransactionMap) -> Result<(), Self::Error>;
-
-    fn len(&self) -> usize;
-
-    fn iter(&self) -> Self::Iter;
-}
