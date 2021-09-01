@@ -107,7 +107,6 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         Type::Path(path) => path.path.segments[0].ident.clone().to_string(),
         _ => "Error".to_string(),
     };
-    let sdk_source_dir = String::from("target/sdk_source/");
 
     let mut fn_names = vec![];
     let mut param_names = vec![];
@@ -163,16 +162,19 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                 use serde_json::Value;
                 use abcf_sdk::rpc_sdk::*;
                 use abcf_sdk::error::*;
+                use abcf_sdk::Provider;
 
-                pub async fn {}(param:{}) -> Result<Option<Value>>{{
+                pub async fn {}<P:Provider>(param:{},p:P) -> Result<Option<Value>>{{
                     let req = RpcCallRequest{{
                         path:"rpc/{}/{}".to_string(),
                         data:Some(param),
                     }};
 
-                    let resp = rpc_call(req).await?;
+                    let s = serde_json::to_string(&req)?;
+                    let resp = p.request(s).await?;
+
                     return if let Some(val) = resp {{
-                        let json = serde_json::to_value(val)?;
+                        let json = serde_json::from_str::<Value>(&val)?;
                         Ok(Some(json))
                     }} else {{
                         Ok(None)

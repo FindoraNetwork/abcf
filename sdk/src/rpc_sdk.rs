@@ -1,4 +1,4 @@
-use abcf::Result;
+use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::runtime::Runtime;
@@ -16,7 +16,27 @@ pub struct RpcCallResponse {
     pub data: Option<Value>,
 }
 
-pub async fn rpc_call(req: RpcCallRequest) -> Result<Option<RpcCallResponse>> {
+pub struct AbciQueryRpcProvider{}
+
+#[async_trait::async_trait]
+impl crate::Provider for AbciQueryRpcProvider{
+    async fn request(&self, params: String) -> Result<Option<String>> {
+        let param = serde_json::from_str::<RpcCallRequest>(&params)?;
+        return if let Some(resp) = rpc_call(param).await? {
+            let s = serde_json::to_string(&resp)?;
+
+            Ok(Some(s))
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn receive(&self) -> Result<Option<String>> {
+        Ok(None)
+    }
+}
+
+async fn rpc_call(req: RpcCallRequest) -> Result<Option<RpcCallResponse>> {
     let mut data = String::from("");
 
     if let Some(v) = req.data {

@@ -9,6 +9,7 @@ use abcf_node::Node;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::runtime::Runtime;
+use abcf_sdk::Provider;
 
 //------------- include -----------------
 /// must first build and then include
@@ -108,10 +109,11 @@ fn test() {
     let rt = Runtime::new().unwrap();
     let req = serde_json::to_value(&GetAccountRequest { code: 19 }).unwrap();
 
+    let provider = abcf_sdk::rpc_sdk::AbciQueryRpcProvider{};
+
     rt.block_on(async {
-        let r = mock_rpcs_call::get_account(req).await;
+        let r = mock_rpcs_call::get_account(req, provider).await;
         println!("{:#?}", r);
-        panic!();
     });
 
     std::thread::park();
