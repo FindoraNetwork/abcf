@@ -2,7 +2,7 @@ use core::any::Any;
 
 use super::{context::StorageContext, Context, EventContext};
 use crate::{
-    abci::{context::CallContext, EventContextImpl},
+    framework::{context::CallContext, EventContextImpl},
     module::{Application, Module, ModuleMetadata, RPCs},
     Error, ModuleError, ModuleResult, Result,
 };

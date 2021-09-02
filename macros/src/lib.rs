@@ -2,15 +2,15 @@
 //! # macro
 //!
 
-#![deny(warnings)]
-#![deny(missing_docs)]
-
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::*;
 use std::ops::Deref;
-use syn::{parse_macro_input, FnArg, ImplItem, ItemImpl, ItemStruct, Type};
+use syn::{
+    parse::Parse, parse_macro_input, punctuated::Punctuated, FnArg, ImplItem, ItemImpl, ItemStruct,
+    Lit, MetaNameValue, Token, Type,
+};
 
 ///
 /// Convert struct to abci::event
@@ -52,7 +52,7 @@ pub fn event(input: TokenStream) -> TokenStream {
     let expanded = quote! {
 
         impl abcf::Event for #struct_name {
-            fn to_abci_event(&self) -> abcf::Result<tm_protos::abci::Event> {
+            fn to_abci_event(&self) -> abcf::Result<abcf::abci::Event> {
 
                 let mut attributes = Vec::new();
 
@@ -62,7 +62,7 @@ pub fn event(input: TokenStream) -> TokenStream {
                     let value_byte = serde_json::to_vec(&self.#key_vec)?;
                     let index = #index_vec;
 
-                    let a = tm_protos::abci::EventAttribute{
+                    let a = abcf::abci::EventAttribute{
                         key: key_byte,
                         value: value_byte,
                         index,
@@ -71,7 +71,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 
                 )*
 
-                Ok(abci::Event {
+                Ok(abcf::abci::Event {
                     r#type: self.name().to_string(),
                     attributes,
                 })
@@ -124,10 +124,9 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let expanded = if is_empty_impl {
         quote! {
-
             #[async_trait::async_trait]
            impl abcf::RPCs for #struct_name {
-               async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+               async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
                abcf::Result<Option<serde_json::Value>> {
                     Ok(None)
                 }
@@ -139,7 +138,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
             #[async_trait::async_trait]
             impl abcf::RPCs for #struct_name {
-                async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+                async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
                 abcf::Result<Option<serde_json::Value>> {
 
                     match method {
@@ -166,4 +165,77 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+#[derive(Debug)]
+struct PunctuatedMetaNameValue {
+    pub name: Lit,
+    pub version: Lit,
+    pub impl_version: Lit,
+    pub target_height: Lit,
+}
+
+impl Parse for PunctuatedMetaNameValue {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let parsed = Punctuated::<MetaNameValue, Token![,]>::parse_terminated(input)?;
+
+        let mut name = None;
+        let mut version = None;
+        let mut impl_version = None;
+        let mut target_height = None;
+
+        for mnv in parsed {
+            let key = mnv
+                .path
+                .get_ident()
+                .ok_or(input.error("no attr key"))?
+                .to_string();
+            match key.as_str() {
+                "name" => name = Some(mnv.lit),
+                "version" => version = Some(mnv.lit),
+                "impl_version" => impl_version = Some(mnv.lit),
+                "target_height" => target_height = Some(mnv.lit),
+                _ => return Err(input.error(format_args!("key: {} no support", key))),
+            }
+        }
+
+        Ok(Self {
+            name: name.ok_or(input.error("name must set"))?,
+            version: version.ok_or(input.error("verison must set"))?,
+            impl_version: impl_version.ok_or(input.error("impl_version must set"))?,
+            target_height: target_height.ok_or(input.error("target_height must set"))?,
+        })
+    }
+}
+
+/// Define Module
+#[proc_macro_attribute]
+pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as PunctuatedMetaNameValue);
+    let parsed = parse_macro_input!(input as ItemStruct);
+
+    let struct_ident = parsed.ident.clone();
+    let name = args.name;
+    let version = args.version;
+    let impl_version = args.impl_version;
+    let target_height = args.target_height;
+
+    let result = quote! {
+        #parsed
+
+        impl abcf::Module for #struct_ident {
+            fn metadata(&self) -> abcf::ModuleMetadata<'_> {
+                abcf::ModuleMetadata {
+                    name: #name,
+                    version: #version,
+                    impl_version: #impl_version,
+                    genesis: abcf::Genesis {
+                        target_hight: #target_height,
+                    }
+                }
+            }
+        }
+    };
+
+    TokenStream::from(result)
 }
