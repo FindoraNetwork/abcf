@@ -1,8 +1,4 @@
-use abcf::Event;
-
-/// Module's Event
-#[derive(Debug, Event)]
-pub struct Event1 {}
+use abcf::{Application, Event};
 
 #[abcf::module(
     name = "mock",
@@ -12,9 +8,18 @@ pub struct Event1 {}
 )]
 pub struct MockModule {}
 
+/// Module's Event
+#[derive(Debug, Event)]
+pub struct Event1 {}
+
 /// Module's rpc.
 #[abcf::rpcs]
 impl MockModule {}
+
+#[abcf::application]
+impl Application for MockModule {
+
+}
 
 /// Module's methods.
 impl MockModule {}
