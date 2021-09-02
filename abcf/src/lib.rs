@@ -4,12 +4,12 @@ extern crate alloc;
 
 mod module;
 pub use module::{
-    Application, Callable, Event, Genesis, Module, ModuleMetadata, RPCResponse, RPCs, Storage,
-    Transaction,
+    Application, Callable, Event, Genesis, Merkle, Module, ModuleMetadata, RPCResponse, RPCs,
+    Storage, Transaction,
 };
 
 pub mod framework;
-// pub use framework::Node;
+pub use framework::Node;
 
 mod error;
 pub use error::{Error, ModuleError, ModuleResult, Result};

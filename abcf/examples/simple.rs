@@ -2,7 +2,7 @@ use abcf::{Application, Event};
 
 #[abcf::module(
     name = "mock",
-    version = "0.1",
+    version = 1,
     impl_version = "0.1.1",
     target_height = 0
 )]
@@ -17,9 +17,7 @@ pub struct Event1 {}
 impl MockModule {}
 
 #[abcf::application]
-impl Application for MockModule {
-
-}
+impl Application for MockModule {}
 
 /// Module's methods.
 impl MockModule {}

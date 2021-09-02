@@ -1,18 +1,23 @@
 use bs3::Store;
+use digest::{Digest, Output};
 
 use crate::Result;
 
 /// Define module's storage.
-pub trait Storage<S: Store> {
+pub trait Storage<S: Store>: Send + Sync + Default {
     type Transaction;
 
-    fn rollback(&mut self, height: u64) -> Result<()>;
+    fn rollback(&mut self, height: i64) -> Result<()>;
 
-    fn height(&self) -> u64;
+    fn height(&self) -> Result<i64>;
 
     fn commit(&mut self) -> Result<()>;
 
     fn transaction(&mut self) -> Self::Transaction;
 
     fn execute(&mut self, transaction: Self::Transaction);
+}
+
+pub trait Merkle<D: Digest> {
+    fn root(&self) -> Result<Output<D>>;
 }

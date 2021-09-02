@@ -8,7 +8,7 @@ pub struct ModuleMetadata<'a> {
     /// Name of module.
     pub name: &'a str,
     /// Version of module. If this version change, means module need update.
-    pub version: &'a str,
+    pub version: u64,
     /// Version of impl. If this version change, means module only a change of impl.
     pub impl_version: &'a str,
     /// Genesis info.
