@@ -52,7 +52,7 @@ pub fn event(input: TokenStream) -> TokenStream {
     let expanded = quote! {
 
         impl abcf::Event for #struct_name {
-            fn to_abci_event(&self) -> abcf::Result<tm_protos::abci::Event> {
+            fn to_abci_event(&self) -> abcf::Result<abcf::abci::Event> {
 
                 let mut attributes = Vec::new();
 
@@ -62,7 +62,7 @@ pub fn event(input: TokenStream) -> TokenStream {
                     let value_byte = serde_json::to_vec(&self.#key_vec)?;
                     let index = #index_vec;
 
-                    let a = tm_protos::abci::EventAttribute{
+                    let a = abcf::abci::EventAttribute{
                         key: key_byte,
                         value: value_byte,
                         index,
@@ -71,7 +71,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 
                 )*
 
-                Ok(abci::Event {
+                Ok(abcf::abci::Event {
                     r#type: self.name().to_string(),
                     attributes,
                 })
@@ -124,10 +124,9 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let expanded = if is_empty_impl {
         quote! {
-
             #[async_trait::async_trait]
            impl abcf::RPCs for #struct_name {
-               async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+               async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
                abcf::Result<Option<serde_json::Value>> {
                     Ok(None)
                 }
@@ -139,7 +138,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
             #[async_trait::async_trait]
             impl abcf::RPCs for #struct_name {
-                async fn call(&mut self, ctx: &mut abcf::abci::Context, method: &str, params: serde_json::Value) ->
+                async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
                 abcf::Result<Option<serde_json::Value>> {
 
                     match method {

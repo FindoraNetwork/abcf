@@ -1,7 +1,5 @@
 use abcf::Event;
-use abcf_macros::Event;
 use serde::{Deserialize, Serialize};
-use tm_protos::abci;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct E {

@@ -3,7 +3,7 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Callable, Genesis, Module, ModuleMetadata, RPCResponse, abci::Context};
+use abcf::{Application, Callable, Genesis, Module, ModuleMetadata, RPCResponse, framework::Context};
 use abcf_macros::rpcs;
 use abcf_node::Node;
 use serde::{Deserialize, Serialize};
