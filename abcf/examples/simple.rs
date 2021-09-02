@@ -3,6 +3,7 @@ use abcf::Event;
 /// Module's Event
 #[derive(Debug, Event)]
 pub struct Event1 {}
+
 #[abcf::module(
     name = "mock",
     version = "0.1",
