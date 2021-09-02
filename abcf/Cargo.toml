@@ -14,8 +14,6 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 log = "0.4.14"
 abcf-macros = { path = "../macros" }
 bs3 = { git = "ssh://git@github.com/FindoraNetwork/bs3.git", default-features = false, features = ["nightly", "cbor"] }
-abcf-macros = { path = "../macros" }
-bs3 = { git = "ssh://git@github.com/FindoraNetwork/bs3.git", default-features = false, features = ["nightly", "cbor"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
