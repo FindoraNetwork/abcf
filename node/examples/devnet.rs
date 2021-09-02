@@ -3,7 +3,7 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{abci::Context, Application, Genesis, Module, ModuleMetadata, RPCResponse};
+use abcf::{Application, Callable, Genesis, Module, ModuleMetadata, RPCResponse, abci::Context};
 use abcf_macros::rpcs;
 use abcf_node::Node;
 use serde::{Deserialize, Serialize};
@@ -45,6 +45,12 @@ impl MockRPCs {
     }
 }
 
+// ------------ callable -----------------
+
+pub struct MockCallable {}
+
+impl Callable for MockCallable {}
+
 // ------------ module -----------------
 
 pub struct MockModule {}
@@ -53,6 +59,8 @@ impl Module for MockModule {
     type RPCs = MockRPCs;
 
     type Application = MockApplicaion;
+
+    type Callable = MockCallable;
 
     fn metadata(&self) -> ModuleMetadata {
         ModuleMetadata {
@@ -69,6 +77,10 @@ impl Module for MockModule {
 
     fn rpcs(&self) -> Self::RPCs {
         MockRPCs {}
+    }
+
+    fn callable(&self) -> Self::Callable {
+        MockCallable {}
     }
 }
 

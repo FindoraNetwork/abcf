@@ -1,5 +1,5 @@
-use abcf::abci::{Context, StorageContext};
-use abcf::{RPCResponse, RPCs};
+use abcf::abci::{Context};
+use abcf::{RPCResponse};
 use abcf_macros::rpcs;
 use serde::{Deserialize, Serialize};
 
@@ -38,22 +38,24 @@ impl RpcTest {
 
 #[tokio::main]
 async fn main() {
-    let _es = EmptyStruct {};
-
-    let mut rt = RpcTest {};
-
-    let mut context = Context {
-        event: None,
-        storage: StorageContext {},
-    };
-
-    let params = GetAccountRequest { code: 99 };
-    let params = serde_json::to_value(params).unwrap();
-
-    let resp = rt.call(&mut context, "get_account", params).await.unwrap();
-
-    let resp = serde_json::from_value::<GetAccountResponse>(resp.unwrap()).unwrap();
-
-    assert_eq!(resp.name, "jack");
-    assert_eq!(resp.code, 99);
+    // TODO: use node as example.
+    // let _es = EmptyStruct {};
+    //
+    // let mut rt = RpcTest {};
+    //
+    // let mut context = Context {
+    //     event: None,
+    //     storage: StorageContext {},
+    //     calls: CallContext { name_index: (), calls: () }
+    // };
+    //
+    // let params = GetAccountRequest { code: 99 };
+    // let params = serde_json::to_value(params).unwrap();
+    //
+    // let resp = rt.call(&mut context, "get_account", params).await.unwrap();
+    //
+    // let resp = serde_json::from_value::<GetAccountResponse>(resp.unwrap()).unwrap();
+    //
+    // assert_eq!(resp.name, "jack");
+    // assert_eq!(resp.code, 99);
 }
