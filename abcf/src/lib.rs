@@ -16,4 +16,6 @@ pub use error::{Error, ModuleError, ModuleResult, Result};
 
 pub use abcf_macros::*;
 
+pub use async_trait::async_trait as application;
+
 pub use tm_protos::abci;

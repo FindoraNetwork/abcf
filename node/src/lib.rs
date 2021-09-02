@@ -6,12 +6,12 @@ use std::{
 mod error;
 pub use error::{Error, Result};
 
-pub struct Node {
-    node: abcf::Node,
+pub struct Node<S: bs3::Store + 'static> {
+    node: abcf::Node<S>,
     path: &'static Path,
 }
 
-impl Node {
+impl<S: bs3::Store> Node<S> {
     pub fn new(home: &'static str) -> Result<Self> {
         let path = Path::new(home);
         if !path.exists() {
@@ -32,15 +32,15 @@ impl Node {
     }
 }
 
-impl Deref for Node {
-    type Target = abcf::Node;
+impl<S: bs3::Store> Deref for Node<S> {
+    type Target = abcf::Node<S>;
 
     fn deref(&self) -> &Self::Target {
         &self.node
     }
 }
 
-impl DerefMut for Node {
+impl<S: bs3::Store> DerefMut for Node<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
     }
