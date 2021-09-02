@@ -1,41 +1,16 @@
-use alloc::string::String;
-
-use crate::Callable;
-
-use super::{Application, RPCs};
-
 /// Module.
 pub trait Module {
-    // type Storages: Storages;
-
-    /// This module provided RPCs.
-    type RPCs: RPCs;
-
-    /// This module provided Application.
-    type Application: Application;
-
-    type Callable: Callable;
-
-    /// Get module metadata.
-    fn metadata(&self) -> ModuleMetadata;
-
-    /// Return application instance.
-    fn application(&self) -> Self::Application;
-
-    /// Return rpcs instance.
-    fn rpcs(&self) -> Self::RPCs;
-
-    fn callable(&self) -> Self::Callable;
+    fn metadata(&self) -> ModuleMetadata<'_>;
 }
 
 /// Metadata of module.
-pub struct ModuleMetadata {
+pub struct ModuleMetadata<'a> {
     /// Name of module.
-    pub name: String,
+    pub name: &'a str,
     /// Version of module. If this version change, means module need update.
-    pub version: String,
+    pub version: &'a str,
     /// Version of impl. If this version change, means module only a change of impl.
-    pub impl_version: String,
+    pub impl_version: &'a str,
     /// Genesis info.
     pub genesis: Genesis,
 }
