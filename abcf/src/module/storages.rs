@@ -5,7 +5,7 @@ use crate::Result;
 
 /// Define module's storage.
 pub trait Storage<S: Store>: Send + Sync + Default {
-    type Transaction;
+    type Transaction: Send;
 
     fn rollback(&mut self, height: i64) -> Result<()>;
 

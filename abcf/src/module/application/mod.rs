@@ -4,7 +4,7 @@ pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, R
 pub mod types;
 pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
-use crate::{entry::Context, Result};
+// use crate::{entry::Context, Result};
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]

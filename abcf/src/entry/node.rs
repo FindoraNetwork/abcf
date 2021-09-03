@@ -1,20 +1,14 @@
-use core::marker::PhantomData;
+use core::{marker::PhantomData, mem};
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 
 use bs3::Store;
 use digest::Digest;
-use tm_protos::abci::{
-    RequestBeginBlock, RequestInfo, RequestInitChain, RequestQuery, ResponseBeginBlock,
-    ResponseInfo, ResponseInitChain, ResponseQuery,
-};
+use tm_protos::abci::{RequestBeginBlock, RequestDeliverTx, RequestEndBlock, RequestInfo, RequestInitChain, RequestQuery, ResponseBeginBlock, ResponseCommit, ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery};
 
 use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage};
 
-use super::{
-    prelude::{Application, RPCs},
-    Context, RPCContext,
-};
+use super::{AContext, EventContext, EventContextImpl, RContext, context::DContext, prelude::{Application, RPCs}};
 
 pub struct Node<S, D, Sl, Sf, M>
 where
@@ -22,13 +16,14 @@ where
     D: Digest,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     stateless: Sl,
     stateful: Sf,
     marker_s: PhantomData<S>,
     marker_d: PhantomData<D>,
     module: M,
+    events: EventContextImpl,
 }
 
 impl<S, D, Sl, Sf, M> Node<S, D, Sl, Sf, M>
@@ -37,7 +32,7 @@ where
     D: Digest,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
         Self {
@@ -46,12 +41,12 @@ where
             module,
             marker_s: PhantomData,
             marker_d: PhantomData,
+            events: EventContextImpl::default(),
         }
     }
 
     async fn call_rpc(&mut self, sub_path: Option<&str>, req: &[u8]) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
-        let mut ctx = RPCContext {
-            events: None,
+        let mut ctx = RContext {
             stateless: &mut self.stateless,
             stateful: &self.stateful,
         };
@@ -84,7 +79,7 @@ where
     D: Digest + Send,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -163,7 +158,112 @@ where
         resp
     }
 
-    async fn begin_block(&mut self, _request: RequestBeginBlock) -> ResponseBeginBlock {
-        Default::default()
+    async fn begin_block(&mut self, req: RequestBeginBlock) -> ResponseBeginBlock {
+        let mut resp = ResponseBeginBlock::default();
+
+        let begin_block_events = &mut self.events.begin_block_events;
+
+
+        if let Some(header) = &req.header {
+            if header.height != self.stateful.height().expect("Panic! Can't read height when generalize new block") {
+                self.stateful.rollback(header.height).expect("Panic! Can't rollback height when generalize new block");
+            }
+        }
+
+        if let Some(header) = &req.header {
+            if header.height != self.stateless.height().expect("Panic! Can't read height when generalize new block") {
+                self.stateless.rollback(header.height).expect("Panic! Can't rollback height when generalize new block");
+            }
+        }
+
+        let mut ctx = AContext {
+            events: EventContext::new(begin_block_events),
+            stateful: &mut self.stateful,
+            stateless: &mut self.stateless,
+        };
+
+        self.module.begin_block(&mut ctx, req).await;
+
+        let events = mem::replace(begin_block_events, Vec::new());
+
+        resp.events = events;
+
+        resp
+    }
+
+    async fn deliver_tx(&mut self, req: RequestDeliverTx) -> ResponseDeliverTx {
+        let mut resp = ResponseDeliverTx::default();
+
+        let deliver_tx_events = &mut self.events.deliver_tx_events;
+
+        let mut stateful_tx = self.stateful.transaction();
+        let mut stateless_tx = self.stateless.transaction();
+
+        let mut ctx = DContext {
+            events: EventContext::new(deliver_tx_events),
+            stateless: &mut stateless_tx,
+            stateful: &mut stateful_tx,
+        };
+
+        let result = self.module.deliver_tx(&mut ctx, req).await;
+
+        self.stateless.execute(stateless_tx);
+        self.stateful.execute(stateful_tx);
+
+        match result {
+            Ok(v) => {
+                resp.data = v.data;
+                resp.gas_wanted = v.gas_wanted;
+                resp.gas_used = v.gas_used;
+            }
+            Err(e) => {
+                resp.code = e.error.code();
+                resp.log = e.error.message();
+                resp.codespace = e.namespace;
+            }
+        }
+
+        // TODO: add config for module to add or drop events.
+
+        let events = mem::replace(deliver_tx_events, Vec::new());
+
+        resp.events = events;
+
+        resp
+    }
+
+
+    async fn end_block(&mut self, req: RequestEndBlock) -> ResponseEndBlock {
+        let mut resp = ResponseEndBlock::default();
+
+        let end_block_events = &mut self.events.end_block_events;
+
+        let mut ctx = AContext {
+            events: EventContext::new(end_block_events),
+            stateful: &mut self.stateful,
+            stateless: &mut self.stateless,
+        };
+
+        let result = self.module.end_block(&mut ctx, req).await;
+
+        resp.consensus_param_updates = result.consensus_param_updates;
+        resp.validator_updates = result.validator_updates;
+
+        let events = mem::replace(end_block_events, Vec::new());
+
+        resp.events = events;
+
+        resp
+    }
+
+    async fn commit(&mut self) -> ResponseCommit {
+        let mut resp = ResponseCommit::default();
+
+        self.stateless.commit().expect("Panic! commit failed when commit new block");
+        self.stateful.commit().expect("Panic! commit failed when commit new block");
+
+        resp.data = self.stateful.root().expect("Panic!, Can't read app hash when commit new block").to_vec();
+
+        resp
     }
 }

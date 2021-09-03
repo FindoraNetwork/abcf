@@ -1,21 +1,19 @@
 use alloc::boxed::Box;
+use bs3::Store;
 use serde_json::Value;
 
-use crate::{
-    module::types::{
+use crate::{ModuleResult, Storage, module::types::{
         RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, ResponseCheckTx,
         ResponseDeliverTx, ResponseEndBlock,
-    },
-    ModuleResult,
-};
+    }};
 
-use super::{Context, RPCContext};
+use super::{AContext, RContext, context::DContext};
 
 #[async_trait::async_trait]
 pub trait RPCs<Sl, Sf>: Send + Sync {
     async fn call(
         &mut self,
-        ctx: &mut RPCContext<Sl, Sf>,
+        ctx: &mut RContext<Sl, Sf>,
         method: &str,
         params: Value,
     ) -> ModuleResult<Option<Value>>;
@@ -23,10 +21,11 @@ pub trait RPCs<Sl, Sf>: Send + Sync {
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application<Sl, Sf>: Send + Sync
+pub trait Application<S, Sl, Sf>: Send + Sync
 where
-    Sl: Sync + Send,
-    Sf: Sync + Send,
+    S: Store,
+    Sl: Storage<S>,
+    Sf: Storage<S>,
 {
     /// Define how to check transaction.
     ///
@@ -35,20 +34,20 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut Context<Sl, Sf>,
-        _req: &RequestCheckTx,
+        _context: &mut AContext<Sl, Sf>,
+        _req: RequestCheckTx,
     ) -> ModuleResult<ResponseCheckTx> {
         Ok(Default::default())
     }
 
     /// Begin block.
-    async fn begin_block(&mut self, _context: &mut Context<Sl, Sf>, _req: &RequestBeginBlock) {}
+    async fn begin_block(&mut self, _context: &mut AContext<Sl, Sf>, _req: RequestBeginBlock) {}
 
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: &mut Context<Sl, Sf>,
-        _req: &RequestDeliverTx,
+        _context: &mut DContext<S, Sl, Sf>,
+        _req: RequestDeliverTx,
     ) -> ModuleResult<ResponseDeliverTx> {
         Ok(Default::default())
     }
@@ -56,8 +55,8 @@ where
     /// End Block.
     async fn end_block(
         &mut self,
-        _context: &mut Context<Sl, Sf>,
-        _req: &RequestEndBlock,
+        _context: &mut AContext<Sl, Sf>,
+        _req: RequestEndBlock,
     ) -> ResponseEndBlock {
         Default::default()
     }
