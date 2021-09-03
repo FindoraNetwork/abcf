@@ -3,10 +3,17 @@ pub trait Module {
     fn metadata(&self) -> ModuleMetadata<'_>;
 }
 
+pub enum ModuleType {
+    Module,
+    Manager,
+}
+
 /// Metadata of module.
 pub struct ModuleMetadata<'a> {
     /// Name of module.
     pub name: &'a str,
+    /// type of module.
+    pub module_type: ModuleType,
     /// Version of module. If this version change, means module need update.
     pub version: u64,
     /// Version of impl. If this version change, means module only a change of impl.

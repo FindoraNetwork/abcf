@@ -1,11 +1,6 @@
 use abcf::{Application, Event};
 
-#[abcf::module(
-    name = "mock",
-    version = 1,
-    impl_version = "0.1.1",
-    target_height = 0
-)]
+#[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct MockModule {}
 
 /// Module's Event

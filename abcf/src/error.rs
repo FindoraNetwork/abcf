@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::{format, string::String};
 
 /// Error of abcf.
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl Error {
         Self::RPCApplicationError(code, String::from(message))
     }
 
-    pub fn to_code(&self) -> u32 {
+    pub fn code(&self) -> u32 {
         match self {
             Error::FromBytesError => 10001,
             Error::JsonError(_) => 10002,
@@ -36,6 +36,19 @@ impl Error {
             Error::TempOnlySupportRPC => 90001,
             Error::RPCApplicationError(code, _) => code.clone(),
             Error::ABCIApplicationError(code, _) => code.clone(),
+        }
+    }
+
+    pub fn message(&self) -> String {
+        match self {
+            Self::FromBytesError => String::from(""),
+            Self::JsonError(e) => format!("{:?}", e),
+            Self::QueryPathFormatError => String::from("query path error"),
+            Self::NoModule => String::from("no module"),
+            Self::NoRPCMethod => String::from("no rpc method"),
+            Self::RPCApplicationError(_, m) => m.clone(),
+            Self::ABCIApplicationError(_, m) => m.clone(),
+            Self::TempOnlySupportRPC => String::from(""),
         }
     }
 }
