@@ -6,7 +6,7 @@ use bs3::Store;
 use digest::Digest;
 use tm_protos::abci::{RequestInfo, RequestInitChain, ResponseInfo, ResponseInitChain};
 
-use crate::{Application, Callable, Merkle, Module, RPCs, Storage};
+use crate::{Application, Merkle, Module, RPCs, Storage};
 
 pub struct Node<S, D, Sl, Sf, M>
 where
@@ -14,7 +14,7 @@ where
     D: Digest,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application + RPCs + Callable,
+    M: Module + Application + RPCs,
 {
     stateless: Sl,
     stateful: Sf,
@@ -29,7 +29,7 @@ where
     D: Digest,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application + RPCs + Callable,
+    M: Module + Application + RPCs,
 {
     pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
         Self {
@@ -49,7 +49,7 @@ where
     D: Digest + Send,
     Sl: Storage<S>,
     Sf: Storage<S> + Merkle<D>,
-    M: Module + Application + RPCs + Callable,
+    M: Module + Application + RPCs,
 {
     async fn init_chain(
         &mut self,
