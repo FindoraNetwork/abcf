@@ -1,47 +1,54 @@
-use std::{
-    ops::{Deref, DerefMut},
-    path::Path,
-};
+// #![feature(inherent_associated_types)]
+
+use std::{path::{PathBuf}};
 
 mod error;
 pub use error::{Error, Result};
+use tm_abci::Application;
 
-pub struct Node<S: bs3::Store + 'static> {
-    node: abcf::Node<S>,
-    path: &'static Path,
+pub struct Node<A: Application> {
+    pub app: A,
+    path: PathBuf,
 }
 
-impl<S: bs3::Store> Node<S> {
-    pub fn new(home: &'static str) -> Result<Self> {
-        let path = Path::new(home);
+impl<A> Node<A>
+where
+    A: Application + 'static,
+{
+    pub fn new(app: A, home: &str) -> Result<Self> {
+        let path = PathBuf::from(home);
         if !path.exists() {
             tendermint_sys::init_home(home)?;
         }
 
-        let node = abcf::Node::new();
-
-        Ok(Self { node, path })
+        Ok(Self { app, path })
     }
 
     pub fn start(self) -> Result<tendermint_sys::Node> {
         let path_buf = self.path.join("config/config.toml");
         let path = path_buf.to_str().ok_or(Error::PathError)?;
-        let td_node = tendermint_sys::Node::new(path, self.node)?;
+        let td_node = tendermint_sys::Node::new(path, self.app)?;
         td_node.start()?;
         Ok(td_node)
     }
 }
 
-impl<S: bs3::Store> Deref for Node<S> {
-    type Target = abcf::Node<S>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.node
-    }
-}
-
-impl<S: bs3::Store> DerefMut for Node<S> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.node
-    }
-}
+// impl<A> Node<A>
+// where
+//     A: Application,
+// {
+//     type Target = A;
+//
+//     fn deref(&self) -> &A {
+//         &self.app
+//     }
+// }
+//
+// impl<A> Node<A>
+// where
+//     A: Application,
+// {
+//     fn deref_mut(&mut self) -> &mut A {
+//         &mut self.app
+//     }
+// }
