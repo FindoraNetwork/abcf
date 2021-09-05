@@ -2,13 +2,21 @@ use core::{marker::PhantomData, mem};
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 
-use bs3::{Store};
+use bs3::Store;
 use digest::Digest;
-use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, RequestInfo, RequestInitChain, RequestQuery, ResponseBeginBlock, ResponseCheckTx, ResponseCommit, ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery};
+use tm_protos::abci::{
+    RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, RequestInfo,
+    RequestInitChain, RequestQuery, ResponseBeginBlock, ResponseCheckTx, ResponseCommit,
+    ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery,
+};
 
 use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage};
 
-use super::{AContext, EventContext, EventContextImpl, RContext, context::DContext, prelude::{Application, RPCs, Tree}};
+use super::{
+    context::TContext,
+    prelude::{Application, RPCs, Tree},
+    AContext, EventContext, EventContextImpl, RContext,
+};
 
 pub struct Node<S, D, Sl, Sf, M>
 where
@@ -45,7 +53,11 @@ where
         }
     }
 
-    async fn call_rpc(&mut self, sub_path: Option<&str>, req: &[u8]) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
+    async fn call_rpc(
+        &mut self,
+        sub_path: Option<&str>,
+        req: &[u8],
+    ) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
         let mut ctx = RContext {
             stateless: &mut self.stateless,
             stateful: &self.stateful,
@@ -71,7 +83,12 @@ where
         Ok((key, value))
     }
 
-    async fn call_store(&self, store: &impl Tree, sub_path: Option<&str>, height: i64) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
+    async fn call_store(
+        &self,
+        store: &impl Tree,
+        sub_path: Option<&str>,
+        height: i64,
+    ) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
         let key = sub_path.ok_or(ModuleError {
             namespace: String::from("abcf.store"),
             error: Error::QueryPathFormatError,
@@ -140,8 +157,14 @@ where
 
         let res = match paths.next() {
             Some("rpc") => self.call_rpc(sub_path, request.data.as_ref()).await,
-            Some("stateful") => self.call_store(&self.stateful, sub_path, request.height).await,
-            Some("stateless") => self.call_store(&self.stateless, sub_path, request.height).await,
+            Some("stateful") => {
+                self.call_store(&self.stateful, sub_path, request.height)
+                    .await
+            }
+            Some("stateless") => {
+                self.call_store(&self.stateless, sub_path, request.height)
+                    .await
+            }
             Some(_) | None => Err(ModuleError {
                 namespace: String::from("abcf"),
                 error: Error::QueryPathFormatError,
@@ -163,7 +186,6 @@ where
         resp
     }
 
-
     async fn check_tx(&mut self, req: RequestCheckTx) -> ResponseCheckTx {
         let mut resp = ResponseCheckTx::default();
 
@@ -172,7 +194,7 @@ where
         let mut stateful_tx = self.stateful.transaction();
         let mut stateless_tx = self.stateless.transaction();
 
-        let mut ctx = DContext {
+        let mut ctx = TContext {
             events: EventContext::new(check_tx_events),
             stateless: &mut stateless_tx,
             stateful: &mut stateful_tx,
@@ -201,16 +223,29 @@ where
 
         let begin_block_events = &mut self.events.begin_block_events;
 
-
         if let Some(header) = &req.header {
-            if header.height != self.stateful.height().expect("Panic! Can't read height when generalize new block") {
-                self.stateful.rollback(header.height).expect("Panic! Can't rollback height when generalize new block");
+            if header.height
+                != self
+                    .stateful
+                    .height()
+                    .expect("Panic! Can't read height when generalize new block")
+            {
+                self.stateful
+                    .rollback(header.height)
+                    .expect("Panic! Can't rollback height when generalize new block");
             }
         }
 
         if let Some(header) = &req.header {
-            if header.height != self.stateless.height().expect("Panic! Can't read height when generalize new block") {
-                self.stateless.rollback(header.height).expect("Panic! Can't rollback height when generalize new block");
+            if header.height
+                != self
+                    .stateless
+                    .height()
+                    .expect("Panic! Can't read height when generalize new block")
+            {
+                self.stateless
+                    .rollback(header.height)
+                    .expect("Panic! Can't rollback height when generalize new block");
             }
         }
 
@@ -237,7 +272,7 @@ where
         let mut stateful_tx = self.stateful.transaction();
         let mut stateless_tx = self.stateless.transaction();
 
-        let mut ctx = DContext {
+        let mut ctx = TContext {
             events: EventContext::new(deliver_tx_events),
             stateless: &mut stateless_tx,
             stateful: &mut stateful_tx,
@@ -270,7 +305,6 @@ where
         resp
     }
 
-
     async fn end_block(&mut self, req: RequestEndBlock) -> ResponseEndBlock {
         let mut resp = ResponseEndBlock::default();
 
@@ -297,10 +331,18 @@ where
     async fn commit(&mut self) -> ResponseCommit {
         let mut resp = ResponseCommit::default();
 
-        self.stateless.commit().expect("Panic! commit failed when commit new block");
-        self.stateful.commit().expect("Panic! commit failed when commit new block");
+        self.stateless
+            .commit()
+            .expect("Panic! commit failed when commit new block");
+        self.stateful
+            .commit()
+            .expect("Panic! commit failed when commit new block");
 
-        resp.data = self.stateful.root().expect("Panic!, Can't read app hash when commit new block").to_vec();
+        resp.data = self
+            .stateful
+            .root()
+            .expect("Panic!, Can't read app hash when commit new block")
+            .to_vec();
 
         resp
     }

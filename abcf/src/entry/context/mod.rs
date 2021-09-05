@@ -16,7 +16,7 @@ pub struct RContext<'a, Sl, Sf> {
     pub stateful: &'a Sf,
 }
 
-pub struct DContext<'a, S, Sl, Sf>
+pub struct TContext<'a, S, Sl, Sf>
 where
     S: Store,
     Sl: Storage<S>,
@@ -26,4 +26,3 @@ where
     pub stateless: &'a mut Sl::Transaction,
     pub stateful: &'a mut Sf::Transaction,
 }
-

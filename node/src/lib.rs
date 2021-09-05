@@ -1,6 +1,6 @@
 // #![feature(inherent_associated_types)]
 
-use std::{path::{PathBuf}};
+use std::path::PathBuf;
 
 mod error;
 pub use error::{Error, Result};
