@@ -2,20 +2,20 @@ use core::{marker::PhantomData, mem};
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 
-use bs3::Store;
+use bs3::{Store};
 use digest::Digest;
-use tm_protos::abci::{RequestBeginBlock, RequestDeliverTx, RequestEndBlock, RequestInfo, RequestInitChain, RequestQuery, ResponseBeginBlock, ResponseCommit, ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery};
+use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, RequestInfo, RequestInitChain, RequestQuery, ResponseBeginBlock, ResponseCheckTx, ResponseCommit, ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery};
 
 use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage};
 
-use super::{AContext, EventContext, EventContextImpl, RContext, context::DContext, prelude::{Application, RPCs}};
+use super::{AContext, EventContext, EventContextImpl, RContext, context::DContext, prelude::{Application, RPCs, Tree}};
 
 pub struct Node<S, D, Sl, Sf, M>
 where
     S: Store,
     D: Digest,
-    Sl: Storage<S>,
-    Sf: Storage<S> + Merkle<D>,
+    Sl: Storage<S> + Tree,
+    Sf: Storage<S> + Tree + Merkle<D>,
     M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     stateless: Sl,
@@ -30,8 +30,8 @@ impl<S, D, Sl, Sf, M> Node<S, D, Sl, Sf, M>
 where
     S: Store,
     D: Digest,
-    Sl: Storage<S>,
-    Sf: Storage<S> + Merkle<D>,
+    Sl: Storage<S> + Tree,
+    Sf: Storage<S> + Tree + Merkle<D>,
     M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
@@ -70,15 +70,24 @@ where
 
         Ok((key, value))
     }
+
+    async fn call_store(&self, store: &impl Tree, sub_path: Option<&str>, height: i64) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
+        let key = sub_path.ok_or(ModuleError {
+            namespace: String::from("abcf.store"),
+            error: Error::QueryPathFormatError,
+        })?;
+        let value = store.get(key, height)?;
+        Ok((key.as_bytes().to_vec(), value))
+    }
 }
 
 #[async_trait::async_trait]
 impl<S, D, Sl, Sf, M> tm_abci::Application for Node<S, D, Sl, Sf, M>
 where
     S: Store,
-    D: Digest + Send,
-    Sl: Storage<S>,
-    Sf: Storage<S> + Merkle<D>,
+    D: Digest + Send + Sync,
+    Sl: Storage<S> + Tree,
+    Sf: Storage<S> + Tree + Merkle<D>,
     M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
@@ -127,16 +136,12 @@ where
 
         let mut resp = ResponseQuery::default();
 
+        let sub_path = paths.next();
+
         let res = match paths.next() {
-            Some("rpc") => self.call_rpc(paths.next(), request.data.as_ref()).await,
-            Some("stateless") => Err(ModuleError {
-                namespace: String::from("abcf"),
-                error: Error::QueryPathFormatError,
-            }),
-            Some("stateful") => Err(ModuleError {
-                namespace: String::from("abcf"),
-                error: Error::QueryPathFormatError,
-            }),
+            Some("rpc") => self.call_rpc(sub_path, request.data.as_ref()).await,
+            Some("stateful") => self.call_store(&self.stateful, sub_path, request.height).await,
+            Some("stateless") => self.call_store(&self.stateless, sub_path, request.height).await,
             Some(_) | None => Err(ModuleError {
                 namespace: String::from("abcf"),
                 error: Error::QueryPathFormatError,
@@ -147,6 +152,39 @@ where
             Ok((k, v)) => {
                 resp.key = k;
                 resp.value = v;
+            }
+            Err(e) => {
+                resp.code = e.error.code();
+                resp.log = e.error.message();
+                resp.codespace = e.namespace;
+            }
+        }
+
+        resp
+    }
+
+
+    async fn check_tx(&mut self, req: RequestCheckTx) -> ResponseCheckTx {
+        let mut resp = ResponseCheckTx::default();
+
+        let check_tx_events = &mut self.events.check_tx_events;
+
+        let mut stateful_tx = self.stateful.transaction();
+        let mut stateless_tx = self.stateless.transaction();
+
+        let mut ctx = DContext {
+            events: EventContext::new(check_tx_events),
+            stateless: &mut stateless_tx,
+            stateful: &mut stateful_tx,
+        };
+
+        let result = self.module.check_tx(&mut ctx, req).await;
+
+        match result {
+            Ok(v) => {
+                resp.data = v.data;
+                resp.gas_wanted = v.gas_wanted;
+                resp.gas_used = v.gas_used;
             }
             Err(e) => {
                 resp.code = e.error.code();

@@ -1,5 +1,5 @@
-use alloc::boxed::Box;
-use bs3::Store;
+use alloc::{boxed::Box, vec::Vec};
+use bs3::{CowBytes, Store};
 use serde_json::Value;
 
 use crate::{ModuleResult, Storage, module::types::{
@@ -34,7 +34,7 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut AContext<Sl, Sf>,
+        _context: &mut DContext<S, Sl, Sf>,
         _req: RequestCheckTx,
     ) -> ModuleResult<ResponseCheckTx> {
         Ok(Default::default())
@@ -61,3 +61,8 @@ where
         Default::default()
     }
 }
+
+pub trait Tree {
+    fn get(&self, key: &str, height: i64) -> ModuleResult<Vec<u8>>;
+}
+
