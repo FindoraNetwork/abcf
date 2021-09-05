@@ -13,7 +13,7 @@ pub mod entry;
 mod error;
 pub use error::{Error, ModuleError, ModuleResult, Result};
 
-pub use abcf_macros::*;
+// pub use abcf_macros::*;
 
 pub use async_trait::async_trait as application;
 
