@@ -126,7 +126,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         quote! {
             #[async_trait::async_trait]
            impl abcf::RPCs for #struct_name {
-               async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
+               async fn call(&mut self, ctx: &mut abcf::Context, method: &str, params: serde_json::Value) ->
                abcf::Result<Option<serde_json::Value>> {
                     Ok(None)
                 }
@@ -138,7 +138,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
             #[async_trait::async_trait]
             impl abcf::RPCs for #struct_name {
-                async fn call(&mut self, ctx: &mut abcf::framework::Context, method: &str, params: serde_json::Value) ->
+                async fn call(&mut self, ctx: &mut abcf::Context, method: &str, params: serde_json::Value) ->
                 abcf::Result<Option<serde_json::Value>> {
 
                     match method {

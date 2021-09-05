@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "abcf",
-    # "macros",
+    "macros",
     "sdk",
     "node",
 ]

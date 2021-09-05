@@ -1,4 +1,4 @@
-// use crate::entry::Context;
+use crate::manager::Context;
 use crate::Result;
 use alloc::boxed::Box;
 use core::fmt::Debug;
@@ -36,10 +36,10 @@ impl<'a, T: Serialize> Response<'a, T> {
 /// Define module's RPC.
 #[async_trait::async_trait]
 pub trait RPCs: Send + Sync {
-    //     async fn call(
-    // &mut self,
-    // ctx: &mut Context,
-    // method: &str,
-    // params: Value,
-    // ) -> Result<Option<Value>>;
+    async fn call(
+        &mut self,
+        ctx: &mut Context,
+        method: &str,
+        params: Value,
+    ) -> Result<Option<Value>>;
 }
