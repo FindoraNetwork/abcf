@@ -229,6 +229,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     name: #name,
                     version: #version,
                     impl_version: #impl_version,
+                    module_type: abcf::ModuleType::Module,
                     genesis: abcf::Genesis {
                         target_hight: #target_height,
                     }

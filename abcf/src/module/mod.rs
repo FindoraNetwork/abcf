@@ -15,7 +15,7 @@ mod storages;
 pub use storages::{Merkle, Storage};
 
 mod module;
-pub use module::{Genesis, Module, ModuleMetadata};
+pub use module::{Genesis, Module, ModuleMetadata, ModuleType};
 
 mod callable;
 pub use callable::Callable;
