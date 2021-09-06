@@ -1,3 +1,5 @@
+#![feature(generic_associated_types)]
+
 use abcf::{Application, Event};
 use bs3::model::{Map, Value};
 
@@ -13,9 +15,59 @@ pub struct MockModule {
     pub sf_value: Value<u32>,
     #[stateless]
     pub sl_value: Value<u32>,
+    #[stateless]
     pub sl_map: Map<i32, u32>,
 }
 
+mod __abcf_storage_mockmodule {
+    use super::*;
+    use abcf::Result;
+    pub struct ABCFModuleMockModuleSl<S>
+    where
+        S: abcf::bs3::Store,
+    {
+        pub sl_value: abcf::bs3::SnapshotableStorage<S, Value<u32>>,
+        pub sl_map: abcf::bs3::SnapshotableStorage<S, Map<i32, u32>>,
+    }
+    pub struct ABCFModuleMockModuleSlTx<'a, S>
+    where
+        S: abcf::bs3::Store,
+    {
+        pub sl_value: abcf::bs3::Transaction<'a, S, Value<u32>>,
+        pub sl_map: abcf::bs3::Transaction<'a, S, Map<i32, u32>>,
+    }
+    impl<S> abcf::Storage<S> for ABCFModuleMockModuleSl<S>
+    where
+        S: abcf::bs3::Store,
+    {
+        type Transaction<'a> = ABCFModuleMockModuleSlTx<'a, S>;
+        fn rollback(&mut self, height: i64) -> Result<()> {
+            self.sl_value.rollback(height)?;
+            self.sl_map.rollback(height)?;
+            Ok(())
+        }
+        fn height(&self) -> Result<i64> {
+            Ok(0)
+        }
+        fn commit(&mut self) -> Result<()> {
+            self.sl_value.commit()?;
+            self.sl_map.commit()?;
+            Ok(())
+        }
+        fn transaction(&mut self) -> Self::Transaction<'_> {
+            let sl_value = self.stateless_arg.transaction();
+            let sl_map = self.stateless_arg.transaction();
+            ABCFModuleMockModuleSlTx { sl_value, sl_map }
+        }
+        fn execute(&mut self, transaction: Self::Transaction<'_>) {}
+    }
+    pub struct ABCFModuleMockModuleSf<S>
+    where
+        S: abcf::bs3::Store,
+    {
+        pub sf_value: abcf::bs3::SnapshotableStorage<S, Value<u32>>,
+    }
+}
 /// Module's rpc.
 #[abcf::rpcs]
 impl MockModule {}

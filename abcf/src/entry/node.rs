@@ -191,13 +191,13 @@ where
 
         let check_tx_events = &mut self.events.check_tx_events;
 
-        let mut stateful_tx = self.stateful.transaction();
-        let mut stateless_tx = self.stateless.transaction();
+        let stateful_tx = self.stateful.transaction();
+        let stateless_tx = self.stateless.transaction();
 
         let mut ctx = TContext {
             events: EventContext::new(check_tx_events),
-            stateless: &mut stateless_tx,
-            stateful: &mut stateful_tx,
+            stateless: stateless_tx,
+            stateful: stateful_tx,
         };
 
         let result = self.module.check_tx(&mut ctx, req).await;
@@ -269,25 +269,24 @@ where
 
         let deliver_tx_events = &mut self.events.deliver_tx_events;
 
-        let mut stateful_tx = self.stateful.transaction();
-        let mut stateless_tx = self.stateless.transaction();
+        let stateful_tx = self.stateful.transaction();
+        let stateless_tx = self.stateless.transaction();
 
         let mut ctx = TContext {
             events: EventContext::new(deliver_tx_events),
-            stateless: &mut stateless_tx,
-            stateful: &mut stateful_tx,
+            stateless: stateless_tx,
+            stateful: stateful_tx,
         };
 
         let result = self.module.deliver_tx(&mut ctx, req).await;
-
-        self.stateless.execute(stateless_tx);
-        self.stateful.execute(stateful_tx);
-
         match result {
             Ok(v) => {
                 resp.data = v.data;
                 resp.gas_wanted = v.gas_wanted;
                 resp.gas_used = v.gas_used;
+
+                self.stateful.execute(ctx.stateful);
+                self.stateless.execute(ctx.stateless);
             }
             Err(e) => {
                 resp.code = e.error.code();
@@ -298,9 +297,9 @@ where
 
         // TODO: add config for module to add or drop events.
 
-        let events = mem::replace(deliver_tx_events, Vec::new());
+        // let events = mem::replace(deliver_tx_events, Vec::new());
 
-        resp.events = events;
+        // resp.events = events;
 
         resp
     }

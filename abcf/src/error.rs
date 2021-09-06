@@ -11,12 +11,19 @@ pub enum Error {
 
     RPCApplicationError(u32, String),
     ABCIApplicationError(u32, String),
+    BS3Error(bs3::Error),
     TempOnlySupportRPC,
 }
 
 impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Self {
         Error::JsonError(e)
+    }
+}
+
+impl From<bs3::Error> for Error {
+    fn from(e: bs3::Error) -> Self {
+        Error::BS3Error(e)
     }
 }
 
@@ -36,6 +43,7 @@ impl Error {
             Error::TempOnlySupportRPC => 90001,
             Error::RPCApplicationError(code, _) => code.clone(),
             Error::ABCIApplicationError(code, _) => code.clone(),
+            Error::BS3Error(_) => 20001,
         }
     }
 
@@ -49,6 +57,7 @@ impl Error {
             Self::RPCApplicationError(_, m) => m.clone(),
             Self::ABCIApplicationError(_, m) => m.clone(),
             Self::TempOnlySupportRPC => String::from(""),
+            Error::BS3Error(e) => format!("{:?}", e),
         }
     }
 }

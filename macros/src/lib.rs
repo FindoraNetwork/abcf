@@ -5,9 +5,10 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
+use proc_macro2::{Ident, Span};
 use quote::*;
-use std::ops::Deref;
-use syn::{Fields, FnArg, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type, parse::Parse, parse_macro_input, punctuated::Punctuated};
+use std::{mem::replace, ops::Deref};
+use syn::{Fields, FnArg, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type, parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated};
 
 ///
 /// Convert struct to abci::event
@@ -217,11 +218,59 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let impl_version = args.impl_version;
     let target_height = args.target_height;
 
+    let mut stateless = Vec::new();
+    let mut stateless_arg = Vec::new();
+    let mut stateless_tx = Vec::new();
+    let mut stateful = Vec::new();
+    let mut stateful_arg = Vec::new();
+    let mut stateful_tx = Vec::new();
+
     if let Fields::Named(fields) = &mut parsed.fields {
-        for field in &mut fields.named {
-            field.attrs = Vec::new();
+        let origin_fields = replace(&mut fields.named, Punctuated::new());
+
+        for field in origin_fields {
+            let mut f = field;
+            let attrs = replace(&mut f.attrs, Vec::new());
+            for attr in attrs {
+                if attr.path.is_ident("stateless") {
+                    let mut target_field = f.clone();
+                    let origin_ty = f.ty.clone();
+                    stateless_arg.push(target_field.ident.clone().unwrap());
+                    target_field.ty = parse_quote!(abcf::bs3::SnapshotableStorage<S, #origin_ty>);
+                    stateless.push(target_field.clone());
+
+                    target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S, #origin_ty>);
+                    stateless_tx.push(target_field);
+                } else if attr.path.is_ident("stateful") {
+                    let mut target_field = f.clone();
+                    let origin_ty = f.ty.clone();
+                    stateful_arg.push(target_field.ident.clone().unwrap());
+                    target_field.ty = parse_quote!(abcf::bs3::SnapshotableStorage<S, #origin_ty>);
+                    stateful.push(target_field.clone());
+
+                    target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S, #origin_ty>);
+                    stateful_tx.push(target_field);
+                } else {
+                    fields.named.push(f.clone());
+                }
+            }
         }
     }
+
+    let stateless_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sl", parsed.ident.to_string()), Span::call_site());
+
+    let stateless_tx_struct_ident =
+        Ident::new(&format!("ABCFModule{}SlTx", parsed.ident.to_string()), Span::call_site());
+
+    let stateful_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sf", parsed.ident.to_string()), Span::call_site());
+
+    let stateful_tx_struct_ident =
+        Ident::new(&format!("ABCFModule{}SfTx", parsed.ident.to_string()), Span::call_site());
+
+    let storage_module_ident =
+        Ident::new(&format!("__abcf_storage_{}", parsed.ident.to_string().to_lowercase()), Span::call_site());
 
     let result = quote! {
         #parsed
@@ -239,8 +288,78 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
         }
+
+   //      mod #storage_module_ident {
+            // use super::*;
+            // use abcf::Result;
+            // pub struct #stateless_struct_ident<S>
+            // where
+            //     S: abcf::bs3::Store,
+            // {
+            //     #(
+            //         #stateless,
+            //     )*
+            // }
+//
+//             pub struct #stateless_tx_struct_ident<'a, S>
+            // where
+            //     S: abcf::bs3::Store,
+            // {
+            //     #(
+            //         #stateless_tx,
+            //     )*
+            // }
+            //
+            // impl<S> abcf::Storage<S> for #stateless_struct_ident<S>
+            // where
+            //     S: abcf::bs3::Store,
+            // {
+            //     type Transaction<'a> = #stateless_tx_struct_ident<'a, S>;
+            //
+            //     fn rollback(&mut self, height: i64) -> Result<()> {
+            //         #(
+            //             self.#stateless_arg.rollback(height)?;
+            //         )*
+            //         Ok(())
+            //     }
+            //
+            //     fn height(&self) -> Result<i64> {
+            //         Ok(0)
+            //     }
+            //
+            //     fn commit(&mut self) -> Result<()> {
+            //         #(
+            //             self.#stateless_arg.commit()?;
+            //         )*
+            //         Ok(())
+            //     }
+            //
+            //     fn transaction(&mut self) -> Self::Transaction {
+            //         #(
+            //             let #stateless_arg = self.stateless_arg.transaction();
+            //         )*
+            //         #stateless_tx_struct_ident {
+            //             #(
+            //                 #stateless_arg,
+            //             )*
+            //         }
+            //     }
+            //
+            //     fn execute(&mut self, transaction: Self::Transaction) {
+            //
+            //     }
+            // }
+//
+      //       pub struct #stateful_struct_ident<S>
+            // where
+            //     S: abcf::bs3::Store,
+            // {
+            //     #(
+            //         #stateful,
+            //     )*
+            // }
+      //   }
     };
 
     TokenStream::from(result)
 }
-

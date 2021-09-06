@@ -4,8 +4,8 @@ use digest::{Digest, Output};
 use crate::Result;
 
 /// Define module's storage.
-pub trait Storage<S: Store>: Send + Sync + Default {
-    type Transaction: Send;
+pub trait Storage<S: Store>: Send + Sync {
+    type Transaction<'a>: Send;
 
     fn rollback(&mut self, height: i64) -> Result<()>;
 
@@ -13,9 +13,9 @@ pub trait Storage<S: Store>: Send + Sync + Default {
 
     fn commit(&mut self) -> Result<()>;
 
-    fn transaction(&mut self) -> Self::Transaction;
+    fn transaction(&self) -> Self::Transaction<'_>;
 
-    fn execute(&mut self, transaction: Self::Transaction);
+    fn execute(&mut self, transaction: Self::Transaction<'_>);
 }
 
 pub trait Merkle<D: Digest> {

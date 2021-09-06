@@ -23,6 +23,6 @@ where
     Sf: Storage<S>,
 {
     pub events: EventContext<'a>,
-    pub stateless: &'a mut Sl::Transaction,
-    pub stateful: &'a mut Sf::Transaction,
+    pub stateless: Sl::Transaction<'a>,
+    pub stateful: Sf::Transaction<'a>,
 }
