@@ -297,9 +297,9 @@ where
 
         // TODO: add config for module to add or drop events.
 
-        // let events = mem::replace(deliver_tx_events, Vec::new());
+        let events = mem::replace(deliver_tx_events, Vec::new());
 
-        // resp.events = events;
+        resp.events = events;
 
         resp
     }
