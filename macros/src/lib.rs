@@ -7,10 +7,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::*;
 use std::ops::Deref;
-use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, FnArg, ImplItem, ItemImpl, ItemStruct,
-    Lit, MetaNameValue, Token, Type,
-};
+use syn::{Fields, FnArg, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type, parse::Parse, parse_macro_input, punctuated::Punctuated};
 
 ///
 /// Convert struct to abci::event
@@ -212,13 +209,19 @@ impl Parse for PunctuatedMetaNameValue {
 #[proc_macro_attribute]
 pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as PunctuatedMetaNameValue);
-    let parsed = parse_macro_input!(input as ItemStruct);
+    let mut parsed = parse_macro_input!(input as ItemStruct);
 
     let struct_ident = parsed.ident.clone();
     let name = args.name;
     let version = args.version;
     let impl_version = args.impl_version;
     let target_height = args.target_height;
+
+    if let Fields::Named(fields) = &mut parsed.fields {
+        for field in &mut fields.named {
+            field.attrs = Vec::new();
+        }
+    }
 
     let result = quote! {
         #parsed
@@ -231,7 +234,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     impl_version: #impl_version,
                     module_type: abcf::ModuleType::Module,
                     genesis: abcf::Genesis {
-                        target_hight: #target_height,
+                        target_height: #target_height,
                     }
                 }
             }
@@ -240,3 +243,4 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     TokenStream::from(result)
 }
+

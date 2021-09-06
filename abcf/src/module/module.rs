@@ -24,5 +24,5 @@ pub struct ModuleMetadata<'a> {
 
 /// Genesis for module.
 pub struct Genesis {
-    pub target_hight: u64,
+    pub target_height: u64,
 }
