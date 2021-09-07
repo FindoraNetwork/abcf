@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::{format, string::String};
 
 /// Error of abcf.
 #[derive(Debug)]
@@ -11,6 +11,7 @@ pub enum Error {
 
     RPCApplicationError(u32, String),
     ABCIApplicationError(u32, String),
+    BS3Error(bs3::Error),
     TempOnlySupportRPC,
 }
 
@@ -20,12 +21,18 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+impl From<bs3::Error> for Error {
+    fn from(e: bs3::Error) -> Self {
+        Error::BS3Error(e)
+    }
+}
+
 impl Error {
     pub fn new_rpc_error(code: u32, message: &str) -> Self {
         Self::RPCApplicationError(code, String::from(message))
     }
 
-    pub fn to_code(&self) -> u32 {
+    pub fn code(&self) -> u32 {
         match self {
             Error::FromBytesError => 10001,
             Error::JsonError(_) => 10002,
@@ -36,6 +43,21 @@ impl Error {
             Error::TempOnlySupportRPC => 90001,
             Error::RPCApplicationError(code, _) => code.clone(),
             Error::ABCIApplicationError(code, _) => code.clone(),
+            Error::BS3Error(_) => 20001,
+        }
+    }
+
+    pub fn message(&self) -> String {
+        match self {
+            Self::FromBytesError => String::from(""),
+            Self::JsonError(e) => format!("{:?}", e),
+            Self::QueryPathFormatError => String::from("query path error"),
+            Self::NoModule => String::from("no module"),
+            Self::NoRPCMethod => String::from("no rpc method"),
+            Self::RPCApplicationError(_, m) => m.clone(),
+            Self::ABCIApplicationError(_, m) => m.clone(),
+            Self::TempOnlySupportRPC => String::from(""),
+            Error::BS3Error(e) => format!("{:?}", e),
         }
     }
 }

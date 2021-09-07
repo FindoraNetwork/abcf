@@ -1,6 +1,8 @@
 use alloc::{string::String, vec::Vec};
 use tm_protos::abci::{ConsensusParams, ValidatorUpdate};
 
+pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock};
+
 /// Response for deliver_tx.
 #[derive(Debug, Default)]
 pub struct ResponseDeliverTx {
