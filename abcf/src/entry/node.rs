@@ -278,6 +278,7 @@ where
             stateful: stateful_tx,
         };
 
+
         let result = self.module.deliver_tx(&mut ctx, req).await;
         match result {
             Ok(v) => {

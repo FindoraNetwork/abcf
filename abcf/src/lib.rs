@@ -6,7 +6,7 @@ extern crate alloc;
 pub(crate) mod module;
 pub use module::{
     Application, Callable, Event, Genesis, Merkle, Module, ModuleMetadata, ModuleType, RPCResponse,
-    RPCs, Storage, Transaction,
+    RPCs, Storage, Transaction
 };
 
 pub mod entry;
