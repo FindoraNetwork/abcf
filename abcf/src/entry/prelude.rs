@@ -2,13 +2,10 @@ use alloc::{boxed::Box, vec::Vec};
 use bs3::Store;
 use serde_json::Value;
 
-use crate::{
-    module::types::{
+use crate::{ModuleResult, Storage, module::{StorageTransaction, types::{
         RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, ResponseCheckTx,
         ResponseDeliverTx, ResponseEndBlock,
-    },
-    ModuleResult, Storage,
-};
+    }}};
 
 use super::{context::TContext, AContext, RContext};
 
@@ -24,11 +21,10 @@ pub trait RPCs<Sl, Sf>: Send + Sync {
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application<S, Sl, Sf>: Send + Sync
+pub trait Application<Sl, Sf>: Send + Sync
 where
-    S: Store,
-    Sl: Storage<S>,
-    Sf: Storage<S>,
+    Sl: Storage + StorageTransaction,
+    Sf: Storage + StorageTransaction,
 {
     /// Define how to check transaction.
     ///
@@ -37,7 +33,7 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut TContext<S, Sl, Sf>,
+        _context: &mut TContext<Sl, Sf>,
         _req: RequestCheckTx,
     ) -> ModuleResult<ResponseCheckTx> {
         Ok(Default::default())
@@ -49,7 +45,7 @@ where
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: &mut TContext<S, Sl, Sf>,
+        _context: &mut TContext<Sl, Sf>,
         _req: RequestDeliverTx,
     ) -> ModuleResult<ResponseDeliverTx> {
         Ok(Default::default())

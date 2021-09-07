@@ -3,12 +3,11 @@ use digest::Digest;
 
 use crate::{Merkle, Storage};
 
-pub trait ModuleStorage<S, D>
+pub trait ModuleStorage<D>
 where
-    S: Store,
     D: Digest,
 {
-    type Stateless: Storage<S>;
+    type Stateless: Storage;
 
-    type Stateful: Storage<S> + Merkle<D>;
+    type Stateful: Storage + Merkle<D>;
 }

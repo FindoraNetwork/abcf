@@ -3,7 +3,7 @@ mod events;
 use bs3::Store;
 pub use events::{EventContext, EventContextImpl};
 
-use crate::Storage;
+use crate::{Storage, module::StorageTransaction};
 
 pub struct AContext<'a, Sl, Sf> {
     pub events: EventContext<'a>,
@@ -16,11 +16,10 @@ pub struct RContext<'a, Sl, Sf> {
     pub stateful: &'a Sf,
 }
 
-pub struct TContext<'a, S, Sl, Sf>
+pub struct TContext<'a, Sl, Sf>
 where
-    S: Store,
-    Sl: Storage<S>,
-    Sf: Storage<S>,
+    Sl: StorageTransaction,
+    Sf: StorageTransaction,
 {
     pub events: EventContext<'a>,
     pub stateless: Sl::Transaction,

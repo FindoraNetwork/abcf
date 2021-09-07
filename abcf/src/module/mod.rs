@@ -12,7 +12,7 @@ mod events;
 pub use events::{Event, EventAttr};
 
 mod storages;
-pub use storages::{Merkle, Storage};
+pub use storages::{Merkle, Storage, StorageTransaction};
 
 mod module;
 pub use module::{Genesis, Module, ModuleMetadata, ModuleType};

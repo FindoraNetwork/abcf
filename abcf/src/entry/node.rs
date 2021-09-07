@@ -10,7 +10,7 @@ use tm_protos::abci::{
     ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery,
 };
 
-use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage};
+use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage, module::StorageTransaction};
 
 use super::{
     context::TContext,
@@ -22,9 +22,9 @@ pub struct Node<S, D, Sl, Sf, M>
 where
     S: Store,
     D: Digest,
-    Sl: Storage<S> + Tree,
-    Sf: Storage<S> + Tree + Merkle<D>,
-    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
+    Sl: Storage + StorageTransaction + Tree,
+    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
+    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
 {
     stateless: Sl,
     stateful: Sf,
@@ -38,9 +38,9 @@ impl<S, D, Sl, Sf, M> Node<S, D, Sl, Sf, M>
 where
     S: Store,
     D: Digest,
-    Sl: Storage<S> + Tree,
-    Sf: Storage<S> + Tree + Merkle<D>,
-    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
+    Sl: Storage + StorageTransaction + Tree,
+    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
+    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
 {
     pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
         Self {
@@ -103,9 +103,9 @@ impl<S, D, Sl, Sf, M> tm_abci::Application for Node<S, D, Sl, Sf, M>
 where
     S: Store,
     D: Digest + Send + Sync,
-    Sl: Storage<S> + Tree,
-    Sf: Storage<S> + Tree + Merkle<D>,
-    M: Module + Application<S, Sl, Sf> + RPCs<Sl, Sf>,
+    Sl: Storage + StorageTransaction + Tree,
+    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
+    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
