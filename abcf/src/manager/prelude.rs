@@ -1,4 +1,3 @@
-use bs3::Store;
 use digest::Digest;
 
 use crate::{Merkle, Storage};

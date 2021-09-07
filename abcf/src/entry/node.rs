@@ -10,7 +10,9 @@ use tm_protos::abci::{
     ResponseDeliverTx, ResponseEndBlock, ResponseInfo, ResponseInitChain, ResponseQuery,
 };
 
-use crate::{Error, Merkle, Module, ModuleError, ModuleResult, Storage, module::StorageTransaction};
+use crate::{
+    module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Storage,
+};
 
 use super::{
     context::TContext,
@@ -277,7 +279,6 @@ where
             stateless: stateless_tx,
             stateful: stateful_tx,
         };
-
 
         let result = self.module.deliver_tx(&mut ctx, req).await;
         match result {
