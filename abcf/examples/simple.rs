@@ -1,6 +1,6 @@
 #![feature(generic_associated_types)]
 
-use abcf::{Application, Event};
+use abcf::{Application, Error, Event, Merkle, ModuleError, Storage, entry::Tree, module::StorageTransaction};
 use bs3::model::{Map, Value};
 
 /// Module's Event
@@ -72,24 +72,103 @@ impl Application for MockModule {}
 /// Module's methods.
 impl MockModule {}
 
-// pub struct SimpleNodeSl {}
-//
-// pub struct SimpleNodeSf {}
-//
-// pub struct SimpleNode {
-//     mock: MockModule,
-// }
-//
-// impl Module for SimpleNode {
-//     fn metadata(&self) -> ModuleMetadata<'_> {
-//         ModuleMetadata {
-//             name: "simple_node",
-//             module_type: abcf::ModuleType::Manager,
-//             version: 1,
-//             impl_version: "0.1",
-//             genesis: Genesis { target_height: 0 },
-//         }
-//     }
-// }
+pub struct SimpleNode {
+    pub mock: MockModule,
+}
 
-fn main() {}
+impl abcf::Module for SimpleNode {
+    fn metadata(&self) -> abcf::ModuleMetadata<'_> {
+        abcf::ModuleMetadata {
+            name: "simple_node",
+            module_type: abcf::ModuleType::Manager,
+            version: 1,
+            impl_version: "0.1",
+            genesis: abcf::Genesis { target_height: 0 },
+        }
+    }
+}
+
+pub struct EmptyStorage {}
+
+impl EmptyStorage {
+    pub fn new() -> Self {
+        EmptyStorage {}
+    }
+}
+
+impl Storage for EmptyStorage {
+    fn height(&self) -> abcf::Result<i64> {
+        Ok(0)
+    }
+
+    fn commit(&mut self) -> abcf::Result<()> {
+        Ok(())
+    }
+
+    fn rollback(&mut self, _height: i64) -> abcf::Result<()> {
+        Ok(())
+    }
+}
+
+impl StorageTransaction for EmptyStorage {
+    type Transaction = ();
+
+    fn transaction(&self) -> Self::Transaction {
+        ()
+    }
+
+    fn execute(&mut self, _transaction: Self::Transaction) {}
+}
+
+impl Merkle<sha3::Sha3_512> for EmptyStorage {
+    fn root(&self) -> abcf::Result<digest::Output<sha3::Sha3_512>> {
+        Ok(Default::default())
+    }
+}
+
+impl Tree for EmptyStorage {
+    fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
+        Ok(Vec::new())
+    }
+}
+
+#[abcf::application]
+impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {}
+
+#[abcf::application]
+impl abcf::entry::RPCs<EmptyStorage, EmptyStorage> for SimpleNode {
+    async fn call(
+        &mut self,
+        ctx: &mut abcf::entry::RContext<EmptyStorage, EmptyStorage>,
+        method: &str,
+        params: serde_json::Value,
+    ) -> abcf::ModuleResult<Option<serde_json::Value>> {
+        // use abcf::RPCs;
+        let mut paths = method.split("/");
+        let module_name = paths.next().ok_or(ModuleError {
+            namespace: String::from("abcf.manager"),
+            error: Error::QueryPathFormatError,
+        })?;
+
+        let method = paths.next().ok_or(ModuleError {
+            namespace: String::from("abcf.managing"),
+            error: Error::QueryPathFormatError,
+        })?;
+
+        match module_name {
+            // "mock" => self.mock.call(),
+            _ => Err(ModuleError {
+                namespace: String::from("abcf.manager"),
+                error: Error::NoModule,
+            })
+        }
+    }
+}
+
+fn main() {
+    let mock = MockModule { inner: 0 };
+
+    let simple_node = SimpleNode { mock };
+
+    let node = abcf::entry::Node::new(EmptyStorage::new(), EmptyStorage::new(), simple_node);
+}

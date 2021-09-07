@@ -126,8 +126,8 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = if is_empty_impl {
         quote! {
             #[async_trait::async_trait]
-           impl abcf::RPCs for #struct_name {
-               async fn call(&mut self, ctx: &mut abcf::Context, method: &str, params: serde_json::Value) ->
+           impl abcf::RPCs<EmptyStorage, EmptyStorage> for #struct_name {
+               async fn call(&mut self, ctx: &mut abcf::manager::RContext<EmptyStorage, EmptyStorage>, method: &str, params: serde_json::Value) ->
                abcf::Result<Option<serde_json::Value>> {
                     Ok(None)
                 }
@@ -138,8 +138,8 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             #parsed
 
             #[async_trait::async_trait]
-            impl abcf::RPCs for #struct_name {
-                async fn call(&mut self, ctx: &mut abcf::Context, method: &str, params: serde_json::Value) ->
+            impl abcf::RPCs<EmptyStorage, EmptyStorage> for #struct_name {
+                async fn call(&mut self, ctx: &mut abcf::manager::RContext<EmptyStorage, EmptyStorage>, method: &str, params: serde_json::Value) ->
                 abcf::Result<Option<serde_json::Value>> {
 
                     match method {

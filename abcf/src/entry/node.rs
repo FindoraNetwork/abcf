@@ -2,7 +2,6 @@ use core::{marker::PhantomData, mem};
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 
-use bs3::Store;
 use digest::Digest;
 use tm_protos::abci::{
     RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, RequestInfo,
@@ -20,9 +19,8 @@ use super::{
     AContext, EventContext, EventContextImpl, RContext,
 };
 
-pub struct Node<S, D, Sl, Sf, M>
+pub struct Node<D, Sl, Sf, M>
 where
-    S: Store,
     D: Digest,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
@@ -30,15 +28,13 @@ where
 {
     stateless: Sl,
     stateful: Sf,
-    marker_s: PhantomData<S>,
     marker_d: PhantomData<D>,
     module: M,
     events: EventContextImpl,
 }
 
-impl<S, D, Sl, Sf, M> Node<S, D, Sl, Sf, M>
+impl<D, Sl, Sf, M> Node<D, Sl, Sf, M>
 where
-    S: Store,
     D: Digest,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
@@ -49,7 +45,6 @@ where
             stateful,
             stateless,
             module,
-            marker_s: PhantomData,
             marker_d: PhantomData,
             events: EventContextImpl::default(),
         }
@@ -101,9 +96,8 @@ where
 }
 
 #[async_trait::async_trait]
-impl<S, D, Sl, Sf, M> tm_abci::Application for Node<S, D, Sl, Sf, M>
+impl<D, Sl, Sf, M> tm_abci::Application for Node<D, Sl, Sf, M>
 where
-    S: Store,
     D: Digest + Send + Sync,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,

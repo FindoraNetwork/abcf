@@ -22,3 +22,29 @@ pub trait StorageTransaction {
 pub trait Merkle<D: Digest> {
     fn root(&self) -> Result<Output<D>>;
 }
+
+impl Storage for () {
+    fn rollback(&mut self, _height: i64) -> Result<()> {
+        Ok(())
+    }
+
+    fn height(&self) -> Result<i64> {
+        Ok(0)
+    }
+
+    fn commit(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl StorageTransaction for () {
+    type Transaction = ();
+
+    fn transaction(&self) -> Self::Transaction {
+        ()
+    }
+
+    fn execute(&mut self, _transaction: Self::Transaction) {}
+}
+
+// impl Merkle<>
