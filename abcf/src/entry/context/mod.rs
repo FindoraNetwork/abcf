@@ -2,7 +2,10 @@ mod events;
 
 pub use events::{EventContext, EventContextImpl};
 
-use crate::module::StorageTransaction;
+pub struct RContext<'a, Sl, Sf> {
+    pub stateless: &'a mut Sl,
+    pub stateful: &'a Sf,
+}
 
 pub struct AContext<'a, Sl, Sf> {
     pub events: EventContext<'a>,
@@ -10,17 +13,8 @@ pub struct AContext<'a, Sl, Sf> {
     pub stateful: &'a mut Sf,
 }
 
-pub struct RContext<'a, Sl, Sf> {
-    pub stateless: &'a mut Sl,
-    pub stateful: &'a Sf,
-}
-
-pub struct TContext<'a, Sl, Sf>
-where
-    Sl: StorageTransaction,
-    Sf: StorageTransaction,
-{
+pub struct TContext<'a, Sl, Sf> {
     pub events: EventContext<'a>,
-    pub stateless: Sl::Transaction,
-    pub stateful: Sf::Transaction,
+    pub stateless: Sl,
+    pub stateful: Sf,
 }
