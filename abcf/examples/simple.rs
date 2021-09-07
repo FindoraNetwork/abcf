@@ -143,7 +143,7 @@ impl abcf::entry::RPCs<EmptyStorage, EmptyStorage> for SimpleNode {
         method: &str,
         params: serde_json::Value,
     ) -> abcf::ModuleResult<Option<serde_json::Value>> {
-        // use abcf::RPCs;
+        use abcf::RPCs;
         let mut paths = method.split("/");
         let module_name = paths.next().ok_or(ModuleError {
             namespace: String::from("abcf.manager"),
@@ -155,8 +155,18 @@ impl abcf::entry::RPCs<EmptyStorage, EmptyStorage> for SimpleNode {
             error: Error::QueryPathFormatError,
         })?;
 
+        let mut context = abcf::manager::RContext {
+            stateful: ctx.stateful,
+            stateless: ctx.stateless,
+        };
+
         match module_name {
-            // "mock" => self.mock.call(),
+            "mock" => self.mock.call(&mut context, method, params).await.map_err(|e| {
+                ModuleError {
+                    namespace: String::from("mock"),
+                    error: e,
+                }
+            }),
             _ => Err(ModuleError {
                 namespace: String::from("abcf.manager"),
                 error: Error::NoModule,
