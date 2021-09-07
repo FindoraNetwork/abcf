@@ -4,7 +4,10 @@ pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, R
 pub mod types;
 pub use types::{ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock};
 
-use crate::{Result, Storage, manager::{AContext, TContext}};
+use crate::{
+    manager::{AContext, TContext},
+    Result, Storage,
+};
 
 use super::StorageTransaction;
 

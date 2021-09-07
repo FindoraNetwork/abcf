@@ -3,7 +3,6 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-
 use abcf::{
     entry::Tree, module::StorageTransaction, Application, Error, Event, Merkle, ModuleError,
     Storage,
@@ -25,6 +24,19 @@ pub struct MockModule {
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
+
+/// Module's rpc.
+#[abcf::rpcs]
+impl MockModule {}
+
+/// Module's block logic.
+#[abcf::application]
+impl Application<EmptyStorage, EmptyStorage> for MockModule {}
+
+/// Module's methods.
+impl MockModule {}
+
+// these code need auto generate.
 
 mod __abcf_storage_mockmodule {
     use super::*;
@@ -68,16 +80,6 @@ mod __abcf_storage_mockmodule {
         pub sf_value: abcf::bs3::SnapshotableStorage<S, Value<u32>>,
     }
 }
-/// Module's rpc.
-#[abcf::rpcs]
-impl MockModule {}
-
-/// Module's block logic.
-#[abcf::application]
-impl Application<EmptyStorage, EmptyStorage> for MockModule {}
-
-/// Module's methods.
-impl MockModule {}
 
 pub struct SimpleNode {
     pub mock: MockModule,
@@ -155,15 +157,21 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
         _req: abcf::module::types::RequestCheckTx,
     ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
         let mut ctx = abcf::manager::TContext {
-            events: abcf::entry::EventContext {events: context.events.events},
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
             stateful: context.stateful,
             stateless: context.stateless,
         };
 
-        let result = self.mock.check_tx(&mut ctx, &_req).await.map_err(|e|ModuleError {
-            namespace: String::from("mock"),
-            error: e
-        })?;
+        let result = self
+            .mock
+            .check_tx(&mut ctx, &_req)
+            .await
+            .map_err(|e| ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
 
         Ok(result)
     }
@@ -175,7 +183,9 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
         _req: abcf::module::types::RequestBeginBlock,
     ) {
         let mut ctx = abcf::manager::AContext {
-            events: abcf::entry::EventContext { events: context.events.events },
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
             stateful: context.stateful,
             stateless: context.stateless,
         };
@@ -189,15 +199,21 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
         _req: abcf::module::types::RequestDeliverTx,
     ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
         let mut ctx = abcf::manager::TContext {
-            events: abcf::entry::EventContext {events: context.events.events},
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
             stateful: context.stateful,
             stateless: context.stateless,
         };
 
-        let result = self.mock.deliver_tx(&mut ctx, &_req).await.map_err(|e|ModuleError {
-            namespace: String::from("mock"),
-            error: e
-        })?;
+        let result = self
+            .mock
+            .deliver_tx(&mut ctx, &_req)
+            .await
+            .map_err(|e| ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
 
         Ok(result)
     }
@@ -209,7 +225,9 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
         _req: abcf::module::types::RequestEndBlock,
     ) -> abcf::module::types::ResponseEndBlock {
         let mut ctx = abcf::manager::AContext {
-            events: abcf::entry::EventContext { events: context.events.events },
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
             stateful: context.stateful,
             stateless: context.stateless,
         };
