@@ -12,9 +12,7 @@ use abcf::{
     RPCResponse, Storage,
 };
 use bs3::model::{Map, Value as BValue};
-use core::mem::replace;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -38,7 +36,7 @@ where
     pub sl_map: Map<i32, u32>,
 }
 
-#[abcf::rpcs]
+#[abcf::rpcs(module = "mock")]
 impl<S, D> MockModule<S, D> 
 where
     S: abcf::bs3::Store,
