@@ -1,12 +1,7 @@
-use digest::Digest;
+use crate::{module::StorageTransaction, Storage};
 
-use crate::{Merkle, Storage};
+pub trait ModuleStorage {
+    type Stateless: Storage + StorageTransaction;
 
-pub trait ModuleStorage<D>
-where
-    D: Digest,
-{
-    type Stateless: Storage;
-
-    type Stateful: Storage + Merkle<D>;
+    type Stateful: Storage + StorageTransaction;
 }

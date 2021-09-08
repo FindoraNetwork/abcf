@@ -25,7 +25,7 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction, Sf::Transaction>,
+        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
         _req: &RequestCheckTx,
     ) -> Result<ResponseCheckTx> {
         Ok(Default::default())
@@ -37,7 +37,7 @@ where
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction, Sf::Transaction>,
+        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
         _req: &RequestDeliverTx,
     ) -> Result<ResponseDeliverTx> {
         Ok(Default::default())

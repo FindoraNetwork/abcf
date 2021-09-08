@@ -27,6 +27,6 @@ pub struct AContext<'a, Sl, Sf> {
 pub struct TContext<'a, Sl, Sf> {
     // pub calls: CallContext<'a>,
     pub events: EventContext<'a>,
-    pub stateless: Sl,
-    pub stateful: Sf,
+    pub stateless: &'a mut Sl,
+    pub stateful: &'a mut Sf,
 }
