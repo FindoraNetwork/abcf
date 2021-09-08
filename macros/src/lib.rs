@@ -469,6 +469,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         mod #storage_module_ident {
             use super::*;
             use abcf::Result;
+
+            pub const MODULE_NAME: &'static str = #name;
+
             pub struct #stateless_struct_ident<S>
             where
                 S: abcf::bs3::Store,
