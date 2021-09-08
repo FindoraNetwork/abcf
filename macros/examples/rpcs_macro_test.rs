@@ -1,7 +1,7 @@
 #![feature(generic_associated_types)]
 
 use abcf::entry::Tree;
-use abcf::{module::StorageTransaction};
+use abcf::module::StorageTransaction;
 use abcf::{Merkle, RPCResponse, Storage};
 use abcf_macros::rpcs;
 use serde::{Deserialize, Serialize};
@@ -46,7 +46,7 @@ impl StorageTransaction for EmptyStorage {
 
     type Cache = ();
 
-    fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
+    fn cache(_tx: Self::Transaction<'_>) -> Self::Cache {
         ()
     }
 

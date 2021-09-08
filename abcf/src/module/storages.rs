@@ -42,13 +42,13 @@ impl Storage for () {
 }
 
 // impl StorageTransaction for () {
-    // type Transaction = ();
-    //
-    // fn transaction(&self) -> Self::Transaction {
-    //     ()
-    // }
-    //
-    // fn execute(&mut self, _transaction: Self::Transaction) {}
+// type Transaction = ();
+//
+// fn transaction(&self) -> Self::Transaction {
+//     ()
+// }
+//
+// fn execute(&mut self, _transaction: Self::Transaction) {}
 // }
 
 // impl Merkle<>

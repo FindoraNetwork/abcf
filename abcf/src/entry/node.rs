@@ -274,7 +274,6 @@ where
             stateful: &mut stateful_tx,
         };
 
-
         let result = self.module.deliver_tx(&mut ctx, req).await;
 
         let stateful_cache = Sf::cache(stateful_tx);

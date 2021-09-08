@@ -24,3 +24,4 @@ pub use async_trait::async_trait as application;
 pub use tm_protos::abci;
 
 pub use bs3;
+pub use digest;
