@@ -220,7 +220,7 @@ pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
             impl<S, D> abcf::RPCs<
                 <Self as abcf::manager::ModuleStorage>::Stateless,
                 <Self as abcf::manager::ModuleStorage>::Stateful
-            > for #struct_name
+            > for #struct_name<S, D>
             where
                 S: abcf::bs3::Store + 'static,
                 D: abcf::digest::Digest + Send + Sync,
@@ -246,7 +246,7 @@ pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
             impl<S, D> abcf::RPCs<
                 <Self as abcf::manager::ModuleStorage>::Stateless,
                 <Self as abcf::manager::ModuleStorage>::Stateful
-            > for #struct_name
+            > for #struct_name<S, D>
             where
                 S: abcf::bs3::Store + 'static,
                 D: abcf::digest::Digest,
@@ -428,16 +428,24 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     );
 
     let module_name = parsed.ident.clone();
+    let memory_fileds = if let Fields::Named(fields) = parsed.fields {
+        fields.named.iter().map(|e| e.clone()).collect()
+    } else {
+        Vec::new()
+    };
 
     let result = quote! {
-        #parsed
-//         pub struct #module_name<S, D>
-        // where
-        //     S: abcf::bs3::Store + 'static,
-        //     D: abcf::digest::Digest,
-        // {
-        //     #memory_filed
-//         }
+        pub struct #module_name<S, D>
+        where
+            S: abcf::bs3::Store + 'static,
+            D: abcf::digest::Digest,
+        {
+            #(
+                #memory_fileds,
+            )*
+            __marker_s: core::marker::PhantomData<S>,
+            __marker_d: core::marker::PhantomData<D>,
+        }
 
         impl<S, D> abcf::manager::ModuleStorage for #module_name<S, D>
         where
@@ -644,5 +652,56 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
+    TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(input as ItemImpl);
+
+    let module_name = parsed.self_ty;
+
+    let inner = parsed.items;
+
+    let trait_name = if let Some(t) = parsed.trait_ {
+        t.1
+    } else {
+        parse_quote!(abcf::Application)
+    };
+
+    let result = quote! {
+        #[async_trait::async_trait]
+        impl<S, D> #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #module_name<S, D>
+        where
+            S: abcf::bs3::Store,
+            D: abcf::digest::Digest + Sync + Send,
+        {
+            #(
+                #inner
+            )*
+        }
+    };
+    TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(input as ItemImpl);
+
+    let module_name = parsed.self_ty;
+
+    let inner = parsed.items;
+
+    let result = quote! {
+        impl<S, D> #module_name<S, D>
+        where
+            S: abcf::bs3::Store,
+            D: abcf::digest::Digest + Sync + Send,
+        {
+            #(
+                #inner
+            )*
+        }
+    };
     TokenStream::from(result)
 }

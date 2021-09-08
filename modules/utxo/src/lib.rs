@@ -10,11 +10,7 @@ use bs3::model::{Value, Map};
 pub struct Event1 {}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct UTXOModule<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{
+pub struct UTXOModule {
     // /// In memory.
     pub inner: u32,
     pub maker_s: PhantomData<S>,
@@ -28,26 +24,13 @@ where
 }
 
 #[abcf::rpcs(module = "utxo")]
-impl<S, D>UTXOModule<S, D> 
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{}
+impl UTXOModule {}
 
 
 /// Module's block logic.
 #[abcf::application]
-impl<S, D> Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for UTXOModule<S, D>
-where
-    S: abcf::bs3::Store + 'static,
-    D: digest::Digest + Send + Sync,
-{
-}
+impl Application for UTXOModule {}
 
 /// Module's methods.
-impl<S, D> UTXOModule<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{
-}
+#[abcf::methods]
+impl UTXOModule {}
