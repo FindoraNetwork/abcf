@@ -1,3 +1,9 @@
+#![feature(generic_associated_types)]
+
+use serde::{Serialize, Deserialize};
+use abcf::{Event, Application};
+use std::marker::PhantomData;
+use bs3::model::{Value, Map};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]

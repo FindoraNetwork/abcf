@@ -91,7 +91,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 
             fn from_abci_event_string(&mut self, str: String) -> abcf::Result<()> {
                 let event = serde_json::from_str::<#struct_name>(&str)?;
-                core::mem::replace(self,event);
+                *self = event;
                 Ok(())
             }
         }
