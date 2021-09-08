@@ -5,12 +5,15 @@
 /// ```
 use abcf::{
     entry::Tree, module::StorageTransaction, Application, Error, Event, Merkle, ModuleError,
-    Storage,
+    RPCResponse, Storage,
 };
-use bs3::model::{Map, Value};
+use bs3::model::{Map, Value as BValue};
+use core::mem::replace;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 /// Module's Event
-#[derive(Debug, Event)]
+#[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
@@ -18,16 +21,45 @@ pub struct MockModule {
     /// In memory.
     pub inner: u32,
     #[stateful]
-    pub sf_value: Value<u32>,
+    pub sf_value: BValue<u32>,
     #[stateless]
-    pub sl_value: Value<u32>,
+    pub sl_value: BValue<u32>,
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetAccountRequest {
+    code: u8,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetAccountResponse {
+    name: String,
+    code: u8,
+}
+
 /// Module's rpc.
-#[abcf::rpcs]
-impl MockModule {}
+#[abcf::rpcs(module = "mock")]
+impl MockModule {
+    pub async fn get_account(
+        &mut self,
+        _ctx: &mut abcf::manager::RContext<'_, EmptyStorage, EmptyStorage>,
+        params: Value,
+    ) -> RPCResponse<'_, GetAccountResponse> {
+        let req = serde_json::from_value::<GetAccountRequest>(params).unwrap();
+        let resp = GetAccountResponse {
+            name: "jack".to_string(),
+            code: req.code,
+        };
+        RPCResponse::new(resp)
+    }
+}
+
+/// must first build and then include
+pub mod mock_rpcs_call {
+    include!(concat!(env!("OUT_DIR"), "/MockModule.rs"));
+}
 
 /// Module's block logic.
 #[abcf::application]
@@ -45,14 +77,14 @@ mod __abcf_storage_mockmodule {
     where
         S: abcf::bs3::Store,
     {
-        pub sl_value: abcf::bs3::SnapshotableStorage<S, Value<u32>>,
+        pub sl_value: abcf::bs3::SnapshotableStorage<S, BValue<u32>>,
         pub sl_map: abcf::bs3::SnapshotableStorage<S, Map<i32, u32>>,
     }
     pub struct ABCFModuleMockModuleSlTx<'a, S>
     where
         S: abcf::bs3::Store,
     {
-        pub sl_value: abcf::bs3::Transaction<'a, S, Value<u32>>,
+        pub sl_value: abcf::bs3::Transaction<'a, S, BValue<u32>>,
         pub sl_map: abcf::bs3::Transaction<'a, S, Map<i32, u32>>,
     }
     impl<S> abcf::Storage for ABCFModuleMockModuleSl<S>
@@ -77,7 +109,7 @@ mod __abcf_storage_mockmodule {
     where
         S: abcf::bs3::Store,
     {
-        pub sf_value: abcf::bs3::SnapshotableStorage<S, Value<u32>>,
+        pub sf_value: abcf::bs3::SnapshotableStorage<S, BValue<u32>>,
     }
 }
 
@@ -287,4 +319,25 @@ fn main() {
     let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     node.start().unwrap();
     std::thread::park();
+}
+
+/// test macro rpcs
+#[test]
+fn test_rpc() {
+    use abcf_sdk::providers::HttpProvider;
+    use tokio::runtime::Runtime;
+
+    let rt = Runtime::new().unwrap();
+
+    rt.block_on(async {
+        let json = json!({"code":19});
+        let str = serde_json::to_string(&json).unwrap();
+        let req_hex = hex::encode(str.as_bytes());
+        let req = Value::String(req_hex);
+
+        let provider = HttpProvider {};
+
+        let r = mock_rpcs_call::get_account(req, provider).await;
+        println!("{:#?}", r);
+    });
 }
