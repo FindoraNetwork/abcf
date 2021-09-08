@@ -1,11 +1,8 @@
 use super::Provider;
 use crate::error::{Error, Result};
 use crate::jsonrpc::Response;
-use alloc::{
-    boxed::Box,
-    string::{String},
-};
-use serde_json::{Value};
+use alloc::{boxed::Box, string::String};
+use serde_json::Value;
 
 pub struct HttpProvider {}
 

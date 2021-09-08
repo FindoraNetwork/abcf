@@ -1,16 +1,11 @@
 #![feature(generic_associated_types)]
 
-use std::marker::PhantomData;
-
 /// Running in shell
 ///
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{
-    entry::Tree, module::StorageTransaction, Application, Error, Event, Merkle, ModuleError,
-    RPCResponse, Storage,
-};
+use abcf::Event;
 use bs3::model::{Map, Value as BValue};
 use serde::{Deserialize, Serialize};
 
@@ -19,15 +14,9 @@ use serde::{Deserialize, Serialize};
 pub struct Event1 {}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct MockModule<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{
+pub struct MockModule {
     // /// In memory.
     pub inner: u32,
-    pub maker_s: PhantomData<S>,
-    pub maker_d: PhantomData<D>,
     #[stateful]
     pub sf_value: BValue<u32>,
     #[stateless]
@@ -37,29 +26,15 @@ where
 }
 
 #[abcf::rpcs(module = "mock")]
-impl<S, D> MockModule<S, D> 
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{}
-
+impl MockModule {}
 
 /// Module's block logic.
 #[abcf::application]
-impl<S, D> Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for MockModule<S, D>
-where
-    S: abcf::bs3::Store + 'static,
-    D: digest::Digest + Send + Sync,
-{
-}
+impl Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for MockModule {}
 
 /// Module's methods.
-impl<S, D> MockModule<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{
-}
+#[abcf::methods]
+impl MockModule {}
 
 pub struct SimpleNode {
     pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
