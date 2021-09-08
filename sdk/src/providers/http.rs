@@ -3,10 +3,9 @@ use crate::error::{Error, Result};
 use crate::jsonrpc::Response;
 use alloc::{
     boxed::Box,
-    string::{String, ToString},
+    string::{String},
 };
-use core::mem::replace;
-use serde_json::{Map, Value};
+use serde_json::{Value};
 
 pub struct HttpProvider {}
 
@@ -25,14 +24,14 @@ impl Provider for HttpProvider {
         return if let Some(ref mut result) = resp_val.result {
             result
                 .as_object_mut()
-                .and_then(|mut result_map| result_map.get_mut("response"))
+                .and_then(|result_map| result_map.get_mut("response"))
                 .and_then(|resp_obj| resp_obj.as_object_mut())
                 .and_then(|resp_map| resp_map.get_mut("value"))
                 .map(|value| {
                     let str = value.as_str()?;
                     let bytes = base64::decode(str).ok()?;
                     let val = serde_json::from_slice::<Value>(bytes.as_slice()).ok()?;
-                    replace(value, val);
+                    *value = val;
                     Some(())
                 });
 
