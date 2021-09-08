@@ -29,7 +29,8 @@ impl UTXOModule {}
 
 /// Module's block logic.
 #[abcf::application]
-impl Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for UTXOModule {}
+impl Application for UTXOModule {}
 
 /// Module's methods.
+#[abcf::methods]
 impl UTXOModule {}

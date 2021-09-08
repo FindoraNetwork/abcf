@@ -663,9 +663,15 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let inner = parsed.items;
 
+    let trait_name = if let Some(t) = parsed.trait_ {
+        t.1
+    } else {
+        parse_quote!(abcf::Application)
+    };
+
     let result = quote! {
         #[async_trait::async_trait]
-        impl<S, D> abcf::Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for #module_name<S, D>
+        impl<S, D> #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #module_name<S, D>
         where
             S: abcf::bs3::Store,
             D: abcf::digest::Digest + Sync + Send,
