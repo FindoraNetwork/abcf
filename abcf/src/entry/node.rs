@@ -149,9 +149,11 @@ where
 
         let mut resp = ResponseQuery::default();
 
+        let target_path = paths.next();
+
         let sub_path = paths.next();
 
-        let res = match paths.next() {
+        let res = match target_path {
             Some("rpc") => self.call_rpc(sub_path, request.data.as_ref()).await,
             Some("stateful") => {
                 self.call_store(&self.stateful, sub_path, request.height)
