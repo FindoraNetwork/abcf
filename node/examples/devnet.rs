@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 /// $ cargo run --example devnet
 /// ```
 use abcf::{
-    entry::Tree, module::StorageTransaction, Application, Error, Event, Merkle, ModuleError,
+    entry::Tree, module::StorageTransaction, Application, Event, Merkle,
     Storage,
 };
 use bs3::model::{Map, Value};
@@ -35,16 +35,22 @@ where
     pub sl_map: Map<i32, u32>,
 }
 
-/// Module's rpc.
 #[abcf::rpcs]
-impl<S, D> MockModule<S, D>
+impl<S, D> MockModule<S, D> 
 where
     S: abcf::bs3::Store,
-    D: digest::Digest, {}
+    D: digest::Digest,
+{}
 
 /// Module's block logic.
 #[abcf::application]
-impl Application<EmptyStorage, EmptyStorage> for MockModule {}
+impl<S, D> Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for MockModule<S, D>
+where
+    S: abcf::bs3::Store + 'static,
+    D: digest::Digest + Send + Sync,
+{
+
+}
 
 /// Module's methods.
 impl<S, D> MockModule<S, D>
@@ -54,72 +60,22 @@ where
 {
 }
 
-// pub struct SimpleNode {
-//     pub mock: MockModule,
-// }
-//
-// impl abcf::Module for SimpleNode {
-//     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
-//         abcf::ModuleMetadata {
-//             name: "simple_node",
-//             module_type: abcf::ModuleType::Manager,
-//             version: 1,
-//             impl_version: "0.1",
-//             genesis: abcf::Genesis { target_height: 0 },
-//         }
-//     }
-// }
-//
-pub struct EmptyStorage {}
+pub struct SimpleNode {
+    pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
+}
 
-impl EmptyStorage {
-    pub fn new() -> Self {
-        EmptyStorage {}
+impl abcf::Module for SimpleNode {
+    fn metadata(&self) -> abcf::ModuleMetadata<'_> {
+        abcf::ModuleMetadata {
+            name: "simple_node",
+            module_type: abcf::ModuleType::Manager,
+            version: 1,
+            impl_version: "0.1",
+            genesis: abcf::Genesis { target_height: 0 },
+        }
     }
 }
 
-impl Storage for EmptyStorage {
-    fn height(&self) -> abcf::Result<i64> {
-        Ok(0)
-    }
-
-    fn commit(&mut self) -> abcf::Result<()> {
-        Ok(())
-    }
-
-    fn rollback(&mut self, _height: i64) -> abcf::Result<()> {
-        Ok(())
-    }
-}
-
-impl StorageTransaction for EmptyStorage {
-    type Transaction<'a> = ();
-
-    type Cache = ();
-
-    fn cache(_tx: Self::Transaction<'_>) -> Self::Cache {
-        ()
-    }
-
-    fn transaction(&self) -> Self::Transaction<'_> {
-        ()
-    }
-
-    fn execute(&mut self, _transaction: Self::Transaction<'_>) {}
-}
-
-impl Merkle<sha3::Sha3_512> for EmptyStorage {
-    fn root(&self) -> abcf::Result<digest::Output<sha3::Sha3_512>> {
-        Ok(Default::default())
-    }
-}
-
-impl Tree for EmptyStorage {
-    fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
-        Ok(Vec::new())
-    }
-}
-//
 // type StatelessTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
 // type StatefulTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
 //
@@ -258,7 +214,7 @@ impl Tree for EmptyStorage {
 //         }
 //     }
 // }
-
+//
 fn main() {
     //     env_logger::init();
     // let mock = MockModule { inner: 0 };

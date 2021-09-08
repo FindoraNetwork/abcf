@@ -125,13 +125,23 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let expanded = if is_empty_impl {
         quote! {
-            #parsed
             #[async_trait::async_trait]
-            impl abcf::RPCs<EmptyStorage, EmptyStorage> for #struct_name {
+            impl<S, D> abcf::RPCs<
+                <Self as abcf::manager::ModuleStorage>::Stateless,
+                <Self as abcf::manager::ModuleStorage>::Stateful
+            > for #struct_name
+            where
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + Send + Sync,
+            {
                 async fn call(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<EmptyStorage, EmptyStorage>,
-                    method: &str, params: serde_json::Value)
+                    ctx: &mut abcf::manager::RContext<
+                        <Self as abcf::manager::ModuleStorage>::Stateless,
+                        <Self as abcf::manager::ModuleStorage>::Stateful
+                    >,
+                    method: &str,
+                    params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
                     Ok(None)
                 }
@@ -142,10 +152,23 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             #parsed
 
             #[async_trait::async_trait]
-            impl abcf::RPCs<EmptyStorage, EmptyStorage> for #struct_name {
-                async fn call(&mut self, ctx: &mut abcf::manager::RContext<EmptyStorage, EmptyStorage>, method: &str, params: serde_json::Value) ->
-                abcf::Result<Option<serde_json::Value>> {
-
+            impl<S, D> abcf::RPCs<
+                <Self as abcf::manager::ModuleStorage>::Stateless,
+                <Self as abcf::manager::ModuleStorage>::Stateful
+            > for #struct_name
+            where
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest,
+            {
+                async fn call(
+                    &mut self,
+                    ctx: &mut abcf::manager::RContext<
+                        <Self as abcf::manager::ModuleStorage>::Stateless,
+                        <Self as abcf::manager::ModuleStorage>::Stateful
+                    >,
+                    method: &str,
+                    params: serde_json::Value)
+                -> abcf::Result<Option<serde_json::Value>> {
                     match method {
                         #(
                             #fn_names
@@ -317,8 +340,15 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let result = quote! {
         #parsed
+//         pub struct #module_name<S, D>
+        // where
+        //     S: abcf::bs3::Store + 'static,
+        //     D: abcf::digest::Digest,
+        // {
+        //     #memory_filed
+//         }
 
-        impl<S, D> abcf::manager::ModuleStorage<D> for #module_name<S, D>
+        impl<S, D> abcf::manager::ModuleStorage for #module_name<S, D>
         where
             S: abcf::bs3::Store + 'static,
             D: abcf::digest::Digest,
