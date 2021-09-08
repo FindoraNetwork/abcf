@@ -8,13 +8,16 @@ use std::marker::PhantomData;
 /// $ cargo run --example devnet
 /// ```
 use abcf::{
-    entry::Tree, module::StorageTransaction, Application, Event, Merkle,
-    Storage,
+    entry::Tree, module::StorageTransaction, Application, Error, Event, Merkle, ModuleError,
+    RPCResponse, Storage,
 };
-use bs3::model::{Map, Value};
+use bs3::model::{Map, Value as BValue};
+use core::mem::replace;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 /// Module's Event
-#[derive(Debug, Event)]
+#[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
@@ -28,9 +31,9 @@ where
     pub maker_s: PhantomData<S>,
     pub maker_d: PhantomData<D>,
     #[stateful]
-    pub sf_value: Value<u32>,
+    pub sf_value: BValue<u32>,
     #[stateless]
-    pub sl_value: Value<u32>,
+    pub sl_value: BValue<u32>,
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
@@ -42,6 +45,7 @@ where
     D: digest::Digest,
 {}
 
+
 /// Module's block logic.
 #[abcf::application]
 impl<S, D> Application<abcf::Stateless<Self>, abcf::Stateful<Self>> for MockModule<S, D>
@@ -49,7 +53,6 @@ where
     S: abcf::bs3::Store + 'static,
     D: digest::Digest + Send + Sync,
 {
-
 }
 
 /// Module's methods.
