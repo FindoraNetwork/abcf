@@ -187,13 +187,13 @@ where
 
         let check_tx_events = &mut self.events.check_tx_events;
 
-        let stateful_tx = self.stateful.transaction();
-        let stateless_tx = self.stateless.transaction();
+        let mut stateful_tx = self.stateful.transaction();
+        let mut stateless_tx = self.stateless.transaction();
 
         let mut ctx = TContext {
             events: EventContext::new(check_tx_events),
-            stateless: stateless_tx,
-            stateful: stateful_tx,
+            stateless: &mut stateless_tx,
+            stateful: &mut stateful_tx,
         };
 
         let result = self.module.check_tx(&mut ctx, req).await;
@@ -265,24 +265,29 @@ where
 
         let deliver_tx_events = &mut self.events.deliver_tx_events;
 
-        let stateful_tx = self.stateful.transaction();
-        let stateless_tx = self.stateless.transaction();
+        let mut stateful_tx = self.stateful.transaction();
+        let mut stateless_tx = self.stateless.transaction();
 
         let mut ctx = TContext {
             events: EventContext::new(deliver_tx_events),
-            stateless: stateless_tx,
-            stateful: stateful_tx,
+            stateless: &mut stateless_tx,
+            stateful: &mut stateful_tx,
         };
 
+
         let result = self.module.deliver_tx(&mut ctx, req).await;
+
+        let stateful_cache = Sf::cache(stateful_tx);
+        let stateless_cache = Sl::cache(stateless_tx);
+
         match result {
             Ok(v) => {
                 resp.data = v.data;
                 resp.gas_wanted = v.gas_wanted;
                 resp.gas_used = v.gas_used;
 
-                self.stateful.execute(ctx.stateful);
-                self.stateless.execute(ctx.stateless);
+                self.stateful.execute(stateful_cache);
+                self.stateless.execute(stateless_cache);
             }
             Err(e) => {
                 resp.code = e.error.code();

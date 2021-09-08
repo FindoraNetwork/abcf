@@ -12,11 +12,15 @@ pub trait Storage: Send + Sync {
 }
 
 pub trait StorageTransaction {
-    type Transaction: Send;
+    type Transaction<'a>: Send;
 
-    fn transaction(&self) -> Self::Transaction;
+    type Cache: Send;
 
-    fn execute(&mut self, transaction: Self::Transaction);
+    fn cache(tx: Self::Transaction<'_>) -> Self::Cache;
+
+    fn transaction(&self) -> Self::Transaction<'_>;
+
+    fn execute(&mut self, transaction: Self::Cache);
 }
 
 pub trait Merkle<D: Digest> {
@@ -37,14 +41,14 @@ impl Storage for () {
     }
 }
 
-impl StorageTransaction for () {
-    type Transaction = ();
-
-    fn transaction(&self) -> Self::Transaction {
-        ()
-    }
-
-    fn execute(&mut self, _transaction: Self::Transaction) {}
-}
+// impl StorageTransaction for () {
+    // type Transaction = ();
+    //
+    // fn transaction(&self) -> Self::Transaction {
+    //     ()
+    // }
+    //
+    // fn execute(&mut self, _transaction: Self::Transaction) {}
+// }
 
 // impl Merkle<>

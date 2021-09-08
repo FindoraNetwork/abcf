@@ -1,3 +1,5 @@
+#![feature(generic_associated_types)]
+
 /// Running in shell
 ///
 /// ``` bash
@@ -120,13 +122,19 @@ impl Storage for EmptyStorage {
 }
 
 impl StorageTransaction for EmptyStorage {
-    type Transaction = ();
+    type Transaction<'a> = ();
 
-    fn transaction(&self) -> Self::Transaction {
+    type Cache = ();
+
+    fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
         ()
     }
 
-    fn execute(&mut self, _transaction: Self::Transaction) {}
+    fn transaction(&self) -> Self::Transaction<'_> {
+        ()
+    }
+
+    fn execute(&mut self, _transaction: Self::Transaction<'_>) {}
 }
 
 impl Merkle<sha3::Sha3_512> for EmptyStorage {
@@ -141,8 +149,8 @@ impl Tree for EmptyStorage {
     }
 }
 
-type StatelessTx = <EmptyStorage as StorageTransaction>::Transaction;
-type StatefulTx = <EmptyStorage as StorageTransaction>::Transaction;
+type StatelessTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
+type StatefulTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
 
 #[abcf::application]
 impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
@@ -153,7 +161,7 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        context: &mut abcf::entry::TContext<StatelessTx, StatefulTx>,
+        context: &mut abcf::entry::TContext<StatelessTx<'_>, StatefulTx<'_>>,
         _req: abcf::module::types::RequestCheckTx,
     ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
         let mut ctx = abcf::manager::TContext {
@@ -195,7 +203,7 @@ impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        context: &mut abcf::entry::TContext<StatelessTx, StatefulTx>,
+        context: &mut abcf::entry::TContext<<EmptyStorage as StorageTransaction>::Transaction<'_>, <EmptyStorage as StorageTransaction>::Transaction<'_>>,
         _req: abcf::module::types::RequestDeliverTx,
     ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
         let mut ctx = abcf::manager::TContext {
