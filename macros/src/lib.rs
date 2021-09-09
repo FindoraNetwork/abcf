@@ -106,6 +106,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let parsed = parse_macro_input!(input as ItemImpl);
+    let items = parsed.items.clone();
 
     let struct_name = parsed.self_ty.clone();
     let name = match struct_name.as_ref() {
@@ -143,8 +144,9 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     let out_dir_str = env::var("OUT_DIR").expect("please create build.rs");
-    let out_dir = Path::new(&out_dir_str).join(name + ".rs");
+    let out_dir = Path::new(&out_dir_str).join(name.to_lowercase() + ".rs");
     let mut f = File::create(&out_dir).expect("create file error");
+    let module_name_mod_name = format!("__abcf_storage_{}",name.to_lowercase());
 
     fn_names
         .iter()
@@ -156,12 +158,12 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                 use abcf_sdk::jsonrpc::{{Request, Response, endpoint}};
                 use abcf_sdk::error::*;
                 use abcf_sdk::providers::Provider;
-                use super::MODULE_NAME;
+                use super::{}::MODULE_NAME;
 
                 pub async fn {}<P:Provider>(param:{},mut p:P) -> Result<Option<Value>>{{
                     let data = param.as_str().unwrap().to_string();
                     let abci_query_req = endpoint::abci_query::Request{{
-                        path: "rpc/MODULE_NAME/{}".to_string(),
+                        path: format!("rpc/{{}}/{}",MODULE_NAME),
                         data,
                         height:Some("0".to_string()),
                         prove: false,
@@ -176,7 +178,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }}
                 }}
             "#,
-                fn_name, param_name, fn_name
+                module_name_mod_name,fn_name, param_name, fn_name
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
@@ -207,7 +209,16 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            #parsed
+
+            impl<S, D> #struct_name<S,D>
+            where
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + Send + Sync,
+            {
+                #(
+                    #items
+                )*
+            }
 
             #[async_trait::async_trait]
             impl<S, D> abcf::RPCs<
@@ -216,7 +227,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             > for #struct_name<S, D>
             where
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest,
+                D: abcf::digest::Digest + Send + Sync,
             {
                 async fn call(
                     &mut self,
