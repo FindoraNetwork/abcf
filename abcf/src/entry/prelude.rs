@@ -1,11 +1,12 @@
 use alloc::{boxed::Box, vec::Vec};
 use serde_json::Value;
+use tm_protos::abci::{RequestCheckTx, RequestDeliverTx};
 
 use crate::{
     module::{
         types::{
-            RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock, ResponseCheckTx,
-            ResponseDeliverTx, ResponseEndBlock,
+            RequestBeginBlock, RequestEndBlock, ResponseCheckTx, ResponseDeliverTx,
+            ResponseEndBlock,
         },
         StorageTransaction,
     },

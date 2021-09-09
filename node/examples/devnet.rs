@@ -5,7 +5,7 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Event, Application};
+use abcf::{Application, Event};
 use bs3::model::{Map, Value as BValue};
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +30,9 @@ impl MockModule {}
 
 /// Module's block logic.
 #[abcf::application]
-impl Application for MockModule {}
+impl Application for MockModule {
+    type Transaction = Vec<u8>;
+}
 
 /// Module's methods.
 #[abcf::methods]
