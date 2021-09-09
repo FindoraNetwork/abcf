@@ -3,17 +3,19 @@
 use std::marker::PhantomData;
 
 use abcf::{RPCResponse};
-use abcf_macros::{rpcs};
+use abcf_macros::{rpcs,module,methods,application};
 use serde::{Deserialize, Serialize};
+use abcf::bs3::model::{Value, Map};
 
-#[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct RpcTest<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
-{
-    pub maker_s: PhantomData<S>,
-    pub maker_d: PhantomData<D>,
+#[module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
+pub struct RpcTest {
+    pub inner: u32,
+    #[stateful]
+    pub sf_value: Value<u32>,
+    #[stateless]
+    pub sl_value: Value<u32>,
+    #[stateless]
+    pub sl_map: Map<i32, u32>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -28,14 +30,11 @@ pub struct GetAccountResponse {
 }
 
 #[rpcs]
-impl<S, D> RpcTest<S, D>
-where
-    S: abcf::bs3::Store,
-    D: digest::Digest,
+impl RpcTest
 {
     pub async fn get_account(
         &mut self,
-        _ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut abcf::manager::RContext<'_,abcf::Stateless<Self>, abcf::Stateful<Self>>,
         params: GetAccountRequest,
     ) -> RPCResponse<'_, GetAccountResponse> {
         let resp = GetAccountResponse {

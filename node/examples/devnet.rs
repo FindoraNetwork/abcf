@@ -6,7 +6,7 @@
 /// $ cargo run --example devnet
 /// ```
 use abcf::{Application, Event};
-use bs3::model::{Map, Value as BValue};
+use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 
 /// Module's Event
@@ -18,14 +18,14 @@ pub struct MockModule {
     // /// In memory.
     pub inner: u32,
     #[stateful]
-    pub sf_value: BValue<u32>,
+    pub sf_value: Value<u32>,
     #[stateless]
-    pub sl_value: BValue<u32>,
+    pub sl_value: Value<u32>,
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
 
-#[abcf::rpcs(module = "mock")]
+#[abcf::rpcs]
 impl MockModule {}
 
 /// Module's block logic.
