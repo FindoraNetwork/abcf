@@ -100,43 +100,13 @@ pub fn event(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-#[derive(Debug)]
-struct RpcsPunctuatedMetaNameValue {
-    pub module: Lit,
-}
-
-impl Parse for RpcsPunctuatedMetaNameValue {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let parsed = Punctuated::<MetaNameValue, Token![,]>::parse_terminated(input)?;
-
-        let mut module = None;
-
-        for mnv in parsed {
-            let key = mnv
-                .path
-                .get_ident()
-                .ok_or(input.error("no attr key"))?
-                .to_string();
-            match key.as_str() {
-                "module" => module = Some(mnv.lit),
-                _ => return Err(input.error(format_args!("key: {} no support", key))),
-            }
-        }
-
-        Ok(Self {
-            module: module.ok_or(input.error("module must set"))?,
-        })
-    }
-}
-
 ///
 ///  Distribute the user-defined functions in the call function as a mapping
 ///
 #[proc_macro_attribute]
-pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let parsed = parse_macro_input!(input as ItemImpl);
-    let args = parse_macro_input!(args as RpcsPunctuatedMetaNameValue);
-    println!("{:#?}", args);
+
     let struct_name = parsed.self_ty.clone();
     let name = match struct_name.as_ref() {
         Type::Path(path) => path.path.segments[0].ident.clone().to_string(),
@@ -146,10 +116,6 @@ pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut fn_names = vec![];
     let mut param_names = vec![];
     let mut param_idents = vec![];
-    let module_name = match args.module {
-        Lit::Str(s) => s.value(),
-        _ => "".to_string(),
-    };
     let mut fn_idents = vec![];
     let mut is_empty_impl = true;
 
@@ -190,11 +156,12 @@ pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
                 use abcf_sdk::jsonrpc::{{Request, Response, endpoint}};
                 use abcf_sdk::error::*;
                 use abcf_sdk::providers::Provider;
+                use super::MODULE_NAME;
 
                 pub async fn {}<P:Provider>(param:{},mut p:P) -> Result<Option<Value>>{{
                     let data = param.as_str().unwrap().to_string();
                     let abci_query_req = endpoint::abci_query::Request{{
-                        path: "rpc/{}/{}".to_string(),
+                        path: "rpc/MODULE_NAME/{}".to_string(),
                         data,
                         height:Some("0".to_string()),
                         prove: false,
@@ -209,7 +176,7 @@ pub fn rpcs(args: TokenStream, input: TokenStream) -> TokenStream {
                     }}
                 }}
             "#,
-                fn_name, param_name, module_name, fn_name
+                fn_name, param_name, fn_name
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
@@ -477,6 +444,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         mod #storage_module_ident {
             use super::*;
             use abcf::Result;
+
+            pub const MODULE_NAME: &'static str = #name;
+
             pub struct #stateless_struct_ident<S>
             where
                 S: abcf::bs3::Store,
