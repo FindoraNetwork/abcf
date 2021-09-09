@@ -1,8 +1,15 @@
 #![feature(generic_associated_types)]
 
-use serde::{Serialize, Deserialize};
-use abcf::{Event, Application};
-use bs3::model::{Value, Map};
+use abcf::{
+    abci::{RequestBeginBlock, RequestEndBlock},
+    manager::{AContext, TContext},
+    module::types::{
+        RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
+    },
+    Application, Event, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
+};
+use bs3::model::{Map, Value};
+use serde::{Deserialize, Serialize};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -22,10 +29,42 @@ pub struct UTXOModule {
 #[abcf::rpcs(module = "utxo")]
 impl UTXOModule {}
 
-
 /// Module's block logic.
 #[abcf::application]
-impl Application for UTXOModule {}
+impl Application for UTXOModule {
+    type Transaction = Vec<u8>;
+
+    async fn check_tx(
+        &mut self,
+        _context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        _req: &RequestCheckTx<Self::Transaction>,
+    ) -> Result<ResponseCheckTx> {
+        Ok(Default::default())
+    }
+
+    async fn begin_block(
+        &mut self,
+        _context: &mut AContext<Stateless<Self>, Stateful<Self>>,
+        _req: &RequestBeginBlock,
+    ) {
+    }
+
+    async fn deliver_tx(
+        &mut self,
+        _context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        _req: &RequestDeliverTx<Self::Transaction>,
+    ) -> Result<ResponseDeliverTx> {
+        Ok(Default::default())
+    }
+
+    async fn end_block(
+        &mut self,
+        _context: &mut AContext<Stateless<Self>, Stateful<Self>>,
+        _req: &RequestEndBlock,
+    ) -> ResponseEndBlock {
+        Default::default()
+    }
+}
 
 /// Module's methods.
 #[abcf::methods]

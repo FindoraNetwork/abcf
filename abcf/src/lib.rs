@@ -26,3 +26,6 @@ pub use digest;
 
 pub type Stateless<M> = <M as manager::ModuleStorage>::Stateless;
 pub type Stateful<M> = <M as manager::ModuleStorage>::Stateful;
+
+pub type StatelessBatch<'a, M> = <Stateless<M> as module::StorageTransaction>::Transaction<'a>;
+pub type StatefulBatch<'a, M> = <Stateful<M> as module::StorageTransaction>::Transaction<'a>;

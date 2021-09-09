@@ -1,7 +1,7 @@
 use alloc::{string::String, vec::Vec};
 use tm_protos::abci::{ConsensusParams, ValidatorUpdate};
 
-pub use tm_protos::abci::{RequestBeginBlock, RequestCheckTx, RequestDeliverTx, RequestEndBlock};
+pub use tm_protos::abci::{RequestBeginBlock, RequestEndBlock};
 
 /// Response for deliver_tx.
 #[derive(Debug, Default)]
@@ -36,4 +36,21 @@ pub struct ResponseEndBlock {
     pub validator_updates: Vec<ValidatorUpdate>,
     /// Changes to consensus-critical time, size, and other parameters.
     pub consensus_param_updates: Option<ConsensusParams>,
+}
+
+#[derive(Debug, Default)]
+pub struct RequestCheckTx<T>
+where
+    T: Default,
+{
+    pub tx: T,
+    pub ty: i32,
+}
+
+#[derive(Debug, Default)]
+pub struct RequestDeliverTx<T>
+where
+    T: Default,
+{
+    pub tx: T,
 }
