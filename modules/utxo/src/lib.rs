@@ -26,7 +26,7 @@ pub struct UTXOModule {
     pub sl_map: Map<i32, u32>,
 }
 
-#[abcf::rpcs(module = "utxo")]
+#[abcf::rpcs]
 impl UTXOModule {}
 
 /// Module's block logic.
