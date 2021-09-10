@@ -1,5 +1,7 @@
 #![feature(generic_associated_types)]
 
+use std::marker::PhantomData;
+
 /// Running in shell
 ///
 /// ``` bash
@@ -16,12 +18,10 @@ pub struct Event1 {}
 pub trait Config {}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct MockModule<C>
-where
-    C: Config,
-{
+pub struct MockModule<C: Config> {
     // /// In memory.
     pub inner: u32,
+    pub marker: PhantomData<C>,
     #[stateful]
     pub sf_value: Value<u32>,
     #[stateless]
@@ -30,19 +30,25 @@ where
     pub sl_map: Map<i32, u32>,
 }
 
-// #[abcf::rpcs]
-// impl MockModule {}
-//
-// /// Module's block logic.
-// #[abcf::application]
-// impl Application for MockModule {
-//     type Transaction = Vec<u8>;
-// }
-//
-// /// Module's methods.
-// #[abcf::methods]
-// impl MockModule {}
-//
+#[abcf::rpcs]
+impl<C> MockModule<C> where C: Config + Sync + Send {}
+
+/// Module's block logic.
+#[abcf::application]
+impl<C> Application for MockModule<C>
+where
+    C: Config + Sync + Send,
+{
+    type Transaction = Vec<u8>;
+}
+
+/// Module's methods.
+#[abcf::methods]
+impl<C> MockModule<C>
+where
+    C: Config + Sync + Send,
+{}
+
 // pub struct SimpleNode {
 //     pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
 // }
