@@ -12,8 +12,8 @@ use std::io::Write;
 use std::path::Path;
 use std::{env, mem::replace, ops::Deref};
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FnArg, ImplItem,
-    ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FieldsNamed,
+    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
 };
 
 ///
@@ -146,7 +146,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let out_dir_str = env::var("OUT_DIR").expect("please create build.rs");
     let out_dir = Path::new(&out_dir_str).join(name.to_lowercase() + ".rs");
     let mut f = File::create(&out_dir).expect("create file error");
-    let module_name_mod_name = format!("__abcf_storage_{}",name.to_lowercase());
+    let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
     fn_names
         .iter()
@@ -178,7 +178,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }}
                 }}
             "#,
-                module_name_mod_name,fn_name, param_name, fn_name
+                module_name_mod_name, fn_name, param_name, fn_name
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
@@ -311,7 +311,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as PunctuatedMetaNameValue);
     let mut parsed = parse_macro_input!(input as ItemStruct);
 
-    let struct_ident = parsed.ident.clone();
     let name = args.name;
     let version = args.version;
     let impl_version = args.impl_version;
@@ -405,40 +404,38 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         Span::call_site(),
     );
 
-    let module_name = parsed.ident.clone();
-    let memory_fileds = if let Fields::Named(fields) = parsed.fields {
-        fields.named.iter().map(|e| e.clone()).collect()
-    } else {
-        Vec::new()
+    let backked_s: FieldsNamed = parse_quote! {
+        {
+            __marker_s: core::marker::PhantomData<S>,
+        }
     };
 
-    let result = quote! {
-        pub struct #module_name<S, D>
-        where
-            S: abcf::bs3::Store + 'static,
-            D: abcf::digest::Digest,
-        {
-            #(
-                #memory_fileds,
-            )*
-            __marker_s: core::marker::PhantomData<S>,
-            __marker_d: core::marker::PhantomData<D>,
+    let module_name = parsed.ident.clone();
+    if let Fields::Named(fields) = &mut parsed.fields {
+        for x in backked_s.named {
+            fields.named.push(x);
         }
+    };
 
-        impl<S, D> abcf::manager::ModuleStorage for #module_name<S, D>
-        where
-            S: abcf::bs3::Store + 'static,
-            D: abcf::digest::Digest,
-        {
+    parsed
+        .generics
+        .params
+        .push(parse_quote!(S: abcf::bs3::Store));
+
+    let generics_names: Vec<GenericParam> =
+        parsed.generics.params.iter().map(|e| e.clone()).collect();
+
+    let mut store_trait: ItemImpl = parse_quote! {
+        impl abcf::manager::ModuleStorage for #module_name<#(#generics_names,)*> {
             type Stateless = #storage_module_ident::#stateless_struct_ident<S>;
             type Stateful = #storage_module_ident::#stateful_struct_ident<S>;
         }
+    };
 
-        impl<S, D> abcf::Module for #struct_ident<S, D>
-        where
-            S: abcf::bs3::Store,
-            D: abcf::digest::Digest,
-        {
+    store_trait.generics = parsed.generics.clone();
+
+    let mut metadata_trait: ItemImpl = parse_quote! {
+        impl abcf::Module for #module_name {
             fn metadata(&self) -> abcf::ModuleMetadata<'_> {
                 abcf::ModuleMetadata {
                     name: #name,
@@ -451,8 +448,18 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
         }
+    };
 
-        mod #storage_module_ident {
+    metadata_trait.generics = parsed.generics.clone();
+
+    let result = quote! {
+        #parsed
+
+        #store_trait
+
+        #metadata_trait
+
+        pub mod #storage_module_ident {
             use super::*;
             use abcf::Result;
 
@@ -531,16 +538,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                 fn execute(&mut self, transaction: Self::Cache) {
 
-                }
-            }
-
-            impl<S, D> abcf::module::Merkle<D> for #stateless_struct_ident<S>
-            where
-                S: abcf::bs3::Store,
-                D: abcf::digest::Digest,
-            {
-                fn root(&self) -> Result<abcf::digest::Output<D>> {
-                    Ok(Default::default())
                 }
             }
 
