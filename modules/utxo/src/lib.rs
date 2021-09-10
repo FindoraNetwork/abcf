@@ -1,5 +1,7 @@
 #![feature(generic_associated_types)]
 
+use std::marker::PhantomData;
+
 use abcf::{
     abci::{RequestBeginBlock, RequestEndBlock},
     manager::{AContext, TContext},
@@ -8,18 +10,23 @@ use abcf::{
     },
     Application, Event, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };
-use bs3::model::{Map, Value};
+use bs3::{model::{Map, Value}};
 use serde::{Deserialize, Serialize};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
+pub trait Config {}
+
 #[abcf::module(name = "utxo", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct UTXOModule {
+pub struct UTXOModule<C: Config> {
     pub inner: u32,
+    marker: PhantomData<C>,
     #[stateful]
     pub sf_value: Value<u32>,
+    #[stateful]
+    pub sf_value1: Value<u32>,
     #[stateless]
     pub sl_value: Value<u32>,
     #[stateless]
@@ -27,11 +34,13 @@ pub struct UTXOModule {
 }
 
 #[abcf::rpcs]
-impl UTXOModule {}
+impl<C: Config + Sync + Send> UTXOModule<C> {
+
+}
 
 /// Module's block logic.
 #[abcf::application]
-impl Application for UTXOModule {
+impl<C: Config + Sync + Send> Application for UTXOModule<C> {
     type Transaction = Vec<u8>;
 
     async fn check_tx(
@@ -39,6 +48,8 @@ impl Application for UTXOModule {
         _context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> Result<ResponseCheckTx> {
+        let e = Event1 {};
+        _context.events.emmit(e).unwrap();
         Ok(Default::default())
     }
 
@@ -47,6 +58,8 @@ impl Application for UTXOModule {
         _context: &mut AContext<Stateless<Self>, Stateful<Self>>,
         _req: &RequestBeginBlock,
     ) {
+        use bs3::ValueStore;
+        let a = _context.stateless.sl_value.get();
     }
 
     async fn deliver_tx(
@@ -68,4 +81,4 @@ impl Application for UTXOModule {
 
 /// Module's methods.
 #[abcf::methods]
-impl UTXOModule {}
+impl<C: Config + Sync + Send> UTXOModule<C> {}

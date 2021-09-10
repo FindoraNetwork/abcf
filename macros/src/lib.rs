@@ -11,9 +11,10 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::{env, mem::replace, ops::Deref};
+use syn::PathArguments;
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FnArg, ImplItem,
-    ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FieldsNamed,
+    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
 };
 
 ///
@@ -105,8 +106,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 ///
 #[proc_macro_attribute]
 pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let parsed = parse_macro_input!(input as ItemImpl);
-    let items = parsed.items.clone();
+    let mut parsed = parse_macro_input!(input as ItemImpl);
 
     let struct_name = parsed.self_ty.clone();
     let name = match struct_name.as_ref() {
@@ -146,7 +146,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let out_dir_str = env::var("OUT_DIR").expect("please create build.rs");
     let out_dir = Path::new(&out_dir_str).join(name.to_lowercase() + ".rs");
     let mut f = File::create(&out_dir).expect("create file error");
-    let module_name_mod_name = format!("__abcf_storage_{}",name.to_lowercase());
+    let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
     fn_names
         .iter()
@@ -178,28 +178,24 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }}
                 }}
             "#,
-                module_name_mod_name,fn_name, param_name, fn_name
+                module_name_mod_name, fn_name, param_name, fn_name
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
 
-    let expanded = if is_empty_impl {
-        quote! {
+    let trait_name = if let Some(t) = &parsed.trait_ {
+        t.1.clone()
+    } else {
+        parse_quote!(abcf::RPCs)
+    };
+
+    let mut pre_rpc: ItemImpl = if is_empty_impl {
+        parse_quote! {
             #[async_trait::async_trait]
-            impl<S, D> abcf::RPCs<
-                <Self as abcf::manager::ModuleStorage>::Stateless,
-                <Self as abcf::manager::ModuleStorage>::Stateful
-            > for #struct_name<S, D>
-            where
-                S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + Send + Sync,
-            {
+            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
                 async fn call(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<
-                        <Self as abcf::manager::ModuleStorage>::Stateless,
-                        <Self as abcf::manager::ModuleStorage>::Stateful
-                    >,
+                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
@@ -208,33 +204,12 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
     } else {
-        quote! {
-
-            impl<S, D> #struct_name<S,D>
-            where
-                S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + Send + Sync,
-            {
-                #(
-                    #items
-                )*
-            }
-
+        parse_quote! {
             #[async_trait::async_trait]
-            impl<S, D> abcf::RPCs<
-                <Self as abcf::manager::ModuleStorage>::Stateless,
-                <Self as abcf::manager::ModuleStorage>::Stateful
-            > for #struct_name<S, D>
-            where
-                S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + Send + Sync,
-            {
+            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
                 async fn call(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<
-                        <Self as abcf::manager::ModuleStorage>::Stateless,
-                        <Self as abcf::manager::ModuleStorage>::Stateful
-                    >,
+                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
@@ -259,6 +234,25 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
         }
+    };
+
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+
+    parsed.generics.params.push(param_s);
+    if let Type::Path(p) = parsed.self_ty.as_mut() {
+        let segments = &mut p.path.segments;
+        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+            a.args.push(parse_quote!(S));
+        }
+    }
+
+    pre_rpc.generics = parsed.generics.clone();
+    pre_rpc.self_ty = parsed.self_ty.clone();
+
+    let expanded = quote! {
+        #parsed
+
+        #pre_rpc
     };
 
     TokenStream::from(expanded)
@@ -311,7 +305,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as PunctuatedMetaNameValue);
     let mut parsed = parse_macro_input!(input as ItemStruct);
 
-    let struct_ident = parsed.ident.clone();
     let name = args.name;
     let version = args.version;
     let impl_version = args.impl_version;
@@ -405,40 +398,46 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         Span::call_site(),
     );
 
-    let module_name = parsed.ident.clone();
-    let memory_fileds = if let Fields::Named(fields) = parsed.fields {
-        fields.named.iter().map(|e| e.clone()).collect()
-    } else {
-        Vec::new()
+    let backked_s: FieldsNamed = parse_quote! {
+        {
+            __marker_s: core::marker::PhantomData<S>,
+        }
     };
 
-    let result = quote! {
-        pub struct #module_name<S, D>
-        where
-            S: abcf::bs3::Store + 'static,
-            D: abcf::digest::Digest,
-        {
-            #(
-                #memory_fileds,
-            )*
-            __marker_s: core::marker::PhantomData<S>,
-            __marker_d: core::marker::PhantomData<D>,
+    let module_name = parsed.ident.clone();
+    if let Fields::Named(fields) = &mut parsed.fields {
+        for x in backked_s.named {
+            fields.named.push(x);
         }
+    };
 
-        impl<S, D> abcf::manager::ModuleStorage for #module_name<S, D>
-        where
-            S: abcf::bs3::Store + 'static,
-            D: abcf::digest::Digest,
-        {
+    parsed
+        .generics
+        .params
+        .push(parse_quote!(S: abcf::bs3::Store + 'static));
+
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
+    let mut store_trait: ItemImpl = parse_quote! {
+        impl abcf::manager::ModuleStorage for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
             type Stateless = #storage_module_ident::#stateless_struct_ident<S>;
             type Stateful = #storage_module_ident::#stateful_struct_ident<S>;
         }
+    };
 
-        impl<S, D> abcf::Module for #struct_ident<S, D>
-        where
-            S: abcf::bs3::Store,
-            D: abcf::digest::Digest,
-        {
+    store_trait.generics = parsed.generics.clone();
+
+    let mut metadata_trait: ItemImpl = parse_quote! {
+        impl abcf::Module for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
             fn metadata(&self) -> abcf::ModuleMetadata<'_> {
                 abcf::ModuleMetadata {
                     name: #name,
@@ -451,8 +450,18 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
         }
+    };
 
-        mod #storage_module_ident {
+    metadata_trait.generics = parsed.generics.clone();
+
+    let result = quote! {
+        #parsed
+
+        #store_trait
+
+        #metadata_trait
+
+        pub mod #storage_module_ident {
             use super::*;
             use abcf::Result;
 
@@ -531,16 +540,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                 fn execute(&mut self, transaction: Self::Cache) {
 
-                }
-            }
-
-            impl<S, D> abcf::module::Merkle<D> for #stateless_struct_ident<S>
-            where
-                S: abcf::bs3::Store,
-                D: abcf::digest::Digest,
-            {
-                fn root(&self) -> Result<abcf::digest::Output<D>> {
-                    Ok(Default::default())
                 }
             }
 
@@ -638,9 +637,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let parsed = parse_macro_input!(input as ItemImpl);
+    let mut parsed = parse_macro_input!(input as ItemImpl);
 
-    let module_name = parsed.self_ty;
+    let struct_name = &parsed.self_ty;
 
     let inner = parsed.items;
 
@@ -650,39 +649,66 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         parse_quote!(abcf::Application)
     };
 
-    let result = quote! {
+    let mut pre_app: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
-        impl<S, D> #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #module_name<S, D>
-        where
-            S: abcf::bs3::Store,
-            D: abcf::digest::Digest + Sync + Send,
-        {
+        impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
             #(
                 #inner
             )*
         }
+    };
+
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+
+    parsed.generics.params.push(param_s);
+    if let Type::Path(p) = parsed.self_ty.as_mut() {
+        let segments = &mut p.path.segments;
+        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+            a.args.push(parse_quote!(S));
+        }
+    }
+
+    pre_app.generics = parsed.generics.clone();
+    pre_app.self_ty = parsed.self_ty.clone();
+
+    let result = quote! {
+        #pre_app
     };
     TokenStream::from(result)
 }
 
 #[proc_macro_attribute]
 pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let parsed = parse_macro_input!(input as ItemImpl);
+    let mut parsed = parse_macro_input!(input as ItemImpl);
 
-    let module_name = parsed.self_ty;
+    let struct_name = &parsed.self_ty;
 
     let inner = parsed.items;
 
-    let result = quote! {
-        impl<S, D> #module_name<S, D>
-        where
-            S: abcf::bs3::Store,
-            D: abcf::digest::Digest + Sync + Send,
-        {
+    let mut pre_app: ItemImpl = parse_quote! {
+        impl #struct_name {
             #(
                 #inner
             )*
         }
     };
+
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+
+    parsed.generics.params.push(param_s);
+    if let Type::Path(p) = parsed.self_ty.as_mut() {
+        let segments = &mut p.path.segments;
+        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+            a.args.push(parse_quote!(S));
+        }
+    }
+
+    pre_app.generics = parsed.generics.clone();
+    pre_app.self_ty = parsed.self_ty.clone();
+
+    let result = quote! {
+        #pre_app
+    };
+
     TokenStream::from(result)
 }

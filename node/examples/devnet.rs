@@ -1,5 +1,7 @@
 #![feature(generic_associated_types)]
 
+use std::marker::PhantomData;
+
 /// Running in shell
 ///
 /// ``` bash
@@ -13,10 +15,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
+pub trait Config {}
+
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct MockModule {
+pub struct MockModule<C: Config> {
     // /// In memory.
     pub inner: u32,
+    pub marker: PhantomData<C>,
     #[stateful]
     pub sf_value: Value<u32>,
     #[stateless]
@@ -26,34 +31,40 @@ pub struct MockModule {
 }
 
 #[abcf::rpcs]
-impl MockModule {}
+impl<C> MockModule<C> where C: Config + Sync + Send {}
 
 /// Module's block logic.
 #[abcf::application]
-impl Application for MockModule {
+impl<C> Application for MockModule<C>
+where
+    C: Config + Sync + Send,
+{
     type Transaction = Vec<u8>;
 }
 
 /// Module's methods.
 #[abcf::methods]
-impl MockModule {}
+impl<C> MockModule<C>
+where
+    C: Config + Sync + Send,
+{}
 
-pub struct SimpleNode {
-    pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
-}
+// pub struct SimpleNode {
+//     pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
+// }
 
-impl abcf::Module for SimpleNode {
-    fn metadata(&self) -> abcf::ModuleMetadata<'_> {
-        abcf::ModuleMetadata {
-            name: "simple_node",
-            module_type: abcf::ModuleType::Manager,
-            version: 1,
-            impl_version: "0.1",
-            genesis: abcf::Genesis { target_height: 0 },
-        }
-    }
-}
-
+// impl abcf::Module for SimpleNode {
+//     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
+//         abcf::ModuleMetadata {
+//             name: "simple_node",
+//             module_type: abcf::ModuleType::Manager,
+//             version: 1,
+//             impl_version: "0.1",
+//             genesis: abcf::Genesis { target_height: 0 },
+//         }
+//     }
+// }
+//
 // type StatelessTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
 // type StatefulTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
 //
