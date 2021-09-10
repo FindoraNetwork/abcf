@@ -25,16 +25,16 @@ Framework for blockchain based on tendermint.
   - [X] RPC.
     - [X] RPC Context.
   - [X] Event.
-  - [ ] Store.
-- [ ] Add example using raw define.
+  - [X] Store.
+- [X] Add example using raw define.
 - [X] Module Register(multi module).
-  - [ ] RPC
-    - [ ] Macros.
-    - [ ] Client SDK.
-  - [ ] Event
-    - [ ] Macros
-    - [ ] Client SDK.
-- [ ] Add example using macro.
+  - [X] RPC
+    - [X] Macros.
+    - [X] Client SDK.
+  - [X] Event
+    - [X] Macros
+    - [X] Client SDK.
+- [X] Add example using macro.
 - [ ] Dynamic update.
   - [X] Genesis info.
   - [ ] Node version match.
@@ -50,169 +50,15 @@ Cargo.toml
 abcf = { git = "git://git@github.com/FindoraNetwork/abcf.git" }
 ```
 
-Using raw trait:
-
-``` rust
-use abcf::{Module, ModuleMetadata, ModuleRegister, Node};
-
-struct Mock {}
-
-impl Module for Mock {
-    type Storage = ();
-    type Event = ();
-    type RPCs = ();
-    type Application = ();
-
-    fn metadata(&self) -> ModuleMetadata<'_> {
-        ModuleMetadata {
-            name: "mock",
-            version: "0.1.0",
-            impl_version: "0.1.3",
-            genesis: Genesis {
-                target_height: 1,
-            }
-        }
-    }
-
-    fn application(&self) -> Self::Application {
-        ()
-    }
-
-    fn events(&self) -> Self::Events {
-        ()
-    }
-
-    fn rpcs() -> Self::RPCs {
-        ()
-    }
-}
-
-fn main() {
-    let node = Node::init_debug();
-    let mock_module = Mock {};
-    let mr = ModuleRegister::new()
-        .regist(mock_module);
-    node.register(mr);
-    smol::block_on( async {
-        node.start().await();
-    });
-}
-
-```
-
-Using macro.
-
-``` rust
-use abcf::{Module, ModuleMetadata, ModuleRegister, Node};
-
-// Define RPC
-struct MockRPCS {}
-
-#[rpc::rpcs]
-impl RPCs for MockRPCs {}
-
-#[derive(Deserialize)]
-pub struct GetAccountRequest {}
-
-#[derive(Serialize)]
-pub struct GetAccountResponse {}
-
-#[rpc::rpcs]
-impl MockRPCs {
-    #[rpc::method("get_account")]
-    pub async fn get_account(&mut self, ctx: &mut Context, params: GetAccountRequest)
-      -> Response<GetAccountResponse> {
-      // ..
-    }
-}
-
-// Define Application
-struct MockApplicaion {}
-
-#[async_trait::async_trait]
-impl Application for MockApplicaion {
-    async fn check_tx(&mut self, _context: &mut Context, _req: &RequestCheckTx) -> ResponseCheckTx {
-        ResponseCheckTx::default()
-    }
-
-    async fn begin_block(&mut self, _context: &mut Context, _req: &RequestBeginBlock) {}
-
-    async fn deliver_tx(
-        &mut self,
-        _context: &mut Context,
-        _req: &RequestDeliverTx,
-    ) -> ResponseDeliverTx {
-        ResponseDeliverTx::default()
-    }
-
-    async fn end_block(
-        &mut self,
-        _context: &mut Context,
-        _req: &RequestEndBlock,
-    ) -> ResponseEndBlock {
-        ResponseEndBlock::default()
-    }
-}
-
-// Define Event
-
-#[derive(Event)]
-pub struct E1 {
-  pub key1: String,
-  #[abcf(index)]
-  pub key2: String,
-}
-
-#[derive(Events)]
-enum MockEvents {
-    E1(E1),
-    E2(E2),
-}
-
-// Define Module
-struct Mock {}
-
-#[abcf::module(MockApplicaion, MockRPCs, (), ())]
-impl Module for Mock {
-    type Events = MockEvent;
-    type Application = MockApplicaion;
-    type RPCs = MockRPCs;
-
-    fn metadata(&self) -> ModuleMetadata<'_> {
-        ModuleMetadata {
-            name: "mock",
-            version: "0.1.0",
-            impl_version: "0.1.3",
-            genesis: Genesis {
-                target_height: 1,
-            }
-        }
-    }
-}
-
-```
-
 ### Requirements
 
 - Rust
 - Go > 1.16 (option): If use `tendermint-sys` as backend (default).
-- tendermint > 0.33 (option): Is use `async-abci` as backend.
+- tendermint > 0.34 (option): Is use `async-abci` as backend.
 
-Build.
-
-``` bash
-make build
-```
-
-Setup tendermint.
+### Test
 
 ``` bash
-cd target && ./abcf --base-dir /tmp/example
-```
-
-Run application.
-
-``` bash
-RUST_LOG=debug ./abcf --config "/tmp/example/config/config.toml"
+$ RUST_LOG=debug cargo run --example devnet
 ```
 
