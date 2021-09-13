@@ -14,7 +14,7 @@ use std::{env, mem::replace, ops::Deref};
 use syn::PathArguments;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FieldsNamed,
-    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
+    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type, FieldValue
 };
 
 ///
@@ -333,6 +333,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_tx = Vec::new();
     let mut stateful_value = Vec::new();
 
+    let mut init_items = Vec::new();
+    let mut fn_items = Vec::new();
+
     if let Fields::Named(fields) = &mut parsed.fields {
         let origin_fields = replace(&mut fields.named, Punctuated::new());
 
@@ -373,6 +376,13 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             }
             if is_memory {
                 fields.named.push(f.clone());
+                let key = f.ident.clone().expect("module muse a named struct");
+                let ty = f.ty.clone();
+
+                let fv: FieldValue = parse_quote!(#key);
+                let fa: FnArg = parse_quote!(#key: #ty);
+                init_items.push(fv);
+                fn_items.push(fa);
             }
         }
     }
@@ -418,6 +428,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
+
     let module_name = parsed.ident.clone();
     if let Fields::Named(fields) = &mut parsed.fields {
         for x in backked_s.named {
@@ -440,6 +451,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             lifetime_names.push(l.lifetime.clone());
         }
     }
+
+
+    let mut new_impl: ItemImpl = parse_quote! {
+        impl #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
+            pub fn new(#(#fn_items,)*) -> Self {
+                Self {
+                    #(#init_items,)*
+                    __marker_s: core::marker::PhantomData,
+                }
+            }
+        }
+    };
+
+    new_impl.generics = parsed.generics.clone();
 
     let mut store_trait: ItemImpl = parse_quote! {
         impl abcf::manager::ModuleStorage for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
@@ -470,6 +495,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let result = quote! {
         #parsed
+
+        #new_impl
 
         #store_trait
 

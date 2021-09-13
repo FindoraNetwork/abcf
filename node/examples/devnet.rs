@@ -38,27 +38,41 @@ impl Application for MockModule {
 #[abcf::methods]
 impl MockModule {}
 
-// pub struct SimpleNode {
-//     pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
-// }
-//
-// impl abcf::Module for SimpleNode {
-//     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
-//         abcf::ModuleMetadata {
-//             name: "simple_node",
-//             module_type: abcf::ModuleType::Manager,
-//             version: 1,
-//             impl_version: "0.1",
-//             genesis: abcf::Genesis { target_height: 0 },
-//         }
-//     }
-// }
-//
-// type StatelessTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
-// type StatefulTx<'a> = <EmptyStorage as StorageTransaction>::Transaction<'a>;
-//
-// #[abcf::application]
-// impl abcf::entry::Application<EmptyStorage, EmptyStorage> for SimpleNode {
+pub struct SimpleNode<S: abcf::bs3::Store + 'static> {
+    pub mock: MockModule<S>,
+    pub mock2: MockModule<S>,
+}
+
+impl<S> abcf::Module for SimpleNode<S>
+where
+    S: abcf::bs3::Store + 'static
+{
+    fn metadata(&self) -> abcf::ModuleMetadata<'_> {
+        abcf::ModuleMetadata {
+            name: "simple_node",
+            module_type: abcf::ModuleType::Manager,
+            version: 1,
+            impl_version: "0.1",
+            genesis: abcf::Genesis { target_height: 0 },
+        }
+    }
+}
+
+pub struct SimpleNodeSl<S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::Stateless<MockModule<S>>,
+    pub mock2: abcf::Stateless<MockModule<S>>,
+}
+
+pub struct SimpleNodeSf<S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::Stateful<MockModule<S>>,
+    pub mock2: abcf::Stateful<MockModule<S>>,
+}
+
+// #[async_trait::async_trait]
+// impl<S> abcf::entry::Application<SimpleNodeSf<S>, SimpleNodeSl<S>> for SimpleNode<S>
+// where
+//     S: abcf::bs3::Store + 'static
+// {
 //     /// Define how to check transaction.
 //     ///
 //     /// In this function, do some lightweight check for transaction, for example: check signature,
@@ -150,57 +164,66 @@ impl MockModule {}
 //         self.mock.end_block(&mut ctx, &_req).await
 //     }
 // }
-//
-// #[abcf::application]
-// impl abcf::entry::RPCs<EmptyStorage, EmptyStorage> for SimpleNode {
-//     async fn call(
-//         &mut self,
-//         ctx: &mut abcf::entry::RContext<EmptyStorage, EmptyStorage>,
-//         method: &str,
-//         params: serde_json::Value,
-//     ) -> abcf::ModuleResult<Option<serde_json::Value>> {
-//         use abcf::RPCs;
-//         let mut paths = method.split("/");
-//         let module_name = paths.next().ok_or(ModuleError {
-//             namespace: String::from("abcf.manager"),
-//             error: Error::QueryPathFormatError,
-//         })?;
-//
-//         let method = paths.next().ok_or(ModuleError {
-//             namespace: String::from("abcf.managing"),
-//             error: Error::QueryPathFormatError,
-//         })?;
-//
-//         let mut context = abcf::manager::RContext {
-//             stateful: ctx.stateful,
-//             stateless: ctx.stateless,
-//         };
-//
-//         match module_name {
-//             "mock" => self
-//                 .mock
-//                 .call(&mut context, method, params)
-//                 .await
-//                 .map_err(|e| ModuleError {
-//                     namespace: String::from("mock"),
-//                     error: e,
-//                 }),
-//             _ => Err(ModuleError {
-//                 namespace: String::from("abcf.manager"),
-//                 error: Error::NoModule,
-//             }),
-//         }
-//     }
-// }
-//
+
+#[async_trait::async_trait]
+impl<S> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
+where
+    S: abcf::bs3::Store + 'static
+{
+    async fn call(
+        &mut self,
+        ctx: &mut abcf::entry::RContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
+        method: &str,
+        params: serde_json::Value,
+    ) -> abcf::ModuleResult<Option<serde_json::Value>> {
+        use abcf::RPCs;
+        let mut paths = method.split("/");
+        let module_name = paths.next().ok_or(abcf::ModuleError {
+            namespace: String::from("abcf.manager"),
+            error: abcf::Error::QueryPathFormatError,
+        })?;
+
+        let method = paths.next().ok_or(abcf::ModuleError {
+            namespace: String::from("abcf.managing"),
+            error: abcf::Error::QueryPathFormatError,
+        })?;
+
+        match module_name {
+            "mock" => {
+                let mut context = abcf::manager::RContext {
+                    stateful: &ctx.stateful.mock,
+                    stateless: &mut ctx.stateless.mock,
+                };
+
+                self
+                .mock
+                .call(&mut context, method, params)
+                .await
+                .map_err(|e| abcf::ModuleError {
+                    namespace: String::from("mock"),
+                    error: e,
+                })
+            }
+            _ => Err(abcf::ModuleError {
+                namespace: String::from("abcf.manager"),
+                error: abcf::Error::NoModule,
+            }),
+        }
+    }
+}
+
 fn main() {
-    //     env_logger::init();
-    // let mock = MockModule { inner: 0 };
+    env_logger::init();
+    use bs3::backend::MemoryBackend;
+
+    let mock = MockModule::new(1);
+
+    let mock2 = MockModule::new(2);
     //
-    // let simple_node = SimpleNode { mock };
+    let simple_node = SimpleNode::<MemoryBackend> { mock, mock2 };
     //
     // let entry = abcf::entry::Node::new(EmptyStorage::new(), EmptyStorage::new(), simple_node);
     // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     // node.start().unwrap();
-    //     std::thread::park();
+//     std::thread::park();
 }
