@@ -474,6 +474,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 #(
                     #stateless,
                 )*
+                marker_s: core::marker::PhantomData<S>,
             }
 
             pub struct #stateless_tx_struct_ident<'a, S>
@@ -483,6 +484,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 #(
                     #stateless_tx,
                 )*
+                marker_s: core::marker::PhantomData<&'a S>,
             }
 
             pub struct #stateless_tx_cache_struct_ident {
@@ -535,6 +537,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                         #(
                             #stateless_arg: self.#stateless_arg.transaction(),
                         )*
+                        marker_s: core::marker::PhantomData,
                     }
                 }
 
@@ -550,6 +553,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 #(
                     #stateful,
                 )*
+                marker_s: core::marker::PhantomData<S>,
             }
             pub struct #stateful_tx_struct_ident<'a, S>
             where
@@ -558,6 +562,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 #(
                     #stateful_tx,
                 )*
+                marker_s: core::marker::PhantomData<&'a S>,
             }
 
             pub struct #stateful_tx_cache_struct_ident {
@@ -610,6 +615,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                         #(
                             #stateful_arg: self.#stateful_arg.transaction(),
                         )*
+                        marker_s: core::marker::PhantomData,
                     }
                 }
 
