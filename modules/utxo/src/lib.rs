@@ -10,7 +10,7 @@ use abcf::{
     },
     Application, Event, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };
-use bs3::{model::{Map, Value}};
+use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 
 /// Module's Event
@@ -34,9 +34,7 @@ pub struct UTXOModule<C: Config> {
 }
 
 #[abcf::rpcs]
-impl<C: Config + Sync + Send> UTXOModule<C> {
-
-}
+impl<C: Config + Sync + Send> UTXOModule<C> {}
 
 /// Module's block logic.
 #[abcf::application]

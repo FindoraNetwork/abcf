@@ -1,7 +1,5 @@
 #![feature(generic_associated_types)]
 
-use std::marker::PhantomData;
-
 /// Running in shell
 ///
 /// ``` bash
@@ -15,13 +13,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
-pub trait Config {}
-
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-pub struct MockModule<C: Config> {
+pub struct MockModule {
     // /// In memory.
     pub inner: u32,
-    pub marker: PhantomData<C>,
     #[stateful]
     pub sf_value: Value<u32>,
     #[stateless]
@@ -31,28 +26,22 @@ pub struct MockModule<C: Config> {
 }
 
 #[abcf::rpcs]
-impl<C> MockModule<C> where C: Config + Sync + Send {}
+impl MockModule {}
 
 /// Module's block logic.
 #[abcf::application]
-impl<C> Application for MockModule<C>
-where
-    C: Config + Sync + Send,
-{
+impl Application for MockModule {
     type Transaction = Vec<u8>;
 }
 
 /// Module's methods.
 #[abcf::methods]
-impl<C> MockModule<C>
-where
-    C: Config + Sync + Send,
-{}
+impl MockModule {}
 
 // pub struct SimpleNode {
 //     pub mock: MockModule<bs3::backend::MemoryBackend, sha3::Sha3_512>,
 // }
-
+//
 // impl abcf::Module for SimpleNode {
 //     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
 //         abcf::ModuleMetadata {

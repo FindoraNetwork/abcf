@@ -189,6 +189,20 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         parse_quote!(abcf::RPCs)
     };
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_rpc: ItemImpl = if is_empty_impl {
         parse_quote! {
             #[async_trait::async_trait]
@@ -236,13 +250,13 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 
@@ -649,6 +663,19 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         parse_quote!(abcf::Application)
     };
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_app: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
         impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
@@ -658,13 +685,13 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 
@@ -685,6 +712,19 @@ pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let inner = parsed.items;
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_app: ItemImpl = parse_quote! {
         impl #struct_name {
             #(
@@ -693,13 +733,13 @@ pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 
