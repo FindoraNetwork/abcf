@@ -38,14 +38,16 @@ impl Application for MockModule {
 #[abcf::methods]
 impl MockModule {}
 
-pub struct SimpleNode<S: abcf::bs3::Store + 'static> {
+pub struct SimpleNode<S: abcf::bs3::Store + 'static, T: abcf::Transaction> {
     pub mock: MockModule<S>,
     pub mock2: MockModule<S>,
+    __marker_t: core::marker::PhantomData<T>,
 }
 
-impl<S> abcf::Module for SimpleNode<S>
+impl<S, T> abcf::Module for SimpleNode<S, T>
 where
     S: abcf::bs3::Store + 'static,
+    T: abcf::Transaction,
 {
     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
         abcf::ModuleMetadata {
@@ -150,6 +152,29 @@ where
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Transaction {
+    pub v: u64,
+}
+
+impl abcf::Transaction for Transaction {}
+
+impl Default for Transaction {
+    fn default() -> Self {
+        Self {
+            v: 0
+        }
+    }
+}
+
+impl abcf::module::FromBytes for Transaction {
+    fn from_bytes(bytes: &[u8]) -> abcf::Result<Self>
+    where
+        Self: Sized {
+        Ok(serde_json::from_slice(bytes)?)
+    }
+}
+
 pub struct SimpleNodeSfTx<'a, S: abcf::bs3::Store + 'static> {
     pub mock: abcf::StatefulBatch<'a, MockModule<S>>,
     pub mock2: abcf::StatefulBatch<'a, MockModule<S>>,
@@ -189,9 +214,10 @@ where
 }
 
 #[async_trait::async_trait]
-impl<S> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
+impl<S, T> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S, T>
 where
     S: abcf::bs3::Store + 'static,
+    T: abcf::Transaction,
 {
      /// Define how to check transaction.
     ///
@@ -211,7 +237,10 @@ where
             stateless: context.stateless,
         };
 
-        // let req_tx =
+        let req_tx = T::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+            namespace: String::from("mock"),
+            error: e,
+        })?;
 
 //         let result = self
             // .mock
@@ -220,8 +249,8 @@ where
             // .map_err(|e| abcf::ModuleError {
             //     namespace: String::from("mock"),
             //     error: e,
-//             })?;
-
+            // })?;
+//
         let resp = Default::default();
 
         Ok(resp)
@@ -290,9 +319,10 @@ where
 }
 
 #[async_trait::async_trait]
-impl<S> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
+impl<S, T> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S, T>
 where
     S: abcf::bs3::Store + 'static,
+    T: abcf::Transaction,
 {
     async fn call(
         &mut self,
