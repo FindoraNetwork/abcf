@@ -56,8 +56,8 @@ impl<C: Config + Sync + Send> Application for UTXOModule<C> {
         _context: &mut AContext<Stateless<Self>, Stateful<Self>>,
         _req: &RequestBeginBlock,
     ) {
-        use bs3::ValueStore;
-        let a = _context.stateless.sl_value.get();
+        // use bs3::ValueStore;
+        // let a = _context.stateless.sl_value.get();
     }
 
     async fn deliver_tx(

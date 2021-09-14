@@ -20,7 +20,7 @@ where
     Sl: Storage + StorageTransaction,
     Sf: Storage + StorageTransaction,
 {
-    type Transaction: Default + Send + Sync + Into<Self::Transaction>;
+    type Transaction: Default + Send + Sync;
 
     /// Define how to check transaction.
     ///

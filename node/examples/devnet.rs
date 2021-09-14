@@ -31,23 +31,29 @@ impl MockModule {}
 /// Module's block logic.
 #[abcf::application]
 impl Application for MockModule {
-    type Transaction = Vec<u8>;
+    type Transaction = MockTransaction;
+}
+
+pub struct MockTransaction {}
+
+impl Default for MockTransaction {
+    fn default() -> Self {
+        MockTransaction {}
+    }
 }
 
 /// Module's methods.
 #[abcf::methods]
 impl MockModule {}
 
-pub struct SimpleNode<S: abcf::bs3::Store + 'static, T: abcf::Transaction> {
+pub struct SimpleNode<S: abcf::bs3::Store + 'static> {
     pub mock: MockModule<S>,
     pub mock2: MockModule<S>,
-    __marker_t: core::marker::PhantomData<T>,
 }
 
-impl<S, T> abcf::Module for SimpleNode<S, T>
+impl<S> abcf::Module for SimpleNode<S>
 where
     S: abcf::bs3::Store + 'static,
-    T: abcf::Transaction,
 {
     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
         abcf::ModuleMetadata {
@@ -153,13 +159,13 @@ where
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Transaction {
+pub struct SimpleNodeTransaction {
     pub v: u64,
 }
 
-impl abcf::Transaction for Transaction {}
+impl abcf::Transaction for SimpleNodeTransaction {}
 
-impl Default for Transaction {
+impl Default for SimpleNodeTransaction {
     fn default() -> Self {
         Self {
             v: 0
@@ -167,11 +173,17 @@ impl Default for Transaction {
     }
 }
 
-impl abcf::module::FromBytes for Transaction {
+impl abcf::module::FromBytes for SimpleNodeTransaction {
     fn from_bytes(bytes: &[u8]) -> abcf::Result<Self>
     where
         Self: Sized {
         Ok(serde_json::from_slice(bytes)?)
+    }
+}
+
+impl Into<MockTransaction> for SimpleNodeTransaction {
+    fn into(self) -> MockTransaction {
+        MockTransaction {}
     }
 }
 
@@ -214,10 +226,9 @@ where
 }
 
 #[async_trait::async_trait]
-impl<S, T> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S, T>
+impl<S> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
 where
     S: abcf::bs3::Store + 'static,
-    T: abcf::Transaction,
 {
      /// Define how to check transaction.
     ///
@@ -229,100 +240,114 @@ where
         context: &mut abcf::entry::TContext<SimpleNodeSlTx<'_, S>, SimpleNodeSfTx<'_, S>>,
         _req: abcf::abci::RequestCheckTx,
     ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
+        use abcf::module::FromBytes;
+
         let mut ctx = abcf::manager::TContext {
             events: abcf::entry::EventContext {
                 events: context.events.events,
             },
-            stateful: context.stateful,
-            stateless: context.stateless,
+            stateful: &mut context.stateful.mock,
+            stateless: &mut context.stateless.mock,
         };
 
-        let req_tx = T::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
             namespace: String::from("mock"),
             error: e,
         })?;
 
-//         let result = self
-            // .mock
-            // .check_tx(&mut ctx, &_req)
-            // .await
-            // .map_err(|e| abcf::ModuleError {
-            //     namespace: String::from("mock"),
-            //     error: e,
-            // })?;
-//
-        let resp = Default::default();
+        let tx = abcf::module::types::RequestCheckTx {
+            ty: _req.r#type,
+            tx: req_tx.into()
+        };
 
-        Ok(resp)
-        }
+        let result = self
+            .mock
+            .check_tx(&mut ctx, &tx)
+            .await
+            .map_err(|e| abcf::ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
 
-    // /// Begin block.
-    // async fn begin_block(
-    //     &mut self,
-    //     context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
-    //     _req: abcf::module::types::RequestBeginBlock,
-    // ) {
-    //     let mut ctx = abcf::manager::AContext {
-    //         events: abcf::entry::EventContext {
-    //             events: context.events.events,
-    //         },
-    //         stateful: context.stateful,
-    //         stateless: context.stateless,
-    //     };
-    //     self.mock.begin_block(&mut ctx, &_req).await;
-    // }
-    //
-    // /// Execute transaction on state.
-    // async fn deliver_tx(
-    //     &mut self,
-    //     context: &mut abcf::entry::TContext<
-    //         <EmptyStorage as StorageTransaction>::Transaction<'_>,
-    //         <EmptyStorage as StorageTransaction>::Transaction<'_>,
-    //     >,
-    //     _req: abcf::module::types::RequestDeliverTx,
-    // ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
-    //     let mut ctx = abcf::manager::TContext {
-    //         events: abcf::entry::EventContext {
-    //             events: context.events.events,
-    //         },
-    //         stateful: context.stateful,
-    //         stateless: context.stateless,
-    //     };
-    //
-    //     let result = self
-    //         .mock
-    //         .deliver_tx(&mut ctx, &_req)
-    //         .await
-    //         .map_err(|e| ModuleError {
-    //             namespace: String::from("mock"),
-    //             error: e,
-    //         })?;
-    //
-    //     Ok(result)
-    // }
-    //
-    // /// End Block.
-    // async fn end_block(
-    //     &mut self,
-    //     context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
-    //     _req: abcf::module::types::RequestEndBlock,
-    // ) -> abcf::module::types::ResponseEndBlock {
-    //     let mut ctx = abcf::manager::AContext {
-    //         events: abcf::entry::EventContext {
-    //             events: context.events.events,
-    //         },
-    //         stateful: context.stateful,
-    //         stateless: context.stateless,
-    //     };
-    //     self.mock.end_block(&mut ctx, &_req).await
-    // }
+        Ok(result)
+    }
+
+    /// Begin block.
+    async fn begin_block(
+        &mut self,
+        context: &mut abcf::entry::AContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
+        _req: abcf::module::types::RequestBeginBlock,
+    ) {
+        let mut ctx = abcf::manager::AContext {
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
+            stateful: &mut context.stateful.mock,
+            stateless: &mut context.stateless.mock,
+        };
+
+        self.mock.begin_block(&mut ctx, &_req).await;
+    }
+
+    /// Execute transaction on state.
+    async fn deliver_tx(
+        &mut self,
+        context: &mut abcf::entry::TContext<SimpleNodeSlTx<'_, S>, SimpleNodeSfTx<'_, S>>,
+        _req: abcf::abci::RequestDeliverTx,
+    ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
+        use abcf::module::FromBytes;
+
+        let mut ctx = abcf::manager::TContext {
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
+            stateful: &mut context.stateful.mock,
+            stateless: &mut context.stateless.mock,
+        };
+
+        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+            namespace: String::from("mock"),
+            error: e,
+        })?;
+
+        let tx = abcf::module::types::RequestDeliverTx {
+            tx: req_tx.into()
+        };
+
+        let result = self
+            .mock
+            .deliver_tx(&mut ctx, &tx)
+            .await
+            .map_err(|e| abcf::ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
+
+        Ok(result)
+    }
+
+    /// End Block.
+    async fn end_block(
+        &mut self,
+        context: &mut abcf::entry::AContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
+        _req: abcf::module::types::RequestEndBlock,
+    ) -> abcf::module::types::ResponseEndBlock {
+        let mut ctx = abcf::manager::AContext {
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
+            stateful: &mut context.stateful.mock,
+            stateless: &mut context.stateless.mock,
+        };
+
+        self.mock.end_block(&mut ctx, &_req).await
+    }
 }
 
 #[async_trait::async_trait]
-impl<S, T> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S, T>
+impl<S> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
 where
     S: abcf::bs3::Store + 'static,
-    T: abcf::Transaction,
 {
     async fn call(
         &mut self,
@@ -372,9 +397,9 @@ fn main() {
     let mock = MockModule::new(1);
 
     let mock2 = MockModule::new(2);
-    //
+
     let simple_node = SimpleNode::<MemoryBackend> { mock, mock2 };
-    //
+
     // let entry = abcf::entry::Node::new(EmptyStorage::new(), EmptyStorage::new(), simple_node);
     // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     // node.start().unwrap();
