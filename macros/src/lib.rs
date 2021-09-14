@@ -13,8 +13,9 @@ use std::path::Path;
 use std::{env, mem::replace, ops::Deref};
 use syn::PathArguments;
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FieldsNamed,
-    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type, FieldValue
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
+    FieldsNamed, FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
+    Type,
 };
 
 ///
@@ -428,7 +429,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-
     let module_name = parsed.ident.clone();
     if let Fields::Named(fields) = &mut parsed.fields {
         for x in backked_s.named {
@@ -451,7 +451,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             lifetime_names.push(l.lifetime.clone());
         }
     }
-
 
     let mut new_impl: ItemImpl = parse_quote! {
         impl #module_name<#(#lifetime_names,)* #(#generics_names,)*> {

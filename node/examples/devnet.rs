@@ -5,7 +5,7 @@
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event};
+use abcf::{module::StorageTransaction, Application, Event};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +45,7 @@ pub struct SimpleNode<S: abcf::bs3::Store + 'static> {
 
 impl<S> abcf::Module for SimpleNode<S>
 where
-    S: abcf::bs3::Store + 'static
+    S: abcf::bs3::Store + 'static,
 {
     fn metadata(&self) -> abcf::ModuleMetadata<'_> {
         abcf::ModuleMetadata {
@@ -63,112 +63,236 @@ pub struct SimpleNodeSl<S: abcf::bs3::Store + 'static> {
     pub mock2: abcf::Stateless<MockModule<S>>,
 }
 
+impl<S> abcf::Storage for SimpleNodeSl<S>
+where
+    S: abcf::bs3::Store,
+{
+    fn rollback(&mut self, height: i64) -> abcf::Result<()> {
+        self.mock.rollback(height)?;
+        self.mock2.rollback(height)?;
+        Ok(())
+    }
+
+    fn height(&self) -> abcf::Result<i64> {
+        let mock = self.mock.height()?;
+        Ok(mock)
+    }
+
+    fn commit(&mut self) -> abcf::Result<()> {
+        self.mock.commit()?;
+        self.mock2.commit()?;
+        Ok(())
+    }
+}
+
+pub struct SimpleNodeSlTx<'a, S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::StatelessBatch<'a, MockModule<S>>,
+    pub mock2: abcf::StatelessBatch<'a, MockModule<S>>,
+}
+
+pub struct SimpleNodeSlTxCache<S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::StatelessCache<MockModule<S>>,
+    pub mock2: abcf::StatelessCache<MockModule<S>>,
+}
+
+impl<S> StorageTransaction for SimpleNodeSl<S>
+where
+    S: abcf::bs3::Store,
+{
+    type Transaction<'a> = SimpleNodeSlTx<'a, S>;
+
+    type Cache = SimpleNodeSlTxCache<S>;
+
+    fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
+        Self::Cache {
+            mock: abcf::Stateless::<MockModule<S>>::cache(tx.mock),
+            mock2: abcf::Stateless::<MockModule<S>>::cache(tx.mock2),
+        }
+    }
+
+    fn transaction(&self) -> Self::Transaction<'_> {
+        Self::Transaction::<'_> {
+            mock: self.mock.transaction(),
+            mock2: self.mock2.transaction(),
+        }
+    }
+
+    fn execute(&mut self, transaction: Self::Cache) {
+        self.mock.execute(transaction.mock);
+        self.mock.execute(transaction.mock2);
+    }
+}
+
 pub struct SimpleNodeSf<S: abcf::bs3::Store + 'static> {
     pub mock: abcf::Stateful<MockModule<S>>,
     pub mock2: abcf::Stateful<MockModule<S>>,
 }
 
-// #[async_trait::async_trait]
-// impl<S> abcf::entry::Application<SimpleNodeSf<S>, SimpleNodeSl<S>> for SimpleNode<S>
-// where
-//     S: abcf::bs3::Store + 'static
-// {
-//     /// Define how to check transaction.
-//     ///
-//     /// In this function, do some lightweight check for transaction, for example: check signature,
-//     /// check balance and so on.
-//     /// This method will be called at external user or another node.
-//     async fn check_tx(
-//         &mut self,
-//         context: &mut abcf::entry::TContext<StatelessTx<'_>, StatefulTx<'_>>,
-//         _req: abcf::module::types::RequestCheckTx,
-//     ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
-//         let mut ctx = abcf::manager::TContext {
-//             events: abcf::entry::EventContext {
-//                 events: context.events.events,
-//             },
-//             stateful: context.stateful,
-//             stateless: context.stateless,
-//         };
-//
+impl<S> abcf::Storage for SimpleNodeSf<S>
+where
+    S: abcf::bs3::Store,
+{
+    fn rollback(&mut self, height: i64) -> abcf::Result<()> {
+        self.mock.rollback(height)?;
+        self.mock2.rollback(height)?;
+        Ok(())
+    }
+
+    fn height(&self) -> abcf::Result<i64> {
+        let mock = self.mock.height()?;
+        Ok(mock)
+    }
+
+    fn commit(&mut self) -> abcf::Result<()> {
+        self.mock.commit()?;
+        self.mock2.commit()?;
+        Ok(())
+    }
+}
+
+pub struct SimpleNodeSfTx<'a, S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::StatefulBatch<'a, MockModule<S>>,
+    pub mock2: abcf::StatefulBatch<'a, MockModule<S>>,
+}
+
+pub struct SimpleNodeSfTxCache<S: abcf::bs3::Store + 'static> {
+    pub mock: abcf::StatefulCache<MockModule<S>>,
+    pub mock2: abcf::StatefulCache<MockModule<S>>,
+}
+
+impl<S> StorageTransaction for SimpleNodeSf<S>
+where
+    S: abcf::bs3::Store,
+{
+    type Transaction<'a> = SimpleNodeSfTx<'a, S>;
+
+    type Cache = SimpleNodeSfTxCache<S>;
+
+    fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
+        Self::Cache {
+            mock: abcf::Stateful::<MockModule<S>>::cache(tx.mock),
+            mock2: abcf::Stateful::<MockModule<S>>::cache(tx.mock2),
+        }
+    }
+
+    fn transaction(&self) -> Self::Transaction<'_> {
+        Self::Transaction::<'_> {
+            mock: self.mock.transaction(),
+            mock2: self.mock2.transaction(),
+        }
+    }
+
+    fn execute(&mut self, transaction: Self::Cache) {
+        self.mock.execute(transaction.mock);
+        self.mock.execute(transaction.mock2);
+    }
+}
+
+#[async_trait::async_trait]
+impl<S> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
+where
+    S: abcf::bs3::Store + 'static,
+{
+     /// Define how to check transaction.
+    ///
+    /// In this function, do some lightweight check for transaction, for example: check signature,
+    /// check balance and so on.
+     /// This method will be called at external user or another node.
+        async fn check_tx(
+        &mut self,
+        context: &mut abcf::entry::TContext<SimpleNodeSlTx<'_, S>, SimpleNodeSfTx<'_, S>>,
+        _req: abcf::abci::RequestCheckTx,
+    ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
+        let mut ctx = abcf::manager::TContext {
+            events: abcf::entry::EventContext {
+                events: context.events.events,
+            },
+            stateful: context.stateful,
+            stateless: context.stateless,
+        };
+
+        // let req_tx =
+
 //         let result = self
-//             .mock
-//             .check_tx(&mut ctx, &_req)
-//             .await
-//             .map_err(|e| ModuleError {
-//                 namespace: String::from("mock"),
-//                 error: e,
+            // .mock
+            // .check_tx(&mut ctx, &_req)
+            // .await
+            // .map_err(|e| abcf::ModuleError {
+            //     namespace: String::from("mock"),
+            //     error: e,
 //             })?;
-//
-//         Ok(result)
-//     }
-//
-//     /// Begin block.
-//     async fn begin_block(
-//         &mut self,
-//         context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
-//         _req: abcf::module::types::RequestBeginBlock,
-//     ) {
-//         let mut ctx = abcf::manager::AContext {
-//             events: abcf::entry::EventContext {
-//                 events: context.events.events,
-//             },
-//             stateful: context.stateful,
-//             stateless: context.stateless,
-//         };
-//         self.mock.begin_block(&mut ctx, &_req).await;
-//     }
-//
-//     /// Execute transaction on state.
-//     async fn deliver_tx(
-//         &mut self,
-//         context: &mut abcf::entry::TContext<
-//             <EmptyStorage as StorageTransaction>::Transaction<'_>,
-//             <EmptyStorage as StorageTransaction>::Transaction<'_>,
-//         >,
-//         _req: abcf::module::types::RequestDeliverTx,
-//     ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
-//         let mut ctx = abcf::manager::TContext {
-//             events: abcf::entry::EventContext {
-//                 events: context.events.events,
-//             },
-//             stateful: context.stateful,
-//             stateless: context.stateless,
-//         };
-//
-//         let result = self
-//             .mock
-//             .deliver_tx(&mut ctx, &_req)
-//             .await
-//             .map_err(|e| ModuleError {
-//                 namespace: String::from("mock"),
-//                 error: e,
-//             })?;
-//
-//         Ok(result)
-//     }
-//
-//     /// End Block.
-//     async fn end_block(
-//         &mut self,
-//         context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
-//         _req: abcf::module::types::RequestEndBlock,
-//     ) -> abcf::module::types::ResponseEndBlock {
-//         let mut ctx = abcf::manager::AContext {
-//             events: abcf::entry::EventContext {
-//                 events: context.events.events,
-//             },
-//             stateful: context.stateful,
-//             stateless: context.stateless,
-//         };
-//         self.mock.end_block(&mut ctx, &_req).await
-//     }
-// }
+
+        let resp = Default::default();
+
+        Ok(resp)
+        }
+
+    // /// Begin block.
+    // async fn begin_block(
+    //     &mut self,
+    //     context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
+    //     _req: abcf::module::types::RequestBeginBlock,
+    // ) {
+    //     let mut ctx = abcf::manager::AContext {
+    //         events: abcf::entry::EventContext {
+    //             events: context.events.events,
+    //         },
+    //         stateful: context.stateful,
+    //         stateless: context.stateless,
+    //     };
+    //     self.mock.begin_block(&mut ctx, &_req).await;
+    // }
+    //
+    // /// Execute transaction on state.
+    // async fn deliver_tx(
+    //     &mut self,
+    //     context: &mut abcf::entry::TContext<
+    //         <EmptyStorage as StorageTransaction>::Transaction<'_>,
+    //         <EmptyStorage as StorageTransaction>::Transaction<'_>,
+    //     >,
+    //     _req: abcf::module::types::RequestDeliverTx,
+    // ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
+    //     let mut ctx = abcf::manager::TContext {
+    //         events: abcf::entry::EventContext {
+    //             events: context.events.events,
+    //         },
+    //         stateful: context.stateful,
+    //         stateless: context.stateless,
+    //     };
+    //
+    //     let result = self
+    //         .mock
+    //         .deliver_tx(&mut ctx, &_req)
+    //         .await
+    //         .map_err(|e| ModuleError {
+    //             namespace: String::from("mock"),
+    //             error: e,
+    //         })?;
+    //
+    //     Ok(result)
+    // }
+    //
+    // /// End Block.
+    // async fn end_block(
+    //     &mut self,
+    //     context: &mut abcf::entry::AContext<EmptyStorage, EmptyStorage>,
+    //     _req: abcf::module::types::RequestEndBlock,
+    // ) -> abcf::module::types::ResponseEndBlock {
+    //     let mut ctx = abcf::manager::AContext {
+    //         events: abcf::entry::EventContext {
+    //             events: context.events.events,
+    //         },
+    //         stateful: context.stateful,
+    //         stateless: context.stateless,
+    //     };
+    //     self.mock.end_block(&mut ctx, &_req).await
+    // }
+}
 
 #[async_trait::async_trait]
 impl<S> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
 where
-    S: abcf::bs3::Store + 'static
+    S: abcf::bs3::Store + 'static,
 {
     async fn call(
         &mut self,
@@ -195,14 +319,13 @@ where
                     stateless: &mut ctx.stateless.mock,
                 };
 
-                self
-                .mock
-                .call(&mut context, method, params)
-                .await
-                .map_err(|e| abcf::ModuleError {
-                    namespace: String::from("mock"),
-                    error: e,
-                })
+                self.mock
+                    .call(&mut context, method, params)
+                    .await
+                    .map_err(|e| abcf::ModuleError {
+                        namespace: String::from("mock"),
+                        error: e,
+                    })
             }
             _ => Err(abcf::ModuleError {
                 namespace: String::from("abcf.manager"),
@@ -225,5 +348,5 @@ fn main() {
     // let entry = abcf::entry::Node::new(EmptyStorage::new(), EmptyStorage::new(), simple_node);
     // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     // node.start().unwrap();
-//     std::thread::park();
+    //     std::thread::park();
 }
