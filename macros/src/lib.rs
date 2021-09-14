@@ -543,7 +543,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
 
                 fn height(&self) -> Result<i64> {
-                    Ok(0)
+                    #(
+                        return Ok(self.#stateless_arg.height);
+                    )*
                 }
 
                 fn commit(&mut self) -> Result<()> {

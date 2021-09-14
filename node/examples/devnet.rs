@@ -180,6 +180,7 @@ where
     }
 
     fn commit(&mut self) -> abcf::Result<()> {
+        log::info!("commit");
         self.mock.commit()?;
         self.mock2.commit()?;
         Ok(())
