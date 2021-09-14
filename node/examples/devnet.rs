@@ -8,6 +8,7 @@
 use abcf::{module::StorageTransaction, Application, Event};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
+use sha3::Sha3_512;
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -69,6 +70,15 @@ where
 pub struct SimpleNodeSl<S: abcf::bs3::Store + 'static> {
     pub mock: abcf::Stateless<MockModule<S>>,
     pub mock2: abcf::Stateless<MockModule<S>>,
+}
+
+impl<S> abcf::entry::Tree for SimpleNodeSl<S>
+where
+    S: abcf::bs3::Store,
+{
+    fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
+        Ok(Vec::new())
+    }
 }
 
 impl<S> abcf::Storage for SimpleNodeSl<S>
@@ -136,6 +146,24 @@ pub struct SimpleNodeSf<S: abcf::bs3::Store + 'static> {
     pub mock2: abcf::Stateful<MockModule<S>>,
 }
 
+impl<S> abcf::entry::Tree for SimpleNodeSf<S>
+where
+    S: abcf::bs3::Store,
+{
+    fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
+        Ok(Vec::new())
+    }
+}
+
+impl<S> abcf::module::Merkle<Sha3_512> for SimpleNodeSf<S>
+where
+    S: abcf::bs3::Store,
+{
+    fn root(&self) -> abcf::Result<digest::Output<Sha3_512>> {
+        Ok(Default::default())
+    }
+}
+
 impl<S> abcf::Storage for SimpleNodeSf<S>
 where
     S: abcf::bs3::Store,
@@ -167,16 +195,15 @@ impl abcf::Transaction for SimpleNodeTransaction {}
 
 impl Default for SimpleNodeTransaction {
     fn default() -> Self {
-        Self {
-            v: 0
-        }
+        Self { v: 0 }
     }
 }
 
 impl abcf::module::FromBytes for SimpleNodeTransaction {
     fn from_bytes(bytes: &[u8]) -> abcf::Result<Self>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         Ok(serde_json::from_slice(bytes)?)
     }
 }
@@ -230,12 +257,12 @@ impl<S> abcf::entry::Application<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNod
 where
     S: abcf::bs3::Store + 'static,
 {
-     /// Define how to check transaction.
+    /// Define how to check transaction.
     ///
     /// In this function, do some lightweight check for transaction, for example: check signature,
     /// check balance and so on.
-     /// This method will be called at external user or another node.
-        async fn check_tx(
+    /// This method will be called at external user or another node.
+    async fn check_tx(
         &mut self,
         context: &mut abcf::entry::TContext<SimpleNodeSlTx<'_, S>, SimpleNodeSfTx<'_, S>>,
         _req: abcf::abci::RequestCheckTx,
@@ -250,14 +277,15 @@ where
             stateless: &mut context.stateless.mock,
         };
 
-        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
-            namespace: String::from("mock"),
-            error: e,
-        })?;
+        let req_tx =
+            SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
 
         let tx = abcf::module::types::RequestCheckTx {
             ty: _req.r#type,
-            tx: req_tx.into()
+            tx: req_tx.into(),
         };
 
         let result = self
@@ -305,14 +333,13 @@ where
             stateless: &mut context.stateless.mock,
         };
 
-        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
-            namespace: String::from("mock"),
-            error: e,
-        })?;
+        let req_tx =
+            SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                namespace: String::from("mock"),
+                error: e,
+            })?;
 
-        let tx = abcf::module::types::RequestDeliverTx {
-            tx: req_tx.into()
-        };
+        let tx = abcf::module::types::RequestDeliverTx { tx: req_tx.into() };
 
         let result = self
             .mock
@@ -400,8 +427,34 @@ fn main() {
 
     let simple_node = SimpleNode::<MemoryBackend> { mock, mock2 };
 
-    // let entry = abcf::entry::Node::new(EmptyStorage::new(), EmptyStorage::new(), simple_node);
-    // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
-    // node.start().unwrap();
-    //     std::thread::park();
+    let stateless = SimpleNodeSl {
+        mock: abcf::Stateless::<MockModule<MemoryBackend>> {
+            sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+            sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+        mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
+            sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+            sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+    };
+
+    let stateful = SimpleNodeSf {
+        mock: abcf::Stateful::<MockModule<MemoryBackend>> {
+            sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+        mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
+            sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+    };
+
+    let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
+    let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
+    node.start().unwrap();
+    std::thread::park();
 }
