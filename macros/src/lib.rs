@@ -13,8 +13,9 @@ use std::path::Path;
 use std::{env, mem::replace, ops::Deref};
 use syn::PathArguments;
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Fields, FieldsNamed,
-    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
+    FieldsNamed, FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
+    Type,
 };
 
 ///
@@ -189,6 +190,20 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         parse_quote!(abcf::RPCs)
     };
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_rpc: ItemImpl = if is_empty_impl {
         parse_quote! {
             #[async_trait::async_trait]
@@ -236,13 +251,13 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 
@@ -319,6 +334,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_tx = Vec::new();
     let mut stateful_value = Vec::new();
 
+    let mut init_items = Vec::new();
+    let mut fn_items = Vec::new();
+
     if let Fields::Named(fields) = &mut parsed.fields {
         let origin_fields = replace(&mut fields.named, Punctuated::new());
 
@@ -359,6 +377,13 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             }
             if is_memory {
                 fields.named.push(f.clone());
+                let key = f.ident.clone().expect("module muse a named struct");
+                let ty = f.ty.clone();
+
+                let fv: FieldValue = parse_quote!(#key);
+                let fa: FnArg = parse_quote!(#key: #ty);
+                init_items.push(fv);
+                fn_items.push(fa);
             }
         }
     }
@@ -427,6 +452,19 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
+    let mut new_impl: ItemImpl = parse_quote! {
+        impl #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
+            pub fn new(#(#fn_items,)*) -> Self {
+                Self {
+                    #(#init_items,)*
+                    __marker_s: core::marker::PhantomData,
+                }
+            }
+        }
+    };
+
+    new_impl.generics = parsed.generics.clone();
+
     let mut store_trait: ItemImpl = parse_quote! {
         impl abcf::manager::ModuleStorage for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
             type Stateless = #storage_module_ident::#stateless_struct_ident<S>;
@@ -456,6 +494,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let result = quote! {
         #parsed
+
+        #new_impl
 
         #store_trait
 
@@ -503,7 +543,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
 
                 fn height(&self) -> Result<i64> {
-                    Ok(0)
+                    #(
+                        return Ok(self.#stateless_arg.height);
+                    )*
                 }
 
                 fn commit(&mut self) -> Result<()> {
@@ -649,6 +691,19 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         parse_quote!(abcf::Application)
     };
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_app: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
         impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
@@ -658,13 +713,13 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 
@@ -685,6 +740,19 @@ pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let inner = parsed.items;
 
+    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
+    parsed.generics.params.push(param_s);
+    let mut generics_names = Vec::new();
+    let mut lifetime_names = Vec::new();
+
+    for x in &parsed.generics.params {
+        if let GenericParam::Type(t) = x {
+            generics_names.push(t.ident.clone());
+        } else if let GenericParam::Lifetime(l) = x {
+            lifetime_names.push(l.lifetime.clone());
+        }
+    }
+
     let mut pre_app: ItemImpl = parse_quote! {
         impl #struct_name {
             #(
@@ -693,13 +761,13 @@ pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
-
-    parsed.generics.params.push(param_s);
     if let Type::Path(p) = parsed.self_ty.as_mut() {
         let segments = &mut p.path.segments;
-        if let PathArguments::AngleBracketed(a) = &mut segments.last_mut().unwrap().arguments {
+        let arguments = &mut segments.last_mut().unwrap().arguments;
+        if let PathArguments::AngleBracketed(a) = arguments {
             a.args.push(parse_quote!(S));
+        } else {
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
         }
     }
 

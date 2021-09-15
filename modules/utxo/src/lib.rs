@@ -10,7 +10,7 @@ use abcf::{
     },
     Application, Event, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };
-use bs3::{model::{Map, Value}};
+use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 
 /// Module's Event
@@ -34,9 +34,7 @@ pub struct UTXOModule<C: Config> {
 }
 
 #[abcf::rpcs]
-impl<C: Config + Sync + Send> UTXOModule<C> {
-
-}
+impl<C: Config + Sync + Send> UTXOModule<C> {}
 
 /// Module's block logic.
 #[abcf::application]
@@ -58,8 +56,8 @@ impl<C: Config + Sync + Send> Application for UTXOModule<C> {
         _context: &mut AContext<Stateless<Self>, Stateful<Self>>,
         _req: &RequestBeginBlock,
     ) {
-        use bs3::ValueStore;
-        let a = _context.stateless.sl_value.get();
+        // use bs3::ValueStore;
+        // let a = _context.stateless.sl_value.get();
     }
 
     async fn deliver_tx(
