@@ -92,7 +92,7 @@ fn main() {
     };
 
     let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
-    // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
-    // node.start().unwrap();
-//     std::thread::park();
+    let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
+    node.start().unwrap();
+    std::thread::park();
 }

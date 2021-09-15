@@ -87,10 +87,13 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut sl_cache_init_items = Vec::new();
     let mut sf_cache_init_items = Vec::new();
 
+    let mut rpc_match_arms = Vec::new();
+
     // list items.
     for item in &mut parsed.fields {
         let key = item.ident.as_ref().expect("module must a named struct");
         let ty = &item.ty;
+        let name_lit_str = LitStr::new(&key.to_string(), Span::call_site());
 
         key_item.push(key.clone());
 
@@ -106,7 +109,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let sf_struct_item: ParseField = parse_quote!(pub #key: abcf::Stateful<#ty>);
         stateful_struct_items.push(sf_struct_item);
 
-        let name_lit_str = LitStr::new(&key.to_string(), Span::call_site());
         let tree_arm: Arm = parse_quote!(#name_lit_str => Ok(self.#key.get(key, height)?));
         tree_match_arms.push(tree_arm);
 
@@ -127,6 +129,24 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let sfcii: FieldValue = parse_quote!(#key: abcf::Stateful::<#ty>::cache(tx.#key));
         sf_cache_init_items.push(sfcii);
+
+        let rma: Arm = parse_quote! {
+            #name_lit_str => {
+                let mut context = abcf::manager::RContext {
+                    stateful: &ctx.stateful.#key,
+                    stateless: &mut ctx.stateless.#key,
+                };
+
+                self.#key
+                    .call(&mut context, method, params)
+                    .await
+                    .map_err(|e| abcf::ModuleError {
+                        namespace: String::from(#name_lit_str),
+                        error: e,
+                    })
+            }
+        };
+        rpc_match_arms.push(rma);
     }
 
 
@@ -634,6 +654,48 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     app_impl.generics = parsed.generics.clone();
 
+    let mut rpc_impl: ItemImpl = parse_quote! {
+        #[async_trait::async_trait]
+        impl abcf::entry::RPCs<
+            #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
+            #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
+        >
+        for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
+        {
+            async fn call(
+                &mut self,
+                ctx: &mut abcf::entry::RContext<
+                    #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
+                    #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
+                >,
+                method: &str,
+                params: serde_json::Value,
+            ) -> abcf::ModuleResult<Option<serde_json::Value>> {
+                use abcf::RPCs;
+                let mut paths = method.split("/");
+                let module_name = paths.next().ok_or(abcf::ModuleError {
+                    namespace: String::from("abcf.manager"),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+                let method = paths.next().ok_or(abcf::ModuleError {
+                    namespace: String::from("abcf.manager"),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+                match module_name {
+                    #(#rpc_match_arms)*
+                    _ => Err(abcf::ModuleError {
+                        namespace: String::from("abcf.manager"),
+                        error: abcf::Error::NoModule,
+                    }),
+                }
+            }
+        }
+    };
+
+    rpc_impl.generics = parsed.generics.clone();
+
     let result = quote! {
         #parsed
 
@@ -679,6 +741,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
 
             #app_impl
+
+            #rpc_impl
         }
     };
 
