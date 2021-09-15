@@ -1,5 +1,7 @@
 #![feature(generic_associated_types)]
 
+use std::marker::PhantomData;
+
 /// Running in shell
 ///
 /// ``` bash
@@ -55,41 +57,41 @@ pub struct SimpleManager {
 
 fn main() {
     env_logger::init();
-//     use bs3::backend::MemoryBackend;
-    //
-    // let mock = MockModule::new(1);
-    //
-    // let mock2 = MockModule::new(2);
-    //
-    // let simple_node = SimpleNode::<MemoryBackend> { mock, mock2 };
-    //
-    // let stateless = SimpleNodeSl {
-    //     mock: abcf::Stateless::<MockModule<MemoryBackend>> {
-    //         sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //         sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //     },
-    //     mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
-    //         sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //         sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //     },
-    // };
-    //
-    // let stateful = SimpleNodeSf {
-    //     mock: abcf::Stateful::<MockModule<MemoryBackend>> {
-    //         sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //     },
-    //     mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
-    //         sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
-    //             .unwrap(),
-    //     },
-    // };
-    //
-    // let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
+    use bs3::backend::MemoryBackend;
+
+    let mock = MockModule::new(1);
+
+    let mock2 = MockModule::new(2);
+
+    let simple_node = SimpleManager::<MemoryBackend> { mock, mock2, __marker_s: PhantomData };
+
+    let stateless = abcf::Stateless::<SimpleManager<MemoryBackend>> {
+        mock: abcf::Stateless::<MockModule<MemoryBackend>> {
+            sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+            sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+        mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
+            sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+            sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+    };
+
+    let stateful = abcf::Stateful::<SimpleManager<MemoryBackend>> {
+        mock: abcf::Stateful::<MockModule<MemoryBackend>> {
+            sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+        mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
+            sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
+                .unwrap(),
+        },
+    };
+
+    let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
     // let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     // node.start().unwrap();
 //     std::thread::park();
