@@ -47,7 +47,6 @@ impl Default for MockTransaction {
 #[abcf::methods]
 impl MockModule {}
 
-
 pub struct SimpleNode<S: abcf::bs3::Store + 'static> {
     pub mock: MockModule<S>,
     pub mock2: MockModule<S>,

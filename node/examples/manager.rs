@@ -45,11 +45,39 @@ impl Default for MockTransaction {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct SimpleNodeTransaction {
+    pub v: u64,
+}
+
+impl abcf::Transaction for SimpleNodeTransaction {}
+
+impl Default for SimpleNodeTransaction {
+    fn default() -> Self {
+        Self { v: 0 }
+    }
+}
+
+impl abcf::module::FromBytes for SimpleNodeTransaction {
+    fn from_bytes(bytes: &[u8]) -> abcf::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(serde_json::from_slice(bytes)?)
+    }
+}
+
 /// Module's methods.
 #[abcf::methods]
 impl MockModule {}
 
-#[abcf::manager(name = "simple_node", digest = "Sha3_512", version = 0, impl_version = "0.1.0")]
+#[abcf::manager(
+    name = "simple_node",
+    digest = "Sha3_512",
+    version = 0,
+    impl_version = "0.1.0",
+    transaction = "SimpleNodeTransaction"
+)]
 pub struct SimpleManager {
     pub mock: MockModule,
     pub mock2: MockModule,
@@ -63,7 +91,11 @@ fn main() {
 
     let mock2 = MockModule::new(2);
 
-    let simple_node = SimpleManager::<MemoryBackend> { mock, mock2, __marker_s: PhantomData };
+    let simple_node = SimpleManager::<MemoryBackend> {
+        mock,
+        mock2,
+        __marker_s: PhantomData,
+    };
 
     let stateless = abcf::Stateless::<SimpleManager<MemoryBackend>> {
         mock: abcf::Stateless::<MockModule<MemoryBackend>> {

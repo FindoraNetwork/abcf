@@ -1,18 +1,16 @@
 use quote::ToTokens;
-use syn::{Field, parse::Parse};
+use syn::{parse::Parse, Field};
 
 #[derive(Clone, Debug)]
 pub struct ParseField {
-    pub inner: Field
+    pub inner: Field,
 }
 
 impl Parse for ParseField {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let inner = Field::parse_named(input)?;
 
-        Ok(Self {
-            inner
-        })
+        Ok(Self { inner })
     }
 }
 
@@ -21,4 +19,3 @@ impl ToTokens for ParseField {
         self.inner.to_tokens(tokens)
     }
 }
-

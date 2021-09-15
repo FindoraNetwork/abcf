@@ -108,9 +108,13 @@ where
 
         resp.app_hash = self.stateful.root().expect("get app hash failed").to_vec();
 
-        self.stateful.commit().expect("init chain commit error on stateful");
+        self.stateful
+            .commit()
+            .expect("init chain commit error on stateful");
 
-        self.stateless.commit().expect("init chain commit error on stateless");
+        self.stateless
+            .commit()
+            .expect("init chain commit error on stateless");
 
         resp
     }
