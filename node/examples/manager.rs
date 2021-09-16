@@ -37,6 +37,10 @@ impl Application for MockModule {
     type Transaction = MockTransaction;
 }
 
+/// Module's methods.
+#[abcf::methods]
+impl MockModule {}
+
 pub struct MockTransaction {}
 
 impl Default for MockTransaction {
@@ -67,9 +71,11 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
     }
 }
 
-/// Module's methods.
-#[abcf::methods]
-impl MockModule {}
+impl Into<MockTransaction> for SimpleNodeTransaction {
+    fn into(self) -> MockTransaction {
+        MockTransaction {}
+    }
+}
 
 #[abcf::manager(
     name = "simple_node",
