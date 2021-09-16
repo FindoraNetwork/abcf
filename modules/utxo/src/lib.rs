@@ -5,8 +5,11 @@ use std::marker::PhantomData;
 use abcf::{
     abci::{RequestBeginBlock, RequestEndBlock},
     manager::{AContext, TContext},
-    module::types::{
-        RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
+    module::{
+        types::{
+            RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
+        },
+        StorageTransaction,
     },
     Application, Event, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };
@@ -17,20 +20,22 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
-pub trait Config {}
+pub trait Config {
+    type Ty;
+}
 
 #[abcf::module(name = "utxo", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct UTXOModule<C: Config> {
     pub inner: u32,
-    marker: PhantomData<C>,
+    marker: PhantomData<C::Ty>,
     #[stateful]
-    pub sf_value: Value<u32>,
+    pub sf_value: Value<C::Ty>,
     #[stateful]
-    pub sf_value1: Value<u32>,
+    pub sf_value1: Value<C::Ty>,
     #[stateless]
-    pub sl_value: Value<u32>,
+    pub sl_value: Value<C::Ty>,
     #[stateless]
-    pub sl_map: Map<i32, u32>,
+    pub sl_map: Map<i32, C::Ty>,
 }
 
 #[abcf::rpcs]
