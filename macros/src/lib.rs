@@ -473,8 +473,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut store_trait: ItemImpl = parse_quote! {
         impl abcf::manager::ModuleStorage for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
-            type Stateless = #storage_module_ident::#stateless_struct_ident<S>;
-            type Stateful = #storage_module_ident::#stateful_struct_ident<S>;
+            type Stateless = #storage_module_ident::#stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
+            type Stateful = #storage_module_ident::#stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
         }
     };
 
@@ -526,6 +526,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #(
                 #stateless_tx,
             )*
+             __marker_s: core::marker::PhantomData<S>,
         }
     };
 
@@ -537,6 +538,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #(
                 #stateless_value,
             )*
+            __marker_s: core::marker::PhantomData<S>,
         }
     };
     sl_cache.generics = parsed.generics.clone();
@@ -575,6 +577,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     #(
                         #stateless_arg: tx.#stateless_arg.value,
                     )*
+                    __marker_s: PhantomData,
                 }
             }
 
@@ -583,6 +586,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     #(
                         #stateless_arg: self.#stateless_arg.transaction(),
                     )*
+                    __marker_s: PhantomData,
                 }
             }
 
@@ -618,6 +622,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #(
                 #stateful_value,
             )*
+            __marker_s: core::marker::PhantomData<S>,
         }
     };
     sf_cache.generics = parsed.generics.clone();
@@ -632,7 +637,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn height(&self) -> Result<i64> {
-                Ok(self.#__module1_sf.height()?)
+                Ok(self.#__module1_sf.height)
             }
 
             fn commit(&mut self) -> Result<()> {
@@ -656,6 +661,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     #(
                         #stateful_arg: tx.#stateful_arg.value,
                     )*
+                    __marker_s: PhantomData,
                 }
             }
 
@@ -674,7 +680,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_storage_tx_impl.generics = parsed.generics.clone();
 
     let mut stateful_merkle: ItemImpl = parse_quote! {
-        impl<S> abcf::module::Merkle for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
+        impl<S> abcf::module::Merkle<D> for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
         where
             S: abcf::bs3::Store,
         {

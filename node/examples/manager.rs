@@ -12,6 +12,7 @@ use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
 
+
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
@@ -27,6 +28,7 @@ pub struct MockModule {
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
+
 
 #[abcf::rpcs]
 impl MockModule {}

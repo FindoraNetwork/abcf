@@ -15,19 +15,20 @@ use abcf::{
 };
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
 
-pub trait Config {
-    type Ty;
+pub trait Config: Send + Sync {
+    type Ty: Debug + Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static;
 }
 
 #[abcf::module(name = "utxo", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct UTXOModule<C: Config> {
     pub inner: u32,
-    marker: PhantomData<C::Ty>,
+    marker: PhantomData<C>,
     #[stateful]
     pub sf_value: Value<C::Ty>,
     #[stateful]

@@ -524,6 +524,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     _req: abcf::abci::RequestCheckTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
                     use abcf::module::FromBytes;
+                    use std::collections::BTreeMap;
+                    use abcf::Module;
+                    use abcf::Error;
 
                     let req_tx =
                         SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
@@ -531,29 +534,60 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             error: e,
                         })?;
 
-                    let mut ctx = abcf::manager::TContext {
-                        events: abcf::entry::EventContext {
-                            events: context.events.events,
-                        },
-                        stateful: &mut context.stateful.mock,
-                        stateless: &mut context.stateless.mock,
-                    };
+                    // let mut ctx = abcf::manager::TContext {
+                    //     events: abcf::entry::EventContext {
+                    //         events: context.events.events,
+                    //     },
+                    //     stateful: &mut context.stateful.mock,
+                    //     stateless: &mut context.stateless.mock,
+                    // };
 
                     let tx = abcf::module::types::RequestCheckTx {
                         ty: _req.r#type,
                         tx: req_tx.into(),
                     };
 
-                    let result = self
-                        .mock
-                        .check_tx(&mut ctx, &tx)
-                        .await
-                        .map_err(|e| abcf::ModuleError {
-                            namespace: String::from("mock"),
-                            error: e,
-                        })?;
+                    // let result = self
+                    //     .mock
+                    //     .check_tx(&mut ctx, &tx)
+                    //     .await
+                    //     .map_err(|e| abcf::ModuleError {
+                    //         namespace: String::from("mock"),
+                    //         error: e,
+                    //     })?;
 
-                    Ok(result)
+                    let mut resp_check_tx = abcf::module::types::ResponseCheckTx::default();
+                    let mut data_map = BTreeMap::new();
+
+                    #(
+                        let mut ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.#key_item,
+                            stateless: &mut context.stateless.#key_item,
+                        };
+                        let name = self.#key_item.metadata().name.to_string();
+                        let result = self.#key_item
+                            .check_tx(&mut ctx, &tx)
+                            .await
+                            .map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?;
+
+                        data_map.insert(name.clone(), result.data);
+                        resp_check_tx.gas_used += result.gas_used;
+                        resp_check_tx.gas_wanted += result.gas_wanted;
+
+                    )*
+                    let data = serde_json::to_vec(&data_map).map_err(|e|abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: Error::JsonError(e),
+                            })?;
+                    resp_check_tx.data = data;
+
+                    Ok(resp_check_tx)
                 }
 
     //             /// Begin block.
@@ -745,8 +779,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
             #sl_storage_tx_impl
 
-
-
             #stateful_struct
 
             #stateful_struct_tree
@@ -760,7 +792,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             #sf_storage_impl
 
             #sf_storage_tx_impl
-
 
             #app_impl
 
