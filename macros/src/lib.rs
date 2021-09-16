@@ -4,6 +4,8 @@
 
 extern crate proc_macro;
 
+mod utils;
+
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::*;
@@ -492,6 +494,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     metadata_trait.generics = parsed.generics.clone();
 
+    let __module1_sf = stateful_arg.first().unwrap();
+    let __module1_sl = stateless_arg.first().unwrap();
+
     let result = quote! {
         #parsed
 
@@ -514,6 +519,15 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 #(
                     #stateless,
                 )*
+            }
+
+            impl<S> abcf::entry::Tree for #stateless_struct_ident<S>
+            where
+                S: abcf::bs3::Store,
+            {
+                fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                    Ok(Vec::new())
+                }
             }
 
             pub struct #stateless_tx_struct_ident<'a, S>
@@ -543,9 +557,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
 
                 fn height(&self) -> Result<i64> {
-                    #(
-                        return Ok(self.#stateless_arg.height);
-                    )*
+                    Ok(self.#__module1_sl.height)
                 }
 
                 fn commit(&mut self) -> Result<()> {
@@ -620,7 +632,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
 
                 fn height(&self) -> Result<i64> {
-                    Ok(0)
+                    Ok(self.#__module1_sf.height)
                 }
 
                 fn commit(&mut self) -> Result<()> {
@@ -670,7 +682,14 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
 
-
+            impl<S> abcf::entry::Tree for #stateful_struct_ident<S>
+            where
+                S: abcf::bs3::Store,
+            {
+                fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                    Ok(Vec::new())
+                }
+            }
         }
     };
 
@@ -779,4 +798,11 @@ pub fn methods(_args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(result)
+}
+
+mod manager;
+
+#[proc_macro_attribute]
+pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
+    manager::manager(args, input)
 }
