@@ -541,6 +541,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use std::collections::BTreeMap;
                     use abcf::Module;
                     use abcf::Error;
+                    use abcf::Application;
 
                     let req_tx =
                         SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
