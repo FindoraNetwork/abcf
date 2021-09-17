@@ -12,7 +12,6 @@ use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
 
-
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct Event1 {}
@@ -28,7 +27,6 @@ pub struct MockModule {
     #[stateless]
     pub sl_map: Map<i32, u32>,
 }
-
 
 #[abcf::rpcs]
 impl MockModule {}
@@ -91,7 +89,6 @@ pub struct SimpleManager {
     pub mock2: MockModule,
 }
 
-
 fn main() {
     env_logger::init();
     use bs3::backend::MemoryBackend;
@@ -112,14 +109,14 @@ fn main() {
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
-            __marker_s:PhantomData,
+            __marker_s: PhantomData,
         },
         mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
             sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
-            __marker_s:PhantomData,
+            __marker_s: PhantomData,
         },
     };
 
@@ -127,12 +124,12 @@ fn main() {
         mock: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
-            __marker_s:PhantomData,
+            __marker_s: PhantomData,
         },
         mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
-            __marker_s:PhantomData,
+            __marker_s: PhantomData,
         },
     };
 
