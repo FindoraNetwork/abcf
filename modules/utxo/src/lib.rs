@@ -21,12 +21,7 @@ use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-// /// Module's Event
-// #[derive(Clone, Debug, Deserialize, Serialize, Event)]
-// pub struct Event1 {}
-//
-
-pub trait Config: Send + Sync + Debug + Clone + 'static {
+pub trait Config: abcf::Config {
     type Address: Debug + Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static;
 
     type Signature: Debug + Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static;
