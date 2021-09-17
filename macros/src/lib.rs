@@ -16,9 +16,10 @@ use std::{env, mem::replace, ops::Deref};
 use syn::PathArguments;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
-    FieldsNamed, FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
+    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
     Type,
 };
+use crate::utils::ParseField;
 
 ///
 /// Convert struct to abci::event
@@ -425,22 +426,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         Span::call_site(),
     );
 
-    let backked_s: FieldsNamed = parse_quote! {
-        {
-            __marker_s: core::marker::PhantomData<S>,
-        }
-    };
-
     let module_name = parsed.ident.clone();
-    if let Fields::Named(fields) = &mut parsed.fields {
-        for x in backked_s.named {
-            fields.named.push(x);
-        }
-    };
-
-    // let generics = parsed.generics.params.clone();
-    // let generics_name = generics
-    // println!("{:?}",generics);
 
     parsed
         .generics
@@ -449,21 +435,39 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut generics_names = Vec::new();
     let mut lifetime_names = Vec::new();
+    let mut markers = Vec::new();
+    let mut markers_with_generics = Vec::new();
 
     for x in &parsed.generics.params {
         if let GenericParam::Type(t) = x {
             generics_names.push(t.ident.clone());
+            let g = t.ident.clone();
+
+            let marker_name_str = format!("__marker_{}",t.ident.clone().to_string().to_lowercase());
+            let marker_key = Ident::new(marker_name_str.as_str(),Span::call_site());
+
+            let fields:FieldValue = parse_quote! (#marker_key: core::marker::PhantomData);
+            let fields_with_g:ParseField = parse_quote! (pub #marker_key: core::marker::PhantomData<#g>);
+
+            markers.push(fields);
+            markers_with_generics.push(fields_with_g);
         } else if let GenericParam::Lifetime(l) = x {
             lifetime_names.push(l.lifetime.clone());
         }
     }
+
+    if let Fields::Named(fields) = &mut parsed.fields {
+        for x in markers_with_generics.clone() {
+            fields.named.push(x.inner);
+        }
+    };
 
     let mut new_impl: ItemImpl = parse_quote! {
         impl #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
             pub fn new(#(#fn_items,)*) -> Self {
                 Self {
                     #(#init_items,)*
-                    __marker_s: core::marker::PhantomData,
+                    #(#markers,)*
                 }
             }
         }
@@ -504,9 +508,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateless_struct: ItemStruct = parse_quote! {
         pub struct #stateless_struct_ident
             {
-                #(
-                    #stateless,
-                )*
+                #(#stateless,)*
+                #(#markers_with_generics,)*
             }
     };
 
@@ -523,10 +526,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut sl_tx: ItemStruct = parse_quote! {
         pub struct #stateless_tx_struct_ident {
-            #(
-                #stateless_tx,
-            )*
-             __marker_s: core::marker::PhantomData<S>,
+            #(#stateless_tx,)*
+            #(#markers_with_generics,)*
         }
     };
 
@@ -535,10 +536,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut sl_cache: ItemStruct = parse_quote! {
         pub struct #stateless_tx_cache_struct_ident {
-            #(
-                #stateless_value,
-            )*
-            __marker_s: core::marker::PhantomData<S>,
+            #(#stateless_value,)*
+            #(#markers_with_generics,)*
         }
     };
     sl_cache.generics = parsed.generics.clone();
@@ -574,19 +573,15 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
                 Self::Cache {
-                    #(
-                        #stateless_arg: tx.#stateless_arg.value,
-                    )*
-                    __marker_s: PhantomData,
+                    #(#stateless_arg: tx.#stateless_arg.value,)*
+                    #(#markers,)*
                 }
             }
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 #stateless_tx_struct_ident {
-                    #(
-                        #stateless_arg: self.#stateless_arg.transaction(),
-                    )*
-                    __marker_s: PhantomData,
+                    #(#stateless_arg: self.#stateless_arg.transaction(),)*
+                    #(#markers,)*
                 }
             }
 
@@ -599,18 +594,16 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateful_struct: ItemStruct = parse_quote! {
         pub struct #stateful_struct_ident {
-            #(
-                #stateful,
-            )*
+            #(#stateful,)*
+            #(#markers_with_generics,)*
         }
     };
     stateful_struct.generics = parsed.generics.clone();
 
     let mut sf_tx: ItemStruct = parse_quote! {
         pub struct #stateful_tx_struct_ident {
-            #(
-                #stateful_tx,
-            )*
+            #(#stateful_tx,)*
+            #(#markers_with_generics,)*
         }
     };
 
@@ -619,10 +612,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut sf_cache: ItemStruct = parse_quote! {
         pub struct #stateful_tx_cache_struct_ident {
-            #(
-                #stateful_value,
-            )*
-            __marker_s: core::marker::PhantomData<S>,
+            #(#stateful_value,)*
+            #(#markers_with_generics,)*
         }
     };
     sf_cache.generics = parsed.generics.clone();
@@ -658,18 +649,15 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn cache(tx: Self::Transaction<'_>) -> Self::Cache {
                 Self::Cache {
-                    #(
-                        #stateful_arg: tx.#stateful_arg.value,
-                    )*
-                    __marker_s: PhantomData,
+                    #(#stateful_arg: tx.#stateful_arg.value,)*
+                    #(#markers,)*
                 }
             }
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 Self::Transaction::<'_> {
-                    #(
-                        #stateful_arg: self.#stateful_arg.transaction(),
-                    )*
+                    #(#stateful_arg: self.#stateful_arg.transaction(),)*
+                    #(#markers,)*
                 }
             }
 
