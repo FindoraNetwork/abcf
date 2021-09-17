@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Arm, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
-    PathArguments, Token, Type,
+    PathArguments, Token, Type, Item
 };
 
 use crate::utils::ParseField;
@@ -111,6 +111,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut sl_cache_init_items = Vec::new();
     let mut sf_cache_init_items = Vec::new();
 
+    let mut tx_init_items = Vec::new();
+
+    // let mut tx_execute_items = Vec::new();
+
     let mut rpc_match_arms = Vec::new();
 
     // list items.
@@ -153,6 +157,12 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let sfcii: FieldValue = parse_quote!(#key: abcf::Stateful::<#ty>::cache(tx.#key));
         sf_cache_init_items.push(sfcii);
+
+        let tii: FieldValue = parse_quote!(#key: self.#key.transaction());
+        tx_init_items.push(tii);
+
+//         let tei: Item = parse_quote!(self.#key.execute(transaction.#key););
+//         tx_execute_items.push(tei);
 
         let rma: Arm = parse_quote! {
             #name_lit_str => {
@@ -338,14 +348,16 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 Self::Transaction::<'_> {
-                    mock: self.mock.transaction(),
-                    mock2: self.mock2.transaction(),
+                    #(
+                        #tx_init_items,
+                    )*
                 }
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-                self.mock.execute(transaction.mock);
-                self.mock.execute(transaction.mock2);
+//                 #(
+                    // #tx_execute_items,
+//                 )*
             }
         }
     };
@@ -494,14 +506,16 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 Self::Transaction::<'_> {
-                    mock: self.mock.transaction(),
-                    mock2: self.mock2.transaction(),
+                    #(
+                        #tx_init_items,
+                    )*
                 }
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-                self.mock.execute(transaction.mock);
-                self.mock.execute(transaction.mock2);
+//                 #(
+                    // #tx_execute_items,
+//                 )*
             }
         }
     };
