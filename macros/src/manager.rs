@@ -544,7 +544,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use abcf::Application;
 
                     let req_tx =
-                        SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                        #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
                             namespace: String::from("abcf.manager"),
                             error: e,
                         })?;

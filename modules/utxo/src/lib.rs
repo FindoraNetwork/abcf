@@ -3,6 +3,7 @@
 mod data;
 mod event;
 mod transaction;
+pub use transaction::{Transaction, TransactionBody};
 
 use std::marker::PhantomData;
 
@@ -13,7 +14,6 @@ use abcf::{
         types::{
             RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
         },
-        StorageTransaction,
     },
     Application, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };
