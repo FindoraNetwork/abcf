@@ -91,6 +91,7 @@ pub struct SimpleManager {
     pub mock2: MockModule,
 }
 
+
 fn main() {
     env_logger::init();
     use bs3::backend::MemoryBackend;
@@ -111,12 +112,14 @@ fn main() {
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
         mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
             sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
     };
 
@@ -124,10 +127,12 @@ fn main() {
         mock: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
         mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
     };
 
