@@ -567,7 +567,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_storage_impl.generics = parsed.generics.clone();
 
     let mut sl_storage_tx_impl: ItemImpl = parse_quote! {
-        impl StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+        impl abcf::module::StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             type Transaction<'a> = #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*>;
 
             type Cache = #stateless_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
@@ -643,7 +643,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_storage_impl.generics = parsed.generics.clone();
 
     let mut sf_storage_tx_impl: ItemImpl = parse_quote! {
-        impl StorageTransaction for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+        impl abcf::module::StorageTransaction for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             type Transaction<'a> = #stateful_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*>;
 
             type Cache = #stateful_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
