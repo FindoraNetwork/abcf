@@ -9,6 +9,7 @@ use abcf::{module::StorageTransaction, Application, Event};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
+use std::marker::PhantomData;
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -434,12 +435,14 @@ fn main() {
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
         mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
             sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
     };
 
@@ -447,10 +450,12 @@ fn main() {
         mock: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
         mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
+            __marker_s:PhantomData,
         },
     };
 
