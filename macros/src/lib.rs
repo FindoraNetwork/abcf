@@ -587,7 +587,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-
+                #(self.#stateless_arg.execute(transaction.#stateless_arg);)*
             }
         }
     };
@@ -663,6 +663,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
+                #(self.#stateful_arg.execute(transaction.#stateful_arg);)*
             }
         }
     };
