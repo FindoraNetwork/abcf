@@ -534,27 +534,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             error: e,
                         })?;
 
-                    // let mut ctx = abcf::manager::TContext {
-                    //     events: abcf::entry::EventContext {
-                    //         events: context.events.events,
-                    //     },
-                    //     stateful: &mut context.stateful.mock,
-                    //     stateless: &mut context.stateless.mock,
-                    // };
-
                     let tx = abcf::module::types::RequestCheckTx {
                         ty: _req.r#type,
                         tx: req_tx.into(),
                     };
-
-                    // let result = self
-                    //     .mock
-                    //     .check_tx(&mut ctx, &tx)
-                    //     .await
-                    //     .map_err(|e| abcf::ModuleError {
-                    //         namespace: String::from("mock"),
-                    //         error: e,
-                    //     })?;
 
                     let mut resp_check_tx = abcf::module::types::ResponseCheckTx::default();
                     let mut data_map = BTreeMap::new();
@@ -590,123 +573,120 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     Ok(resp_check_tx)
                 }
 
-    //             /// Begin block.
-            //     async fn begin_block(
-            //         &mut self,
-            //         context: &mut abcf::entry::AContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
-            //         _req: abcf::module::types::RequestBeginBlock,
-            //     ) {
-            //         let mut ctx = abcf::manager::AContext {
-            //             events: abcf::entry::EventContext {
-            //                 events: context.events.events,
-            //             },
-            //             stateful: &mut context.stateful.mock,
-            //             stateless: &mut context.stateless.mock,
-            //         };
-            //
-            //         self.mock.begin_block(&mut ctx, &_req).await;
-            //     }
-            //
-            //     /// Execute transaction on state.
-            //     async fn deliver_tx(
-            //         &mut self,
-            //         context: &mut abcf::entry::TContext<SimpleNodeSlTx<'_, S>, SimpleNodeSfTx<'_, S>>,
-            //         _req: abcf::abci::RequestDeliverTx,
-            //     ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
-            //         use abcf::module::FromBytes;
-            //
-            //         let mut ctx = abcf::manager::TContext {
-            //             events: abcf::entry::EventContext {
-            //                 events: context.events.events,
-            //             },
-            //             stateful: &mut context.stateful.mock,
-            //             stateless: &mut context.stateless.mock,
-            //         };
-            //
-            //         let req_tx =
-            //             SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
-            //                 namespace: String::from("mock"),
-            //                 error: e,
-            //             })?;
-            //
-            //         let tx = abcf::module::types::RequestDeliverTx { tx: req_tx.into() };
-            //
-            //         let result = self
-            //             .mock
-            //             .deliver_tx(&mut ctx, &tx)
-            //             .await
-            //             .map_err(|e| abcf::ModuleError {
-            //                 namespace: String::from("mock"),
-            //                 error: e,
-            //             })?;
-            //
-            //         Ok(result)
-            //     }
-            //
-            //     /// End Block.
-            //     async fn end_block(
-            //         &mut self,
-            //         context: &mut abcf::entry::AContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
-            //         _req: abcf::module::types::RequestEndBlock,
-            //     ) -> abcf::module::types::ResponseEndBlock {
-            //         let mut ctx = abcf::manager::AContext {
-            //             events: abcf::entry::EventContext {
-            //                 events: context.events.events,
-            //             },
-            //             stateful: &mut context.stateful.mock,
-            //             stateless: &mut context.stateless.mock,
-            //         };
-            //
-            //         self.mock.end_block(&mut ctx, &_req).await
-            //     }
-            // }
-            //
-            // #[async_trait::async_trait]
-            // impl<S> abcf::entry::RPCs<SimpleNodeSl<S>, SimpleNodeSf<S>> for SimpleNode<S>
-            // where
-            //     S: abcf::bs3::Store + 'static,
-            // {
-            //     async fn call(
-            //         &mut self,
-            //         ctx: &mut abcf::entry::RContext<SimpleNodeSl<S>, SimpleNodeSf<S>>,
-            //         method: &str,
-            //         params: serde_json::Value,
-            //     ) -> abcf::ModuleResult<Option<serde_json::Value>> {
-            //         use abcf::RPCs;
-            //         let mut paths = method.split("/");
-            //         let module_name = paths.next().ok_or(abcf::ModuleError {
-            //             namespace: String::from("abcf.manager"),
-            //             error: abcf::Error::QueryPathFormatError,
-            //         })?;
-            //
-            //         let method = paths.next().ok_or(abcf::ModuleError {
-            //             namespace: String::from("abcf.managing"),
-            //             error: abcf::Error::QueryPathFormatError,
-            //         })?;
-            //
-            //         match module_name {
-            //             "mock" => {
-            //                 let mut context = abcf::manager::RContext {
-            //                     stateful: &ctx.stateful.mock,
-            //                     stateless: &mut ctx.stateless.mock,
-            //                 };
-            //
-            //                 self.mock
-            //                     .call(&mut context, method, params)
-            //                     .await
-            //                     .map_err(|e| abcf::ModuleError {
-            //                         namespace: String::from("mock"),
-            //                         error: e,
-            //                     })
-            //             }
-            //             _ => Err(abcf::ModuleError {
-            //                 namespace: String::from("abcf.manager"),
-            //                 error: abcf::Error::NoModule,
-            //             }),
-            //         }
-            //     }
+                /// Begin block.
+                async fn begin_block(
+                    &mut self,
+                    context: &mut abcf::entry::AContext<
+                        #stateless_struct_ident<#(#generics_names,)*>,
+                        #stateful_struct_ident<#(#generics_names,)*>,
+                    >,
+                    _req: abcf::module::types::RequestBeginBlock,
+                ) {
+                    #(
+                        let mut ctx = abcf::manager::AContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.#key_item,
+                            stateless: &mut context.stateless.#key_item,
+                        };
+                        self.#key_item.begin_block(&mut ctx, &_req).await;
+                    )*
+                }
+
+                /// Execute transaction on state.
+                async fn deliver_tx(
+                    &mut self,
+                    context: &mut abcf::entry::TContext<
+                        #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
+                        #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
+                    >,
+                    _req: abcf::abci::RequestDeliverTx,
+                ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
+
+                    use abcf::module::FromBytes;
+                    use std::collections::BTreeMap;
+                    use abcf::Module;
+                    use abcf::Error;
+
+                    let req_tx =
+                        SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                            namespace: String::from("mock"),
+                            error: e,
+                        })?;
+
+                    let tx = abcf::module::types::RequestDeliverTx { tx: req_tx.into() };
+
+                    let mut resp_deliver_tx = abcf::module::types::ResponseDeliverTx::default();
+                    let mut data_map = BTreeMap::new();
+
+                    #(
+                        let mut ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.#key_item,
+                            stateless: &mut context.stateless.#key_item,
+                        };
+                        let name = self.#key_item.metadata().name.to_string();
+                        let result = self.#key_item
+                            .deliver_tx(&mut ctx, &tx)
+                            .await
+                            .map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?;
+
+                        data_map.insert(name.clone(), result.data);
+                        resp_deliver_tx.gas_used += result.gas_used;
+                        resp_deliver_tx.gas_wanted += result.gas_wanted;
+
+                    )*
+                    let data = serde_json::to_vec(&data_map).map_err(|e|abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: Error::JsonError(e),
+                            })?;
+                    resp_deliver_tx.data = data;
+
+                    Ok(resp_deliver_tx)
+
+                }
+
+                /// End Block.
+                async fn end_block(
+                    &mut self,
+                    context: &mut abcf::entry::AContext<
+                        #stateless_struct_ident<#(#generics_names,)*>,
+                        #stateful_struct_ident<#(#generics_names,)*>,
+                    >,
+                    _req: abcf::module::types::RequestEndBlock,
+                ) -> abcf::module::types::ResponseEndBlock {
+                    let mut validator_updates_vec = Vec::new();
+                    let mut resp_end_block = abcf::module::types::ResponseEndBlock::default();
+
+                    #(
+                        let mut ctx = abcf::manager::AContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.#key_item,
+                            stateless: &mut context.stateless.#key_item,
+                        };
+                        let resp = self.#key_item.end_block(&mut ctx, &_req).await;
+
+                        resp.validator_updates.into_iter().for_each(|v| {
+                            if !validator_updates_vec.contains(&v) {
+                                validator_updates_vec.push(v);
+                            }
+                        });
+
+                        resp_end_block.consensus_param_updates = resp.consensus_param_updates;
+                    )*
+                    resp_end_block.validator_updates = validator_updates_vec;
+                    resp_end_block
+                }
             }
-        };
+    };
 
     app_impl.generics = parsed.generics.clone();
 
@@ -714,7 +694,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         #[async_trait::async_trait]
         impl abcf::entry::RPCs<
             #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-            #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
+            #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
         >
         for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
         {
