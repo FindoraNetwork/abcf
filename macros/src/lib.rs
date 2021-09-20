@@ -6,6 +6,7 @@ extern crate proc_macro;
 
 mod utils;
 
+use crate::utils::ParseField;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::*;
@@ -16,10 +17,8 @@ use std::{env, mem::replace, ops::Deref};
 use syn::PathArguments;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
-    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
-    Type,
+    FnArg, GenericParam, ImplItem, ItemImpl, ItemStruct, Lit, MetaNameValue, Token, Type,
 };
-use crate::utils::ParseField;
 
 ///
 /// Convert struct to abci::event
@@ -443,11 +442,13 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             generics_names.push(t.ident.clone());
             let g = t.ident.clone();
 
-            let marker_name_str = format!("__marker_{}",t.ident.clone().to_string().to_lowercase());
-            let marker_key = Ident::new(marker_name_str.as_str(),Span::call_site());
+            let marker_name_str =
+                format!("__marker_{}", t.ident.clone().to_string().to_lowercase());
+            let marker_key = Ident::new(marker_name_str.as_str(), Span::call_site());
 
-            let fields:FieldValue = parse_quote! (#marker_key: core::marker::PhantomData);
-            let fields_with_g:ParseField = parse_quote! (pub #marker_key: core::marker::PhantomData<#g>);
+            let fields: FieldValue = parse_quote! (#marker_key: core::marker::PhantomData);
+            let fields_with_g: ParseField =
+                parse_quote! (pub #marker_key: core::marker::PhantomData<#g>);
 
             markers.push(fields);
             markers_with_generics.push(fields_with_g);
@@ -566,7 +567,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_storage_impl.generics = parsed.generics.clone();
 
     let mut sl_storage_tx_impl: ItemImpl = parse_quote! {
-        impl StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+        impl abcf::module::StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             type Transaction<'a> = #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*>;
 
             type Cache = #stateless_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;

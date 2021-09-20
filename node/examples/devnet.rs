@@ -463,5 +463,4 @@ fn main() {
     let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     node.start().unwrap();
     std::thread::park();
-
 }

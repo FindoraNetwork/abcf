@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Arm, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
-    PathArguments, Token, Type,
+    PathArguments, Token, Type, Item
 };
 
 use crate::utils::ParseField;
@@ -111,6 +111,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut sl_cache_init_items = Vec::new();
     let mut sf_cache_init_items = Vec::new();
 
+    let mut tx_init_items = Vec::new();
+
+    // let mut tx_execute_items = Vec::new();
+
     let mut rpc_match_arms = Vec::new();
 
     // list items.
@@ -153,6 +157,12 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let sfcii: FieldValue = parse_quote!(#key: abcf::Stateful::<#ty>::cache(tx.#key));
         sf_cache_init_items.push(sfcii);
+
+        let tii: FieldValue = parse_quote!(#key: self.#key.transaction());
+        tx_init_items.push(tii);
+
+//         let tei: Item = parse_quote!(self.#key.execute(transaction.#key););
+//         tx_execute_items.push(tei);
 
         let rma: Arm = parse_quote! {
             #name_lit_str => {
@@ -323,7 +333,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_storage_impl.generics = parsed.generics.clone();
 
     let mut sl_storage_tx_impl: ItemImpl = parse_quote! {
-        impl StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+        impl abcf::module::StorageTransaction for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             type Transaction<'a> = #sl_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*>;
 
             type Cache = #sl_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
@@ -338,14 +348,16 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 Self::Transaction::<'_> {
-                    mock: self.mock.transaction(),
-                    mock2: self.mock2.transaction(),
+                    #(
+                        #tx_init_items,
+                    )*
                 }
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-                self.mock.execute(transaction.mock);
-                self.mock.execute(transaction.mock2);
+//                 #(
+                    // #tx_execute_items,
+//                 )*
             }
         }
     };
@@ -479,7 +491,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_storage_impl.generics = parsed.generics.clone();
 
     let mut sf_storage_tx_impl: ItemImpl = parse_quote! {
-        impl StorageTransaction for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+        impl abcf::module::StorageTransaction for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             type Transaction<'a> = #sf_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*>;
 
             type Cache = #sf_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>;
@@ -494,14 +506,16 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
             fn transaction(&self) -> Self::Transaction<'_> {
                 Self::Transaction::<'_> {
-                    mock: self.mock.transaction(),
-                    mock2: self.mock2.transaction(),
+                    #(
+                        #tx_init_items,
+                    )*
                 }
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-                self.mock.execute(transaction.mock);
-                self.mock.execute(transaction.mock2);
+//                 #(
+                    // #tx_execute_items,
+//                 )*
             }
         }
     };
@@ -527,9 +541,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use std::collections::BTreeMap;
                     use abcf::Module;
                     use abcf::Error;
+                    use abcf::Application;
 
                     let req_tx =
-                        SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                        #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
                             namespace: String::from("abcf.manager"),
                             error: e,
                         })?;
