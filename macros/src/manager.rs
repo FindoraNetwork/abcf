@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Arm, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
-    PathArguments, Token, Type, Item
+    PathArguments, Token, Type
 };
 
 use crate::utils::ParseField;
