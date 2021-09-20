@@ -549,15 +549,17 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             error: e,
                         })?;
 
-                    let tx = abcf::module::types::RequestCheckTx {
-                        ty: _req.r#type,
-                        tx: req_tx.into(),
-                    };
+                    let req_tx_ref = &req_tx;
 
                     let mut resp_check_tx = abcf::module::types::ResponseCheckTx::default();
                     let mut data_map = BTreeMap::new();
 
                     #(
+                        let tx = abcf::module::types::RequestCheckTx {
+                            ty: _req.r#type,
+                            tx: req_tx_ref.into(),
+                        };
+
                         let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
