@@ -599,6 +599,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     >,
                     _req: abcf::module::types::RequestBeginBlock,
                 ) {
+                    use abcf::Application;
                     #(
                         let mut ctx = abcf::manager::AContext {
                             events: abcf::entry::EventContext {
@@ -625,6 +626,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use std::collections::BTreeMap;
                     use abcf::Module;
                     use abcf::Error;
+                    use abcf::Application;
 
                     let req_tx =
                         #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
@@ -681,6 +683,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     >,
                     _req: abcf::module::types::RequestEndBlock,
                 ) -> abcf::module::types::ResponseEndBlock {
+                    use abcf::Application;
+
                     let mut validator_updates_vec = Vec::new();
                     let mut resp_end_block = abcf::module::types::ResponseEndBlock::default();
 
