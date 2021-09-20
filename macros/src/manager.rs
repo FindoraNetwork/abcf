@@ -627,17 +627,20 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use abcf::Error;
 
                     let req_tx =
-                        SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
-                            namespace: String::from("mock"),
+                        #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
+                            namespace: String::from("abcf.manager"),
                             error: e,
                         })?;
 
-                    let tx = abcf::module::types::RequestDeliverTx { tx: req_tx.into() };
+                    let req_tx_ref = &req_tx;
+
 
                     let mut resp_deliver_tx = abcf::module::types::ResponseDeliverTx::default();
                     let mut data_map = BTreeMap::new();
 
                     #(
+                        let tx = abcf::module::types::RequestDeliverTx { tx: req_tx_ref.into() };
+
                         let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
