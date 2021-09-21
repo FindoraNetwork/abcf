@@ -1,5 +1,5 @@
 use crate::manager::RContext;
-use crate::Result;
+use crate::{Error, Result};
 use alloc::boxed::Box;
 use core::fmt::Debug;
 use serde::Serialize;
@@ -18,6 +18,16 @@ impl<'a, T: Serialize> Default for Response<'a, T> {
         Self {
             code: 0,
             message: "success",
+            data: None,
+        }
+    }
+}
+
+impl<'a, T: Serialize> From<Error> for Response<'a, T> {
+    fn from(e: Error) -> Self {
+        Self {
+            code: e.code(),
+            message: e.message(),
             data: None,
         }
     }
