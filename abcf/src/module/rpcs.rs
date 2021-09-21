@@ -1,29 +1,30 @@
 use crate::manager::RContext;
 use crate::{Error, Result};
 use alloc::boxed::Box;
+use alloc::string::String;
 use core::fmt::Debug;
 use serde::Serialize;
 use serde_json::Value;
 
 /// Response of RPC.
 #[derive(Debug)]
-pub struct Response<'a, T: Serialize> {
+pub struct Response<T: Serialize> {
     pub code: u32,
-    pub message: &'a str,
+    pub message: String,
     pub data: Option<T>,
 }
 
-impl<'a, T: Serialize> Default for Response<'a, T> {
+impl<T: Serialize> Default for Response<T> {
     fn default() -> Self {
         Self {
             code: 0,
-            message: "success",
+            message: String::from("success"),
             data: None,
         }
     }
 }
 
-impl<'a, T: Serialize> From<Error> for Response<'a, T> {
+impl<T: Serialize> From<Error> for Response<T> {
     fn from(e: Error) -> Self {
         Self {
             code: e.code(),
@@ -33,11 +34,11 @@ impl<'a, T: Serialize> From<Error> for Response<'a, T> {
     }
 }
 
-impl<'a, T: Serialize> Response<'a, T> {
+impl<T: Serialize> Response<T> {
     pub fn new(t: T) -> Self {
         Self {
             code: 0,
-            message: "success",
+            message: String::from("success"),
             data: Some(t),
         }
     }

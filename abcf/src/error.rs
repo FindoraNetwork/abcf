@@ -28,8 +28,8 @@ impl From<bs3::Error> for Error {
 }
 
 impl Error {
-    pub fn new_rpc_error(code: u32, message: &str) -> Self {
-        Self::RPCApplicationError(code, String::from(message))
+    pub fn new_rpc_error(code: u32, message: String) -> Self {
+        Self::RPCApplicationError(code, message)
     }
 
     pub fn code(&self) -> u32 {
