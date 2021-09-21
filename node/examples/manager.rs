@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{module::StorageTransaction, Application, Event};
+use abcf::{Application, Event};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
@@ -71,7 +71,7 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
     }
 }
 
-impl Into<MockTransaction> for SimpleNodeTransaction {
+impl Into<MockTransaction> for &SimpleNodeTransaction {
     fn into(self) -> MockTransaction {
         MockTransaction {}
     }

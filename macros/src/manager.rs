@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Arm, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
-    PathArguments, Token, Type
+    PathArguments, Token, Type, ExprMethodCall
 };
 
 use crate::utils::ParseField;
@@ -113,7 +113,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut tx_init_items = Vec::new();
 
-    // let mut tx_execute_items = Vec::new();
+    let mut tx_execute_items = Vec::new();
 
     let mut rpc_match_arms = Vec::new();
 
@@ -161,8 +161,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let tii: FieldValue = parse_quote!(#key: self.#key.transaction());
         tx_init_items.push(tii);
 
-//         let tei: Item = parse_quote!(self.#key.execute(transaction.#key););
-//         tx_execute_items.push(tei);
+        let tei: ExprMethodCall = parse_quote!(self.#key.execute(transaction.#key));
+        tx_execute_items.push(tei);
 
         let rma: Arm = parse_quote! {
             #name_lit_str => {
@@ -355,9 +355,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-//                 #(
-                    // #tx_execute_items,
-//                 )*
+                #(
+                    #tx_execute_items;
+                )*
             }
         }
     };
@@ -513,9 +513,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn execute(&mut self, transaction: Self::Cache) {
-//                 #(
-                    // #tx_execute_items,
-//                 )*
+                #(
+                    #tx_execute_items;
+                )*
             }
         }
     };
