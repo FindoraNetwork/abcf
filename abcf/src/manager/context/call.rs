@@ -4,7 +4,7 @@ use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
 pub struct CallEntry {
     pub method: String,
-    pub args: Vec<Box<dyn Any + Sync + Send>>,
+    pub args: Box<dyn Any + Sync + Send>,
 }
 
 pub struct CallContext<'a> {
