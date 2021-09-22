@@ -1,19 +1,34 @@
 use core::any::Any;
 
-use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 
-use crate::{module::Callable, Error, Result};
+pub struct CallEntry {
+    pub module: String,
+    pub method: String,
+    pub args: Vec<Box<dyn Any + Sync + Send>>,
+}
 
 pub struct CallContext<'a> {
-    pub name_index: &'a BTreeMap<String, usize>,
-    pub calls: &'a mut Vec<Box<dyn Any + Send + Sync>>,
+    pub entries: &'a mut Vec<CallEntry>,
 }
 
 impl<'a> CallContext<'a> {
-    pub fn get_module<C: Callable + 'static>(&mut self, name: &str) -> Result<&mut C> {
-        let index = self.name_index.get(name).ok_or(Error::NoModule)?;
-        let calls = self.calls.get_mut(*index).ok_or(Error::NoModule)?;
-        let calls_mut = calls.as_mut() as &mut dyn Any;
-        Ok(calls_mut.downcast_mut::<C>().ok_or(Error::NoModule)?)
+    pub fn new(i: &'a mut CallImpl) -> Self {
+        Self {
+            entries: &mut i.entries,
+        }
     }
 }
+
+pub struct CallImpl {
+    pub entries: Vec<CallEntry>,
+}
+
+impl CallImpl {
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
+}
+

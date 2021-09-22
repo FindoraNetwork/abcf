@@ -189,6 +189,11 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         fields.named.push(backked_s.inner.clone());
     };
 
+    let calls: ParseField = parse_quote!(__calls: abcf::manager::CallImpl);
+
+    if let Fields::Named(fields) = &mut parsed.fields {
+        fields.named.push(calls.inner.clone());
+    };
     //     stateless_struct_items.push(backked_s.clone());
     //     stateful_struct_items.push(backked_s.clone());
 
@@ -215,6 +220,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 Self {
                     #(#init_items,)*
                     __marker_s: core::marker::PhantomData,
+                    __calls: abcf::manager::CallImpl::new(),
                 }
             }
         }
@@ -566,6 +572,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let name = self.#key_item.metadata().name.to_string();
                         let result = self.#key_item
@@ -649,6 +656,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let name = self.#key_item.metadata().name.to_string();
                         let result = self.#key_item
