@@ -230,7 +230,7 @@ where
         let begin_block_events = &mut self.events.begin_block_events;
 
         if let Some(header) = &req.header {
-            if header.height
+            if header.height - 1
                 != self
                     .stateful
                     .height()
@@ -243,7 +243,7 @@ where
         }
 
         if let Some(header) = &req.header {
-            if header.height
+            if header.height - 1
                 != self
                     .stateless
                     .height()
