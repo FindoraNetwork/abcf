@@ -1,11 +1,10 @@
 #![feature(generic_associated_types)]
 
-use std::marker::PhantomData;
-
 use abcf::{RPCResponse};
-use abcf_macros::{rpcs,module,methods,application};
+use abcf_macros::{rpcs,module};
 use serde::{Deserialize, Serialize};
 use abcf::bs3::model::{Value, Map};
+use abcf::{module::StorageTransaction};
 
 #[module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct RpcTest {
@@ -36,13 +35,17 @@ impl RpcTest
         &mut self,
         _ctx: &mut abcf::manager::RContext<'_,abcf::Stateless<Self>, abcf::Stateful<Self>>,
         params: GetAccountRequest,
-    ) -> RPCResponse<'_, GetAccountResponse> {
+    ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {
             name: "jack".to_string(),
             code: params.code,
         };
         RPCResponse::new(resp)
     }
+}
+
+pub mod call_rpc {
+    include!(concat!(env!("OUT_DIR"),"/rpctest.rs"));
 }
 
 #[tokio::main]
