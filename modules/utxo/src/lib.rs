@@ -14,6 +14,7 @@ use abcf::{
         types::{
             RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
         },
+        StorageTransaction,
     },
     Application, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };

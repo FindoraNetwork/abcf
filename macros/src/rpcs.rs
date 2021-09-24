@@ -58,13 +58,14 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             let s = format!(
                 r#"
                 use serde_json::Value;
-                use abcf_sdk::jsonrpc::{{Request, Response, endpoint}};
+                use abcf_sdk::jsonrpc::{{Request, endpoint}};
                 use abcf_sdk::error::*;
                 use abcf_sdk::providers::Provider;
                 use super::{}::MODULE_NAME;
+                use super::{};
 
                 pub async fn {}<P:Provider>(param:{},mut p:P) -> Result<Option<Value>>{{
-                    let data = param.as_str().unwrap().to_string();
+                    let data = serde_json::to_string(&param)?;
                     let abci_query_req = endpoint::abci_query::Request{{
                         path: format!("rpc/{{}}/{}",MODULE_NAME),
                         data,
@@ -81,7 +82,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }}
                 }}
             "#,
-                module_name_mod_name, fn_name, param_name, fn_name
+                module_name_mod_name, param_name, fn_name, param_name, fn_name
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
