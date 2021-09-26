@@ -74,8 +74,6 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }};
                     let req = Request::new_to_str("abci_query", abci_query_req);
                     let resp = p.request("abci_query",req.as_str()).await?;
-                    println!("rpcs macro");
-                    println!("{{:#?}}",resp);
                     return if let Some(val) = resp {{
                         let json = serde_json::from_str::<Value>(&val)?;
                         Ok(Some(json))
