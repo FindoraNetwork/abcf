@@ -3,7 +3,7 @@ pub use application::types;
 pub use application::Application;
 
 mod transaction;
-pub use transaction::{FromBytes, Transaction};
+pub use transaction::{FromBytes, Transaction, ToBytes};
 
 mod rpcs;
 pub use rpcs::{RPCs, Response as RPCResponse};

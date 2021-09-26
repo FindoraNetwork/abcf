@@ -31,7 +31,6 @@ impl Provider for HttpProvider {
                     *value = val;
                     Some(())
                 });
-
             let json = serde_json::to_string(&resp_val)?;
             Ok(Some(json))
         } else {
