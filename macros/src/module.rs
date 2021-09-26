@@ -438,6 +438,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         pub mod #storage_module_ident {
             use super::*;
             use abcf::Result;
+            use abcf::module::StorageTransaction;
 
             pub const MODULE_NAME: &'static str = #name;
 
