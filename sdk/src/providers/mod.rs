@@ -1,7 +1,9 @@
 #[cfg(feature = "http")]
 mod http;
 #[cfg(feature = "http")]
-pub use http::HttpProvider;
+pub use http::HttpPostProvider;
+#[cfg(feature = "http")]
+pub use http::HttpGetProvider;
 
 #[cfg(feature = "websocket")]
 mod websocket;

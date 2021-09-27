@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event};
+use abcf::{Application, Event, RPCResponse};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
@@ -29,7 +29,15 @@ pub struct MockModule {
 }
 
 #[abcf::rpcs]
-impl MockModule {}
+impl MockModule {
+    pub async fn get_owned_outputs(
+        &mut self,
+        _context: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        request: String,
+    ) -> RPCResponse<String> {
+        RPCResponse::new(request)
+    }
+}
 
 pub mod call_rpc {
     include!(concat!(env!("OUT_DIR"),"/mockmodule.rs"));
