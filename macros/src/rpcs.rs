@@ -2,7 +2,9 @@ use proc_macro::TokenStream;
 use quote::*;
 use std::{env, fs::File, io::Write, ops::Deref, path::Path};
 use syn::PathArguments;
-use syn::{parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, Type, ReturnType};
+use syn::{
+    parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
+};
 
 ///
 ///  Distribute the user-defined functions in the call function as a mapping
@@ -30,10 +32,10 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             fn_names.push(fn_name);
             fn_idents.push(data.sig.ident.clone());
 
-//             match &data.sig.output {
-                // ReturnType::Default => return_names.push(String::from("Result<()>")),
-                // ReturnType::Type(_, t) => return_names.push(format!("Result<{}>", t.to_token_stream())),
-//             };
+            //             match &data.sig.output {
+            // ReturnType::Default => return_names.push(String::from("Result<()>")),
+            // ReturnType::Type(_, t) => return_names.push(format!("Result<{}>", t.to_token_stream())),
+            //             };
 
             // TODO: Replace by RPC types
             return_names.push("Result<Value>");
@@ -73,11 +75,8 @@ use super::*;
 
     f.write_all(dependency.as_bytes()).expect("write error");
 
-    fn_names
-        .iter()
-        .zip(param_names)
-        .zip(return_names)
-        .for_each(|((fn_name, param_name), return_name)| {
+    fn_names.iter().zip(param_names).zip(return_names).for_each(
+        |((fn_name, param_name), return_name)| {
             let s = format!(
                 r#"
 pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
@@ -97,7 +96,8 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
                 fn_name, param_name, return_name, fn_name, module_name_mod_name
             );
             f.write_all(s.as_bytes()).expect("write error");
-        });
+        },
+    );
 
     let trait_name = if let Some(t) = &parsed.trait_ {
         t.1.clone()

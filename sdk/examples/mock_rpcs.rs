@@ -1,7 +1,7 @@
 use abcf_sdk::error::Result;
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::providers::Provider;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GetAccountRequest {
@@ -21,7 +21,7 @@ pub async fn get_account<P: Provider>(p: P, param: GetAccountRequest) -> Result<
     let abci_query_req = endpoint::abci_query::Request {
         path: format!("rpc/{}/get_account", "asd"),
         data,
-        height:Some("0".to_string()),
+        height: Some("0".to_string()),
         prove: false,
     };
 

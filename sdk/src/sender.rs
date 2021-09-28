@@ -1,8 +1,4 @@
-use crate::{
-    error::{Error, Result},
-    jsonrpc::Response,
-    providers::Provider,
-};
+use crate::{error::Result, providers::Provider};
 use abcf::module::ToBytes;
 use alloc::string::String;
 use serde_json::{json, Value};
@@ -12,14 +8,6 @@ pub async fn send_tx<P: Provider, T: ToBytes>(mut p: P, method: &str, tx: &T) ->
         let tx_hex = String::from("0x") + &hex::encode(tx.to_bytes()?);
         let j = json!({ "tx": tx_hex });
         log::debug!("Send object is {}", j);
-        let resp: Response<Value> = p.request(&method, &j).await?;
-
-        return if let Some(v) = resp.result {
-            Ok(v)
-        } else if let Some(e) = resp.error {
-            Err(Error::RPCError(e))
-        } else {
-            Err(Error::NotImpl)
-        };
+        p.request(&method, &j).await
     }
 }
