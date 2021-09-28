@@ -32,13 +32,15 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             fn_names.push(fn_name);
             fn_idents.push(data.sig.ident.clone());
 
-            //             match &data.sig.output {
-            // ReturnType::Default => return_names.push(String::from("Result<()>")),
-            // ReturnType::Type(_, t) => return_names.push(format!("Result<{}>", t.to_token_stream())),
-            //             };
+            match &data.sig.output {
+                ReturnType::Default => return_names.push(String::from("Result<()>")),
+                ReturnType::Type(_, t) => {
+                    return_names.push(format!("Result<{}>", t.to_token_stream()))
+                }
+            };
 
             // TODO: Replace by RPC types
-            return_names.push("Result<Value>");
+            // return_names.push("Result<Value>");
 
             data.sig.inputs.iter().for_each(|input| match input {
                 FnArg::Receiver(_) => {}
@@ -65,7 +67,6 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let dependency = format!(
         r#"
-use serde_json::Value;
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::error::*;
 use abcf_sdk::providers::Provider;
@@ -90,7 +91,14 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
         prove: false,
     }};
 
-    p.request("abci_query", &abci_query_req).await
+    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
+
+    if result.code == 0 {{
+        let res = serde_json::from_slice(&result.value)?;
+        Ok(RPCResponse::new(res))
+    }} else {{
+        Err(Error::ReturnError(endpoint::Response::AbciQuery(result)))
+    }}
 }}
             "#,
                 fn_name, param_name, return_name, fn_name, module_name_mod_name

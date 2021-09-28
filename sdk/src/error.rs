@@ -8,6 +8,7 @@ pub enum Error {
     AbcfError(abcf::Error),
     ErrorString(alloc::string::String),
     RPCError(serde_json::Value),
+    ReturnError(crate::jsonrpc::endpoint::Response),
     NotImpl,
 
     #[cfg(feature = "http")]
