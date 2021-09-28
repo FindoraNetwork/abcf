@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Request {
+    #[serde(serialize_with = "hex::serialize")]
     pub path: String,
 
     pub data: String,
