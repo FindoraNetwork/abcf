@@ -67,15 +67,12 @@ impl Provider for HttpGetProvider {
                 .query(&query_vec)
                 .send()
                 .await?
-                .json::<Value>()
+                .text()
                 .await?;
-            let op = resp_val.as_str().and_then(|str|Some(str.to_string()));
-
-            Ok(op)
+            Ok(Some(resp_val))
         } else {
             return Err(Error::ErrorString("Must be a string of type map".to_string()))
         }
-
     }
 
     async fn receive(&mut self) -> Result<Option<String>> {
