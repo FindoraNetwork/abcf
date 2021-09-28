@@ -10,7 +10,7 @@ pub trait FromBytes {
 
 /// Convert to bytes.
 pub trait ToBytes {
-    fn to_bytes(&self) -> Vec<u8>;
+    fn to_bytes(&self) -> Result<Vec<u8>>;
 }
 
 /// Transaction trait.
@@ -23,7 +23,7 @@ impl FromBytes for () {
 }
 
 impl ToBytes for () {
-    fn to_bytes(&self) -> Vec<u8> {
-        Vec::new()
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        Ok(Vec::new())
     }
 }
