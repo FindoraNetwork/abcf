@@ -33,6 +33,12 @@ impl From<reqwest::Error> for Error {
     }
 }
 
+impl From<serde_json::Value> for Error {
+    fn from(e: serde_json::Value) -> Self {
+        Error::RPCError(e)
+    }
+}
+
 impl From<abcf::Error> for Error {
     fn from(e: abcf::Error) -> Self {
         Error::AbcfError(e)

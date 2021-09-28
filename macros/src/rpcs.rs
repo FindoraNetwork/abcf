@@ -53,11 +53,11 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let dependency = format!(
         r#"
-        use serde_json::{{Value,json}};
-        use abcf_sdk::jsonrpc::{{Request, endpoint}};
-        use abcf_sdk::error::*;
-        use abcf_sdk::providers::Provider;
-        use super::*;
+use serde_json::Value;
+use abcf_sdk::jsonrpc::endpoint;
+use abcf_sdk::error::*;
+use abcf_sdk::providers::Provider;
+use super::*;
       "#
     );
 
@@ -68,24 +68,20 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         .zip(param_names)
         .for_each(|(fn_name, param_name)| {
             let s = format!(
-            r#"
-                pub async fn {}<P:Provider>(param:{},mut p:P) -> Result<Option<Value>>{{
-                    let data = serde_json::to_string(&param)?;
-                    let abci_query_req = endpoint::abci_query::Request{{
-                        path: format!("rpc/{{}}/{}",{}::MODULE_NAME),
-                        data,
-                        height:Some("0".to_string()),
-                        prove: false,
-                    }};
-                    let req = Request::new_to_str("abci_query", abci_query_req);
-                    let resp = p.request("abci_query",req.as_str()).await?;
-                    return if let Some(val) = resp {{
-                        let json = serde_json::from_str::<Value>(&val)?;
-                        Ok(Some(json))
-                    }} else {{
-                        Ok(None)
-                    }}
-                }}
+                r#"
+pub async fn {}<P: Provider>(p: Pparam: {}) -> Result<Value> {{
+    let mut p = p;
+
+    let data = serde_json::to_string(&param)?;
+    let abci_query_req = endpoint::abci_query::Request {{
+        path: format!("rpc/{{}}/{}",{}::MODULE_NAME),
+        data,
+        height:Some("0".to_string()),
+        prove: false,
+    }};
+
+    p.request("abci_query", &abci_query_req).await
+}}
             "#,
                 fn_name, param_name, fn_name, module_name_mod_name
             );

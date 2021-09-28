@@ -1,7 +1,6 @@
 #![feature(generic_associated_types)]
 
 use abcf::bs3::model::{Map, Value};
-use abcf::module::StorageTransaction;
 use abcf::RPCResponse;
 use abcf_macros::{module, rpcs};
 use serde::{Deserialize, Serialize};
