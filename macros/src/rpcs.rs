@@ -61,6 +61,8 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
       "#
     );
 
+    f.write_all(dependency.as_bytes()).expect("write error");
+
     fn_names
         .iter()
         .zip(param_names)
@@ -89,9 +91,6 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             );
             f.write_all(s.as_bytes()).expect("write error");
         });
-
-
-    f.write_all(dependency.as_bytes()).expect("write error");
 
     let trait_name = if let Some(t) = &parsed.trait_ {
         t.1.clone()
