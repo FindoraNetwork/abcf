@@ -16,6 +16,11 @@ pub struct Request {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Response {
+    pub response: RealResponse,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RealResponse {
     pub code: u32,
 
     pub log: String,

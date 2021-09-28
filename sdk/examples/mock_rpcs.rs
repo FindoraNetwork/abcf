@@ -31,8 +31,8 @@ pub async fn get_account<P: Provider>(
 
     let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
 
-    if result.code == 0 {
-        let res = serde_json::from_slice(&result.value)?;
+    if result.response.code == 0 {
+        let res = serde_json::from_slice(&result.response.value)?;
         Ok(RPCResponse::new(res))
     } else {
         Err(Error::ReturnError(endpoint::Response::AbciQuery(result)))
