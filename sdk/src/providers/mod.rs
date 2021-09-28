@@ -1,7 +1,7 @@
 #[cfg(feature = "http")]
 mod http;
-// #[cfg(feature = "http")]
-// pub use http::HttpGetProvider;
+#[cfg(feature = "http")]
+pub use http::HttpGetProvider;
 #[cfg(feature = "http")]
 pub use http::HttpPostProvider;
 
