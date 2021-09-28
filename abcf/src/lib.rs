@@ -7,8 +7,8 @@ pub mod module;
 use core::fmt::Debug;
 
 pub use module::{
-    Application, Callable, Event, Genesis, Merkle, Module, ModuleMetadata, ModuleType, RPCResponse,
-    RPCs, Storage, Transaction,
+    Application, Callable, Event, FromBytes, Genesis, Merkle, Module, ModuleMetadata, ModuleType,
+    RPCResponse, RPCs, Storage, ToBytes, Transaction,
 };
 
 pub mod entry;
@@ -36,4 +36,3 @@ pub type StatelessCache<M> = <Stateless<M> as module::StorageTransaction>::Cache
 pub type StatefulCache<M> = <Stateful<M> as module::StorageTransaction>::Cache;
 
 pub trait Config: Send + Sync + Debug + Clone + 'static {}
-

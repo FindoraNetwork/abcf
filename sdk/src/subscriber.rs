@@ -17,8 +17,8 @@ impl<P: Provider, E: Event> Subscriber<P, E> {
         }
     }
 
-    pub async fn subscribe(&mut self, event: &str) -> Result<()> {
-        let _ = self.provider.request("subscribe", event).await;
+    pub async fn subscribe(&mut self, _event: &str) -> Result<()> {
+        // let _ = self.provider.request("subscribe", event).await;
         Ok(())
     }
 

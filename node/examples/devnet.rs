@@ -40,7 +40,7 @@ impl MockModule {
 }
 
 pub mod call_rpc {
-    include!(concat!(env!("OUT_DIR"),"/mockmodule.rs"));
+    include!(concat!(env!("OUT_DIR"), "/mockmodule.rs"));
 }
 
 /// Module's block logic.

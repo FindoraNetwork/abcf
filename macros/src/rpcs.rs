@@ -46,15 +46,13 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         _ => {}
     });
 
-
-
     let out_dir_str = env::var("OUT_DIR").expect("please create build.rs");
     let out_dir = Path::new(&out_dir_str).join(name.to_lowercase() + ".rs");
     let mut f = File::create(&out_dir).expect("create file error");
     let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
     let dependency = format!(
-      r#"
+        r#"
         use serde_json::{{Value,json}};
         use abcf_sdk::jsonrpc::{{Request, endpoint}};
         use abcf_sdk::error::*;
@@ -62,27 +60,6 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         use super::*;
       "#
     );
-
-    let send_tx = format!(
-      r#"
-        pub async fn send_tx<P:Provider>(hex_str: String, method: &str, mut p:P) -> Result<Option<Value>>{{
-            let data = json!({{
-                "tx":hex_str
-            }}).to_string();
-
-            let resp = p.request(method,data.as_str()).await?;
-            return if let Some(val) = resp {{
-                let json = serde_json::from_str::<Value>(&val)?;
-                Ok(Some(json))
-            }} else {{
-                Ok(None)
-            }}
-        }}
-      "#
-    );
-
-    f.write_all(dependency.as_bytes()).expect("write error");
-    f.write_all(send_tx.as_bytes()).expect("write error");
 
     fn_names
         .iter()
@@ -114,6 +91,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
         });
 
 
+    f.write_all(dependency.as_bytes()).expect("write error");
 
     let trait_name = if let Some(t) = &parsed.trait_ {
         t.1.clone()

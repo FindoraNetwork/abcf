@@ -10,11 +10,8 @@ use std::marker::PhantomData;
 use abcf::{
     abci::{RequestBeginBlock, RequestEndBlock},
     manager::{AContext, TContext},
-    module::{
-        types::{
-            RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
-        },
-        StorageTransaction,
+    module::types::{
+        RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
     },
     Application, Result, Stateful, StatefulBatch, Stateless, StatelessBatch,
 };

@@ -1,10 +1,10 @@
 #![feature(generic_associated_types)]
 
-use abcf::{RPCResponse};
-use abcf_macros::{rpcs,module};
+use abcf::bs3::model::{Map, Value};
+use abcf::module::StorageTransaction;
+use abcf::RPCResponse;
+use abcf_macros::{module, rpcs};
 use serde::{Deserialize, Serialize};
-use abcf::bs3::model::{Value, Map};
-use abcf::{module::StorageTransaction};
 
 #[module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct RpcTest {
@@ -29,11 +29,10 @@ pub struct GetAccountResponse {
 }
 
 #[rpcs]
-impl RpcTest
-{
+impl RpcTest {
     pub async fn get_account(
         &mut self,
-        _ctx: &mut abcf::manager::RContext<'_,abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
         params: GetAccountRequest,
     ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {
@@ -45,7 +44,7 @@ impl RpcTest
 }
 
 pub mod call_rpc {
-    include!(concat!(env!("OUT_DIR"),"/rpctest.rs"));
+    include!(concat!(env!("OUT_DIR"), "/rpctest.rs"));
 }
 
 #[tokio::main]

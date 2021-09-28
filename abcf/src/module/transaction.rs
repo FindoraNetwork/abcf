@@ -15,7 +15,6 @@ pub trait ToBytes {
 
 /// Transaction trait.
 pub trait Transaction: Default + FromBytes + Send + Sync {}
-// pub trait Transaction: Default + FromBytes + ToBytes + Send + Sync {}
 
 impl FromBytes for () {
     fn from_bytes(_bytes: &[u8]) -> Result<Self> {

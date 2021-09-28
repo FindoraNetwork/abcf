@@ -1,6 +1,6 @@
 use abcf_sdk::error::*;
 use abcf_sdk::jsonrpc::{endpoint, Request};
-use abcf_sdk::providers::{HttpProvider, Provider};
+use abcf_sdk::providers::{HttpGetProvider, Provider};
 use serde_json::{json, Value};
 use tokio::runtime::Runtime;
 
@@ -32,7 +32,7 @@ fn main() {
     let req_hex = hex::encode(str.as_bytes());
     let req = Value::String(req_hex);
 
-    let provider = HttpProvider {};
+    let provider = HttpGetProvider {};
 
     rt.block_on(async {
         let r = get_account(req, provider).await;
