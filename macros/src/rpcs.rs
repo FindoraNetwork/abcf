@@ -92,6 +92,7 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     }};
 
     let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
+    abcf::log::debug!("Recv RPC response {{:?}}", result);
 
     if result.code == 0 {{
         let res = serde_json::from_slice(&result.value)?;

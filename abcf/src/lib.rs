@@ -25,6 +25,7 @@ pub use tm_protos::abci;
 
 pub use bs3;
 pub use digest;
+pub use log;
 
 pub type Stateless<M> = <M as manager::ModuleStorage>::Stateless;
 pub type Stateful<M> = <M as manager::ModuleStorage>::Stateful;
