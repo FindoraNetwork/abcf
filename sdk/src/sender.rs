@@ -6,7 +6,7 @@ use crate::{
 use abcf::module::ToBytes;
 use serde_json::{json, Value};
 
-pub async fn send_tx<P: Provider, T: ToBytes>(mut p: P, method: &str, tx: T) -> Result<Value> {
+pub async fn send_tx<P: Provider, T: ToBytes>(mut p: P, method: &str, tx: &T) -> Result<Value> {
     {
         let tx_hex = hex::encode(tx.to_bytes());
         let j = json!({ "tx": tx_hex });
