@@ -54,6 +54,7 @@ impl Provider for HttpGetProvider {
     async fn request(&mut self, method: &str, params: &str) -> Result<Option<String>> {
         //this params must is map string
         let params_value = serde_json::to_value(params)?;
+        log::debug("{:?}", params_value);
 
         if let Some(params_map) = params_value.as_object() {
             let mut query_vec = Vec::new();
