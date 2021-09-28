@@ -69,7 +69,7 @@ use super::*;
         .for_each(|(fn_name, param_name)| {
             let s = format!(
                 r#"
-pub async fn {}<P: Provider>(p: Pparam: {}) -> Result<Value> {{
+pub async fn {}<P: Provider>(p: P, param: {}) -> Result<Value> {{
     let mut p = p;
 
     let data = serde_json::to_string(&param)?;
