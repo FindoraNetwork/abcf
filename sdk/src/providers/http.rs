@@ -62,6 +62,8 @@ impl Provider for HttpGetProvider {
             }
             let url = "http://127.0.0.1:26657".to_string() + "/" + method;
 
+            log::debug!("{:?}", query_vec);
+
             let resp_val = reqwest::Client::new()
                 .get(url)
                 .query(&query_vec)
