@@ -5,16 +5,20 @@ use alloc::string::ToString;
 pub enum Error {
     FromBytesError,
     JsonError(serde_json::Error),
+    AbcfError(abcf::Error),
+    ErrorString(alloc::string::String),
+    RPCError(serde_json::Value),
+    ReturnError(crate::jsonrpc::endpoint::Response),
+    NotImpl,
+
     #[cfg(feature = "http")]
     ReqWest(reqwest::Error),
-    AbcfError(abcf::Error),
-    NotImpl,
+
     #[cfg(feature = "websocket")]
     WebsocketError(async_tungstenite::tungstenite::Error),
-    ErrorString(alloc::string::String),
+
     #[cfg(feature = "websocket")]
     FromUtf8Error(alloc::string::FromUtf8Error),
-    NoValue(alloc::string::String),
 }
 
 impl From<serde_json::Error> for Error {
@@ -27,6 +31,12 @@ impl From<serde_json::Error> for Error {
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Self {
         Error::ReqWest(e)
+    }
+}
+
+impl From<serde_json::Value> for Error {
+    fn from(e: serde_json::Value) -> Self {
+        Error::RPCError(e)
     }
 }
 

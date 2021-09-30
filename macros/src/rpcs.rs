@@ -2,7 +2,9 @@ use proc_macro::TokenStream;
 use quote::*;
 use std::{env, fs::File, io::Write, ops::Deref, path::Path};
 use syn::PathArguments;
-use syn::{parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, Type};
+use syn::{
+    parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
+};
 
 ///
 ///  Distribute the user-defined functions in the call function as a mapping
@@ -21,6 +23,7 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut param_names = vec![];
     let mut param_idents = vec![];
     let mut fn_idents = vec![];
+    let mut return_names = vec![];
     let mut is_empty_impl = true;
 
     parsed.items.iter().for_each(|item| match item {
@@ -28,6 +31,17 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
             let fn_name = data.sig.ident.clone().to_string();
             fn_names.push(fn_name);
             fn_idents.push(data.sig.ident.clone());
+
+            match &data.sig.output {
+                ReturnType::Default => return_names.push(String::from("Result<()>")),
+                ReturnType::Type(_, t) => {
+                    return_names.push(format!("Result<{}>", t.to_token_stream()))
+                }
+            };
+
+            // TODO: Replace by RPC types
+            // return_names.push("Result<Value>");
+
             data.sig.inputs.iter().for_each(|input| match input {
                 FnArg::Receiver(_) => {}
                 FnArg::Typed(typed) => match typed.ty.deref() {
@@ -51,41 +65,48 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut f = File::create(&out_dir).expect("create file error");
     let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
-    fn_names
-        .iter()
-        .zip(param_names)
-        .for_each(|(fn_name, param_name)| {
+    let dependency = format!(
+        r#"
+use abcf_sdk::jsonrpc::endpoint;
+use abcf_sdk::error::*;
+use abcf_sdk::providers::Provider;
+use super::*;
+      "#
+    );
+
+    f.write_all(dependency.as_bytes()).expect("write error");
+
+    fn_names.iter().zip(param_names).zip(return_names).for_each(
+        |((fn_name, param_name), return_name)| {
             let s = format!(
                 r#"
-                use serde_json::Value;
-                use abcf_sdk::jsonrpc::{{Request, endpoint}};
-                use abcf_sdk::error::*;
-                use abcf_sdk::providers::Provider;
-                use super::{}::MODULE_NAME;
-                use super::{};
+pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
+    let mut p = p;
 
-                pub async fn {}<P:Provider>(param:{},mut p:P) -> Result<Option<Value>>{{
-                    let data = serde_json::to_string(&param)?;
-                    let abci_query_req = endpoint::abci_query::Request{{
-                        path: format!("rpc/{{}}/{}",MODULE_NAME),
-                        data,
-                        height:Some("0".to_string()),
-                        prove: false,
-                    }};
-                    let req = Request::new_to_str("abci_query", abci_query_req);
-                    let resp = p.request("abci_query",req.as_str()).await?;
-                    return if let Some(val) = resp {{
-                        let json = serde_json::from_str::<Value>(&val)?;
-                        Ok(Some(json))
-                    }} else {{
-                        Ok(None)
-                    }}
-                }}
+    let data = serde_json::to_string(&param)?;
+    let abci_query_req = endpoint::abci_query::Request {{
+        path: format!("rpc/{{}}/{}",{}::MODULE_NAME),
+        data,
+        height:Some("0".to_string()),
+        prove: false,
+    }};
+
+    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
+    abcf::log::debug!("Recv RPC response {{:?}}", result);
+
+    if result.response.code == 0 {{
+        let res = serde_json::from_slice(&result.response.value)?;
+        Ok(RPCResponse::new(res))
+    }} else {{
+        Err(Error::ReturnError(endpoint::Response::AbciQuery(result)))
+    }}
+}}
             "#,
-                module_name_mod_name, param_name, fn_name, param_name, fn_name
+                fn_name, param_name, return_name, fn_name, module_name_mod_name
             );
             f.write_all(s.as_bytes()).expect("write error");
-        });
+        },
+    );
 
     let trait_name = if let Some(t) = &parsed.trait_ {
         t.1.clone()

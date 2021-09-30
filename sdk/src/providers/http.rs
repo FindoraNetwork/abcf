@@ -1,41 +1,84 @@
 use super::Provider;
 use crate::error::{Error, Result};
-use crate::jsonrpc::Response;
+use crate::jsonrpc::{Request, Response};
+use alloc::vec::Vec;
 use alloc::{boxed::Box, string::String};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub struct HttpProvider {}
+/// post
+pub struct HttpPostProvider {}
 
 #[async_trait::async_trait]
-impl Provider for HttpProvider {
-    async fn request(&mut self, _method: &str, params: &str) -> Result<Option<String>> {
+impl Provider for HttpPostProvider {
+    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Resp>
+    where
+        Req: Serialize + Sync + Send,
+        Resp: for<'de> Deserialize<'de> + Send + Sync,
+    {
         let url = "http://127.0.0.1:26657";
-        let mut resp_val = reqwest::Client::new()
+
+        let req = Request::new(method, params);
+
+        let resp = reqwest::Client::new()
             .post(url)
-            .body(String::from(params))
+            .json(&req)
             .send()
             .await?
-            .json::<Response<Value>>()
+            .json::<Response<Resp>>()
             .await?;
 
-        return if let Some(ref mut result) = resp_val.result {
-            result
-                .as_object_mut()
-                .and_then(|result_map| result_map.get_mut("response"))
-                .and_then(|resp_obj| resp_obj.as_object_mut())
-                .and_then(|resp_map| resp_map.get_mut("value"))
-                .map(|value| {
-                    let str = value.as_str()?;
-                    let bytes = base64::decode(str).ok()?;
-                    let val = serde_json::from_slice::<Value>(bytes.as_slice()).ok()?;
-                    *value = val;
-                    Some(())
-                });
-            let json = serde_json::to_string(&resp_val)?;
-            Ok(Some(json))
+        if let Some(e) = resp.result {
+            Ok(e)
+        } else if let Some(e) = resp.error {
+            Err(Error::RPCError(e))
         } else {
-            Ok(None)
+            Err(Error::NotImpl)
+        }
+    }
+
+    async fn receive(&mut self) -> Result<Option<String>> {
+        Err(Error::NotImpl)
+    }
+}
+
+/// get
+pub struct HttpGetProvider {}
+
+#[async_trait::async_trait]
+impl Provider for HttpGetProvider {
+    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Resp>
+    where
+        Req: Serialize + Sync + Send,
+        Resp: for<'de> Deserialize<'de> + Send + Sync,
+    {
+        let req = serde_json::to_value(params)?;
+
+        let map = match req {
+            serde_json::Value::Object(m) => m,
+            _ => return Err(Error::NotImpl),
         };
+
+        let querys: Vec<(String, Value)> = map.iter().map(|v| (v.0.clone(), v.1.clone())).collect();
+        log::debug!(" Queries is {:?}", querys);
+
+        let url = String::from("http://127.0.0.1:26657") + "/" + method;
+
+        let resp = reqwest::Client::new()
+            .get(url)
+            .query(&querys)
+            .send()
+            .await?
+            .json::<Response<Resp>>()
+            .await?;
+
+        if let Some(e) = resp.result {
+            Ok(e)
+        } else if let Some(e) = resp.error {
+            Err(Error::RPCError(e))
+        } else {
+            Err(Error::NotImpl)
+        }
     }
 
     async fn receive(&mut self) -> Result<Option<String>> {

@@ -1,41 +1,42 @@
-use abcf_sdk::error::*;
-use abcf_sdk::jsonrpc::{endpoint, Request};
-use abcf_sdk::providers::{HttpProvider, Provider};
-use serde_json::{json, Value};
-use tokio::runtime::Runtime;
+use abcf_sdk::error::{Error, Result};
+use abcf_sdk::jsonrpc::endpoint;
+use abcf_sdk::providers::Provider;
+use serde::{Deserialize, Serialize};
+use abcf::RPCResponse;
 
-pub async fn get_account<P: Provider>(param: Value, mut p: P) -> Result<Option<Value>> {
-    let data = param.as_str().unwrap().to_string();
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetAccountRequest {
+    code: u8,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetAccountResponse {
+    name: String,
+    code: u8,
+}
+
+pub async fn get_account<P: Provider>(
+    p: P,
+    param: GetAccountRequest,
+) -> Result<RPCResponse<GetAccountResponse>> {
+    let mut p = p;
+
+    let data = serde_json::to_string(&param)?;
     let abci_query_req = endpoint::abci_query::Request {
-        path: "rpc/mock/get_account".to_string(),
+        path: format!("rpc/{}/get_account", "adss"),
         data,
         height: Some("0".to_string()),
         prove: false,
     };
 
-    let req = Request::new_to_str("abci_query", abci_query_req);
+    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
 
-    let resp = p.request("abci_query", req.as_str()).await?;
-
-    return if let Some(val) = resp {
-        let json = serde_json::from_str::<Value>(&val)?;
-        Ok(Some(json))
+    if result.response.code == 0 {
+        let res = serde_json::from_slice(&result.response.value)?;
+        Ok(RPCResponse::new(res))
     } else {
-        Ok(None)
-    };
+        Err(Error::ReturnError(endpoint::Response::AbciQuery(result)))
+    }
 }
 
-fn main() {
-    let rt = Runtime::new().unwrap();
-    let json = json!({"code":19});
-    let str = serde_json::to_string(&json).unwrap();
-    let req_hex = hex::encode(str.as_bytes());
-    let req = Value::String(req_hex);
-
-    let provider = HttpProvider {};
-
-    rt.block_on(async {
-        let r = get_account(req, provider).await;
-        println!("{:#?}", r);
-    });
-}
+fn main() {}

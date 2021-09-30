@@ -5,10 +5,10 @@ use serde_json::Value;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Response<R> {
     /// JSON-RPC version
-    pub jsonrpc: String,
+    pub jsonrpc: Option<String>,
 
     /// Identifier included in request
-    pub id: i64,
+    pub id: Option<i64>,
 
     /// Results of request (if successful)
     pub result: Option<R>,

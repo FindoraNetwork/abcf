@@ -135,19 +135,21 @@ where
             .height()
             .expect("get current height for stateless storage failed");
 
-        if stateless_height >= stateful_height {
-            self.stateless
-                .rollback(stateful_height)
-                .expect("rollback to height failed.");
-            resp.last_block_height = stateful_height;
-            resp.last_block_app_hash = self.stateful.root().expect("get app hash failed").to_vec();
+        let target_height = if stateless_height >= stateful_height {
+            stateful_height - 1
         } else {
-            self.stateful
-                .rollback(stateless_height)
-                .expect("rollback to height failed.");
-            resp.last_block_height = stateful_height;
-            resp.last_block_app_hash = self.stateful.root().expect("get app hash failed").to_vec();
-        }
+            stateless_height - 1
+        };
+
+        self.stateless
+            .rollback(target_height)
+            .expect("rollback to height failed.");
+        self.stateful
+            .rollback(target_height)
+            .expect("rollback to height failed.");
+
+        resp.last_block_height = target_height;
+        resp.last_block_app_hash = self.stateful.root().expect("get app hash failed").to_vec();
 
         resp
     }

@@ -5,8 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Arm, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
-    PathArguments, Token, Type, ExprMethodCall
+    Arm, ExprMethodCall, FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit,
+    LitStr, MetaNameValue, PathArguments, Token, Type,
 };
 
 use crate::utils::ParseField;
