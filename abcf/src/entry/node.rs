@@ -135,11 +135,15 @@ where
             .height()
             .expect("get current height for stateless storage failed");
 
-        let target_height = if stateless_height >= stateful_height {
+        let mut target_height = if stateless_height >= stateful_height {
             stateful_height - 1
         } else {
             stateless_height - 1
         };
+
+        if target_height < 0 {
+            target_height = 0
+        }
 
         self.stateless
             .rollback(target_height)
