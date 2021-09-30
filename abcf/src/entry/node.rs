@@ -141,8 +141,8 @@ where
             stateless_height - 1
         };
 
-        if target_height < 0 {
-            target_height = 0
+        if target_height < 1 {
+            target_height = 1
         }
 
         self.stateless
