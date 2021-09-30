@@ -141,16 +141,21 @@ where
             stateless_height - 1
         };
 
-        if target_height < 1 {
-            target_height = 1
+        if target_height < 0 {
+            target_height = 0
         }
 
-        self.stateless
-            .rollback(target_height)
-            .expect("rollback to height failed.");
-        self.stateful
-            .rollback(target_height)
-            .expect("rollback to height failed.");
+        if target_height > stateful_height {
+            self.stateful
+                .rollback(target_height)
+                .expect("rollback to height failed.");
+        }
+
+        if target_height > stateless_height {
+            self.stateless
+                .rollback(target_height)
+                .expect("rollback to height failed.");
+        }
 
         resp.last_block_height = target_height;
         resp.last_block_app_hash = self.stateful.root().expect("get app hash failed").to_vec();
