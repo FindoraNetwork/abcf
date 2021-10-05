@@ -4,6 +4,6 @@ members = [
     "macros",
     "sdk",
     "node",
-    "modules/utxo"
+    # "modules/utxo"
 ]
 
