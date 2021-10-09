@@ -1,7 +1,7 @@
 use crate::entry::EventContext;
 
 mod call;
-pub use call::{CallContext, CallEntry, CallImpl};
+pub use call::{CallContext, CallEntry, CallImpl, CallEntryTrait};
 
 pub struct Context<'a> {
     pub event: Option<EventContext<'a>>,

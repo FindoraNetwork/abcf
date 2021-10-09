@@ -1,10 +1,15 @@
 use core::any::Any;
+use crate::Result;
 
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
 pub struct CallEntry {
     pub method: String,
     pub args: Box<dyn Any + Sync + Send>,
+}
+
+pub trait CallEntryTrait {
+    fn to_call_entry() -> CallEntry;
 }
 
 pub struct CallContext<'a> {
