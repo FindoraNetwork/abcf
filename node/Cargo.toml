@@ -24,3 +24,4 @@ tokio = { version = "1", features = ["full"] }
 abcf-sdk = { path="../sdk",features = ["http"] }
 hex = "0.4.3"
 log = "0.4.14"
+ruc = { git = "https://github.com/FindoraNetwork/RUC.git", branch = "master" }

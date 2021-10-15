@@ -1,6 +1,7 @@
 #![feature(generic_associated_types)]
 
 use std::marker::PhantomData;
+use std::sync::mpsc;
 
 /// Running in shell
 ///
@@ -10,7 +11,35 @@ use std::marker::PhantomData;
 use abcf::{Application, Event, RPCResponse};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as sender_value, json};
 use sha3::Sha3_512;
+use abcf::abci::{RequestBeginBlock, RequestDeliverTx, RequestEndBlock};
+use abcf::entry::Cache;
+use ruc::*;
+
+pub enum SenderValue {
+    BeginValue(RequestBeginBlock),
+    DeliverValue(RequestDeliverTx),
+    EndValue(RequestEndBlock),
+}
+
+pub struct CacheSender {
+    pub sender: std::sync::mpsc::Sender<SenderValue>,
+}
+
+impl Cache for CacheSender {
+    fn begin_block(&mut self, req: RequestBeginBlock) {
+        self.sender.send(SenderValue::BeginValue(req));
+    }
+
+    fn deliver_tx(&mut self, req: RequestDeliverTx) {
+        self.sender.send(SenderValue::DeliverValue(req));
+    }
+
+    fn end_block(&mut self, req: RequestEndBlock) {
+        self.sender.send(SenderValue::EndValue(req));
+    }
+}
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -26,6 +55,64 @@ pub struct MockModule {
     pub sl_value: Value<u32>,
     #[stateless]
     pub sl_map: Map<i32, u32>,
+}
+
+#[abcf::module(
+name = "query",
+version = 1,
+impl_version = "0.1.1",
+target_height = 0
+)]
+pub struct QueryModule {
+    #[stateful]
+    pub zero: Value<u8>,
+    #[stateless]
+    pub owned_outputs: Map<String, Vec<(usize,String)>>,
+}
+
+impl<S: abcf::bs3::Store> QueryModule<S> {
+    pub fn start(&mut self, recv: std::sync::mpsc::Receiver<SenderValue>) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[abcf::rpcs]
+impl QueryModule {
+    pub async fn get_owned_outputs(
+        &mut self,
+        context: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        request: String,
+    ) -> Vec<sender_value> {
+        let mut outputs = Vec::new();
+
+        for owner_id in 0..request.owners.len() {
+            match context.stateless.owned_outputs.get(request.clone()) {
+                Err(e) => {
+                    let error: abcf::Error = e.into();
+                    return error.into();
+                }
+                Ok(v) => match v {
+                    Some(s) => {
+                        let v = s.as_ref();
+                        for (id,output) in v {
+
+                            outputs.push((
+                                json!({
+                                    "pub_key":request.clone(),
+                                    "owner_id":owner_id,
+                                    "output_id":id,
+                                    "output":output
+                                })
+                            ));
+                        }
+                    }
+                    None => {}
+                },
+            };
+        }
+
+        outputs
+    }
 }
 
 #[abcf::rpcs]
@@ -141,7 +228,16 @@ fn main() {
         },
     };
 
-    let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
+    let (sender, recv) = mpsc::channel();
+
+    let cache = CacheSender{ sender };
+
+    std::thread::spawn(||{
+        let mut query = QueryModule::new();
+        query.start(recv);
+    });
+
+    let entry = abcf::entry::Node::new(stateless, stateful, simple_node, cache);
     let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
     node.start().unwrap();
     std::thread::park();
