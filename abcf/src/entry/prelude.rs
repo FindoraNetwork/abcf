@@ -67,6 +67,20 @@ where
     }
 }
 
+/// Cache
+pub trait Cache {
+    /// trig abci method begin_block
+    fn begin_block(&mut self, req:RequestBeginBlock);
+    fn deliver_tx(&mut self, req:RequestDeliverTx);
+    fn end_block(&mut self, req:RequestEndBlock);
+}
+
+pub trait EntryCache {
+    type Cache: Cache;
+
+    fn cache(&mut self) -> Self::Cache;
+}
+
 pub trait Tree {
     fn get(&self, key: &str, height: i64) -> ModuleResult<Vec<u8>>;
 }

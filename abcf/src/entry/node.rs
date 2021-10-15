@@ -15,38 +15,42 @@ use crate::{
 
 use super::{
     context::TContext,
-    prelude::{Application, RPCs, Tree},
+    prelude::{Application, RPCs, Tree, Cache},
     AContext, EventContext, EventContextImpl, RContext,
 };
 
-pub struct Node<D, Sl, Sf, M>
+pub struct Node<D, Sl, Sf, M, C>
 where
     D: Digest,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    C: Cache
 {
     stateless: Sl,
     stateful: Sf,
     marker_d: PhantomData<D>,
     module: M,
     events: EventContextImpl,
+    cache: C,
 }
 
-impl<D, Sl, Sf, M> Node<D, Sl, Sf, M>
+impl<D, Sl, Sf, M, C> Node<D, Sl, Sf, M, C>
 where
     D: Digest,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    C: Cache,
 {
-    pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
+    pub fn new(stateless: Sl, stateful: Sf, module: M, cache: C) -> Self {
         Self {
             stateful,
             stateless,
             module,
             marker_d: PhantomData,
             events: EventContextImpl::default(),
+            cache: C,
         }
     }
 
@@ -96,12 +100,13 @@ where
 }
 
 #[async_trait::async_trait]
-impl<D, Sl, Sf, M> tm_abci::Application for Node<D, Sl, Sf, M>
+impl<D, Sl, Sf, M, C> tm_abci::Application for Node<D, Sl, Sf, M, C>
 where
     D: Digest + Send + Sync,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    C: Cache,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -224,6 +229,7 @@ where
                 resp.data = v.data;
                 resp.gas_wanted = v.gas_wanted;
                 resp.gas_used = v.gas_used;
+
             }
             Err(e) => {
                 resp.code = e.error.code();
@@ -278,6 +284,8 @@ where
 
         resp.events = events;
 
+        self.cache.begin_block(req.clone());
+
         resp
     }
 
@@ -322,6 +330,8 @@ where
 
         resp.events = events;
 
+        self.cache.deliver_tx(req.clone());
+
         resp
     }
 
@@ -344,6 +354,8 @@ where
         let events = mem::replace(end_block_events, Vec::new());
 
         resp.events = events;
+
+        self.cache.end_block(req.clone());
 
         resp
     }
