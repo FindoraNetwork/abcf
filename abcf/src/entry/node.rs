@@ -50,7 +50,7 @@ where
             module,
             marker_d: PhantomData,
             events: EventContextImpl::default(),
-            cache: C,
+            cache,
         }
     }
 
@@ -106,7 +106,7 @@ where
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
-    C: Cache,
+    C: Cache + Send + Sync,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -278,13 +278,13 @@ where
             stateless: &mut self.stateless,
         };
 
-        self.module.begin_block(&mut ctx, req).await;
+        self.module.begin_block(&mut ctx, req.clone()).await;
 
         let events = mem::replace(begin_block_events, Vec::new());
 
         resp.events = events;
 
-        self.cache.begin_block(req.clone());
+        self.cache.begin_block(req);
 
         resp
     }
@@ -303,7 +303,7 @@ where
             stateful: &mut stateful_tx,
         };
 
-        let result = self.module.deliver_tx(&mut ctx, req).await;
+        let result = self.module.deliver_tx(&mut ctx, req.clone()).await;
 
         let stateful_cache = Sf::cache(stateful_tx);
         let stateless_cache = Sl::cache(stateless_tx);
@@ -330,7 +330,7 @@ where
 
         resp.events = events;
 
-        self.cache.deliver_tx(req.clone());
+        self.cache.deliver_tx(req);
 
         resp
     }
@@ -346,7 +346,7 @@ where
             stateless: &mut self.stateless,
         };
 
-        let result = self.module.end_block(&mut ctx, req).await;
+        let result = self.module.end_block(&mut ctx, req.clone()).await;
 
         resp.consensus_param_updates = result.consensus_param_updates;
         resp.validator_updates = result.validator_updates;
@@ -355,7 +355,7 @@ where
 
         resp.events = events;
 
-        self.cache.end_block(req.clone());
+        self.cache.end_block(req);
 
         resp
     }
