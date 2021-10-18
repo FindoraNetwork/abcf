@@ -52,22 +52,3 @@ where
     }
 }
 
-// impl<A> Node<A>
-// where
-//     A: Application,
-// {
-//     type Target = A;
-//
-//     fn deref(&self) -> &A {
-//         &self.app
-//     }
-// }
-//
-// impl<A> Node<A>
-// where
-//     A: Application,
-// {
-//     fn deref_mut(&mut self) -> &mut A {
-//         &mut self.app
-//     }
-// }
