@@ -1,13 +1,14 @@
 use alloc::{boxed::Box, string::String};
+use alloc::string::ToString;
 
 use crate::error::Result;
 
 use super::Provider;
-use alloc::string::ToString;
 use async_tungstenite::async_std::{connect_async, ConnectStream};
 use async_tungstenite::tungstenite::Message;
 use async_tungstenite::WebSocketStream;
 use futures::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 
 pub struct WsProvider {
     receiver: Option<WebSocketStream<ConnectStream>>,
@@ -21,15 +22,21 @@ impl WsProvider {
 
 #[async_trait::async_trait]
 impl Provider for WsProvider {
-    async fn request(&mut self, _method: &str, params: &str) -> Result<Option<String>> {
-        let url = "ws://127.0.0.1:26657/websocket";
+    async fn request<Req, Resp>(&mut self, _method: &str, params: &Req) -> Result<Option<Resp>>
+        where
+            Req: Serialize + Sync + Send,
+            Resp: for<'de> Deserialize<'de> + Send + Sync,
+    {
+        let url = "ws://localhost:26657/websocket";
+        let p = serde_json::to_value(params)?;
 
         let (mut ws_stream, _) = connect_async(url).await.expect("Failed to connect");
 
-        ws_stream.send(Message::Text(params.to_string())).await?;
+        ws_stream.send(Message::Text(p.to_string())).await?;
         ws_stream.next().await.ok_or("didn't receive anything")??;
 
         self.receiver = Some(ws_stream);
+
         Ok(None)
     }
 

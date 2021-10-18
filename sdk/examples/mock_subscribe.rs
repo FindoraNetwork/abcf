@@ -3,16 +3,14 @@ use abcf_macros::Event as MacroEvent;
 use abcf_sdk::error::*;
 use abcf_sdk::jsonrpc::Request;
 use abcf_sdk::providers::{Provider, WsProvider};
-use core::mem::replace;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use tokio::runtime::Runtime;
 
 pub async fn subscribe<P: Provider>(param: Value, p: &mut P) -> Result<Option<Value>> {
-    let subscribe_req = Request::new_to_str("subscribe", param);
-
-    let resp = p.request("subscribe", &*subscribe_req).await?;
+    let subscribe_req = Request::new_to_value("subscribe", param);
+    let resp = p.request::<Value,String>("subscribe", &subscribe_req).await?;
 
     return if let Some(val) = resp {
         let json = serde_json::from_str::<Value>(&val)?;
@@ -45,9 +43,10 @@ fn main() {
             result: Default::default(),
         };
 
-        for _ in 0..10 {
+
+        for _ in 0..5 {
             let r = provider.receive().await.unwrap().unwrap();
-            println!("{:#?}", r);
+            println!("{:?}", r);
             te.from_abci_event_string(r);
             println!("{:#?}", te);
         }
