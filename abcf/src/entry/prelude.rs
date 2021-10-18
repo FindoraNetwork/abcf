@@ -82,10 +82,16 @@ pub trait EntryCache {
     fn set_cache(&mut self, cache: Self::Sender);
 }
 
-pub trait CacheABCI {
+pub trait CacheModule {
     fn begin_block(&mut self, req: RequestBeginBlock);
     fn deliver_tx(&mut self, req: RequestDeliverTx);
     fn end_block(&mut self, req: RequestEndBlock);
+}
+
+impl CacheModule for () {
+    fn begin_block(&mut self, _req: RequestBeginBlock) {}
+    fn deliver_tx(&mut self, _req: RequestDeliverTx) {}
+    fn end_block(&mut self, _req: RequestEndBlock) {}
 }
 
 pub trait Tree {

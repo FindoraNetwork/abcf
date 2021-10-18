@@ -39,9 +39,11 @@ where
         self.app.set_cache(cache);
 
         std::thread::spawn(move || {
-            // let message = reciever.recv().;
-
-            // This thread is consume sender data to process to cache.
+            smol::block_on(async move {
+                loop {
+                    let message = reciever.recv().await.unwrap();
+                }
+            });
         });
 
         let td_node = tendermint_sys::Node::new(path, self.app)?;

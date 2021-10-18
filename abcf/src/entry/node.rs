@@ -326,7 +326,6 @@ where
             let stateful_cache = Sf::cache(stateful_tx);
             let stateless_cache = Sl::cache(stateless_tx);
 
-
             match result {
                 Ok(v) => {
                     resp.data = v.data;
