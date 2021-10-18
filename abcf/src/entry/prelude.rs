@@ -68,17 +68,24 @@ where
 }
 
 /// Cache
-pub trait Cache {
+#[async_trait::async_trait]
+pub trait CacheSender {
     /// trig abci method begin_block
-    fn begin_block(&mut self, req:RequestBeginBlock);
-    fn deliver_tx(&mut self, req:RequestDeliverTx);
-    fn end_block(&mut self, req:RequestEndBlock);
+    async fn begin_block(&self, req: RequestBeginBlock);
+    async fn deliver_tx(&self, req: RequestDeliverTx);
+    async fn end_block(&self, req: RequestEndBlock);
 }
 
 pub trait EntryCache {
-    type Cache: Cache;
+    type Sender: CacheSender + Send + Sync;
 
-    fn cache(&mut self) -> Self::Cache;
+    fn set_cache(&mut self, cache: Self::Sender);
+}
+
+pub trait CacheABCI {
+    fn begin_block(&mut self, req: RequestBeginBlock);
+    fn deliver_tx(&mut self, req: RequestDeliverTx);
+    fn end_block(&mut self, req: RequestEndBlock);
 }
 
 pub trait Tree {

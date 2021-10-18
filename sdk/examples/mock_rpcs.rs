@@ -1,8 +1,8 @@
+use abcf::RPCResponse;
 use abcf_sdk::error::{Error, Result};
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::providers::Provider;
 use serde::{Deserialize, Serialize};
-use abcf::RPCResponse;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GetAccountRequest {

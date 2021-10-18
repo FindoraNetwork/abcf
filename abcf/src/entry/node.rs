@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     context::TContext,
-    prelude::{Application, RPCs, Tree, Cache},
+    prelude::{Application, CacheSender, EntryCache, RPCs, Tree},
     AContext, EventContext, EventContextImpl, RContext,
 };
 
@@ -25,32 +25,46 @@ where
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
-    C: Cache
+    C: CacheSender,
 {
     stateless: Sl,
     stateful: Sf,
     marker_d: PhantomData<D>,
     module: M,
     events: EventContextImpl,
-    cache: C,
+    cache_sender: Option<C>,
 }
 
+impl<D, Sl, Sf, M, C> EntryCache for Node<D, Sl, Sf, M, C>
+where
+    D: Digest,
+    Sl: Storage + StorageTransaction + Tree,
+    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
+    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    C: CacheSender + Send + Sync,
+{
+    type Sender = C;
+
+    fn set_cache(&mut self, sender: Self::Sender) {
+        self.cache_sender = Some(sender)
+    }
+}
 impl<D, Sl, Sf, M, C> Node<D, Sl, Sf, M, C>
 where
     D: Digest,
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
-    C: Cache,
+    C: CacheSender,
 {
-    pub fn new(stateless: Sl, stateful: Sf, module: M, cache: C) -> Self {
+    pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
         Self {
             stateful,
             stateless,
             module,
             marker_d: PhantomData,
             events: EventContextImpl::default(),
-            cache,
+            cache_sender: None,
         }
     }
 
@@ -106,7 +120,7 @@ where
     Sl: Storage + StorageTransaction + Tree,
     Sf: Storage + StorageTransaction + Tree + Merkle<D>,
     M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
-    C: Cache + Send + Sync,
+    C: CacheSender + Send + Sync,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -229,7 +243,6 @@ where
                 resp.data = v.data;
                 resp.gas_wanted = v.gas_wanted;
                 resp.gas_used = v.gas_used;
-
             }
             Err(e) => {
                 resp.code = e.error.code();
@@ -284,7 +297,9 @@ where
 
         resp.events = events;
 
-        self.cache.begin_block(req);
+        if let Some(cache) = &self.cache_sender {
+            cache.begin_block(req).await;
+        }
 
         resp
     }
@@ -303,35 +318,43 @@ where
             stateful: &mut stateful_tx,
         };
 
-        let result = self.module.deliver_tx(&mut ctx, req.clone()).await;
+        let mut is_ok = false;
 
-        let stateful_cache = Sf::cache(stateful_tx);
-        let stateless_cache = Sl::cache(stateless_tx);
+        {
+            let result = self.module.deliver_tx(&mut ctx, req.clone()).await;
 
-        match result {
-            Ok(v) => {
-                resp.data = v.data;
-                resp.gas_wanted = v.gas_wanted;
-                resp.gas_used = v.gas_used;
+            let stateful_cache = Sf::cache(stateful_tx);
+            let stateless_cache = Sl::cache(stateless_tx);
 
-                self.stateful.execute(stateful_cache);
-                self.stateless.execute(stateless_cache);
-            }
-            Err(e) => {
-                resp.code = e.error.code();
-                resp.log = e.error.message();
-                resp.codespace = e.namespace;
+
+            match result {
+                Ok(v) => {
+                    resp.data = v.data;
+                    resp.gas_wanted = v.gas_wanted;
+                    resp.gas_used = v.gas_used;
+
+                    self.stateful.execute(stateful_cache);
+                    self.stateless.execute(stateless_cache);
+
+                    is_ok = true;
+                }
+                Err(e) => {
+                    resp.code = e.error.code();
+                    resp.log = e.error.message();
+                    resp.codespace = e.namespace;
+                }
             }
         }
-
-        // TODO: add config for module to add or drop events.
 
         let events = mem::replace(deliver_tx_events, Vec::new());
 
         resp.events = events;
 
-        self.cache.deliver_tx(req);
-
+        if is_ok {
+            if let Some(sender) = &self.cache_sender {
+                sender.deliver_tx(req).await;
+            }
+        }
         resp
     }
 
@@ -355,7 +378,9 @@ where
 
         resp.events = events;
 
-        self.cache.end_block(req);
+        if let Some(cache) = &self.cache_sender {
+            cache.end_block(req).await;
+        }
 
         resp
     }

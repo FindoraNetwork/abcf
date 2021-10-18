@@ -9,8 +9,11 @@ build = "build.rs"
 [dependencies]
 tendermint-sys = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
 tm-abci = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
+tm-protos = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
 abcf = { path = "../abcf" }
 bs3 = { git = "ssh://git@github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.0", features = ["nightly", "cbor"] }
+smol = { version = "1.2.5" }
+async-trait = { version = "0.1.50" }
 
 [dev-dependencies]
 # abcf-macros = { path = "../macros" }

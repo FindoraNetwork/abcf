@@ -5,4 +5,4 @@ mod context;
 pub use context::{AContext, EventContext, EventContextImpl, RContext, TContext};
 
 mod prelude;
-pub use prelude::{Application, RPCs, Tree, Cache, EntryCache};
+pub use prelude::{Application, CacheSender, EntryCache, RPCs, Tree};
