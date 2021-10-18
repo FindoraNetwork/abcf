@@ -91,7 +91,11 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
         prove: false,
     }};
 
-    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
+    let result: Option<endpoint::abci_query::Response> = p.request("abci_query", &abci_query_req).await?;
+    if result.is_none() {{
+      return Err(Error::ErrorString("result is none".to_string()));
+    }}
+    let result = result.unwrap();
     abcf::log::debug!("Recv RPC response {{:?}}", result);
 
     if result.response.code == 0 {{

@@ -11,7 +11,7 @@ pub struct HttpPostProvider {}
 
 #[async_trait::async_trait]
 impl Provider for HttpPostProvider {
-    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Resp>
+    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Option<Resp>>
     where
         Req: Serialize + Sync + Send,
         Resp: for<'de> Deserialize<'de> + Send + Sync,
@@ -29,7 +29,7 @@ impl Provider for HttpPostProvider {
             .await?;
 
         if let Some(e) = resp.result {
-            Ok(e)
+            Ok(Some(e))
         } else if let Some(e) = resp.error {
             Err(Error::RPCError(e))
         } else {
@@ -47,7 +47,7 @@ pub struct HttpGetProvider {}
 
 #[async_trait::async_trait]
 impl Provider for HttpGetProvider {
-    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Resp>
+    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Option<Resp>>
     where
         Req: Serialize + Sync + Send,
         Resp: for<'de> Deserialize<'de> + Send + Sync,
@@ -73,7 +73,7 @@ impl Provider for HttpGetProvider {
             .await?;
 
         if let Some(e) = resp.result {
-            Ok(e)
+            Ok(Some(e))
         } else if let Some(e) = resp.error {
             Err(Error::RPCError(e))
         } else {
