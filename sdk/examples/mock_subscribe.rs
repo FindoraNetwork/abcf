@@ -29,7 +29,8 @@ pub struct TestEvent {
 
 fn main() {
     let rt = Runtime::new().unwrap();
-    let query = json!(["tm.event='NewBlock'"]);
+    // let query = json!(["tm.event='NewBlock'"]);
+    let query = json!(["SendEvent.pub_key='123'"]);
 
     let mut provider = WsProvider::new();
 
@@ -45,10 +46,19 @@ fn main() {
 
 
         for _ in 0..5 {
-            let r = provider.receive().await.unwrap().unwrap();
+            let r = provider.receive().await.unwrap();
             println!("{:?}", r);
-            te.from_abci_event_string(r);
-            println!("{:#?}", te);
+            // te.from_abci_event_string(r);
+            // println!("{:#?}", te);
         }
     });
+}
+
+#[test]
+fn t(){
+    let bytes = [123,118_u8, 58, 49, 48,125];
+
+    let b = serde_json::from_slice::<Value>(bytes.to_vec().as_slice());
+
+    println!("{:#?}",b);
 }
