@@ -563,7 +563,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     #(
                         let tx = abcf::module::types::RequestCheckTx {
                             ty: _req.r#type,
-                            tx: req_tx_ref.into(),
+                            tx: req_tx_ref.try_into()?,
                         };
 
                         let mut ctx = abcf::manager::TContext {
@@ -648,7 +648,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut data_map = BTreeMap::new();
 
                     #(
-                        let tx = abcf::module::types::RequestDeliverTx { tx: req_tx_ref.into() };
+                        let tx = abcf::module::types::RequestDeliverTx { tx: req_tx_ref.try_into()? };
 
                         let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
