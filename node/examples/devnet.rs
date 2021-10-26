@@ -12,14 +12,18 @@ use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
 use abcf::manager::TContext;
+use abcf::module::EventValue;
 use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct SendEvent {
+    #[abcf(index)]
     pub_key: String,
     send_amount: Option<u64>,
 }
+
+
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct MockModule {

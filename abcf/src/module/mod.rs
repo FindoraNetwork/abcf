@@ -9,7 +9,7 @@ mod rpcs;
 pub use rpcs::{RPCs, Response as RPCResponse};
 
 mod events;
-pub use events::{Event, EventAttr};
+pub use events::{Event, EventAttr, EventValue};
 
 mod storages;
 pub use storages::{Merkle, Storage, StorageTransaction};

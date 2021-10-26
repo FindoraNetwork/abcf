@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use abcf::module::Event;
+use abcf::module::EventValue;
 use abcf_macros::Event as MacroEvent;
 use abcf_sdk::error::*;
 use abcf_sdk::jsonrpc::Request;
@@ -48,17 +50,7 @@ fn main() {
         for _ in 0..5 {
             let r = provider.receive().await.unwrap();
             println!("{:?}", r);
-            // te.from_abci_event_string(r);
-            // println!("{:#?}", te);
         }
     });
 }
 
-#[test]
-fn t(){
-    let bytes = [123,118_u8, 58, 49, 48,125];
-
-    let b = serde_json::from_slice::<Value>(bytes.to_vec().as_slice());
-
-    println!("{:#?}",b);
-}
