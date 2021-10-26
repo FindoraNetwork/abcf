@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
+use abcf::{Application, Event, ModuleError, RPCResponse, StatefulBatch, StatelessBatch};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
@@ -117,6 +117,7 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
 
 impl TryInto<MockTransaction> for &SimpleNodeTransaction {
     type Error = abcf::Error;
+
 
     fn try_into(self) -> Result<MockTransaction, Self::Error> {
         Ok(MockTransaction {})
