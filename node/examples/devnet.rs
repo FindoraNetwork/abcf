@@ -116,7 +116,8 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
 }
 
 impl TryInto<MockTransaction> for &SimpleNodeTransaction {
-    type Error = ModuleError;
+    type Error = abcf::Error;
+
 
     fn try_into(self) -> Result<MockTransaction, Self::Error> {
         Ok(MockTransaction {})

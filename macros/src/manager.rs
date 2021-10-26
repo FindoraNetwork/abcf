@@ -561,9 +561,14 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut data_map = BTreeMap::new();
 
                     #(
+                        let name = self.#key_item.metadata().name.to_string();
                         let tx = abcf::module::types::RequestCheckTx {
                             ty: _req.r#type,
-                            tx: req_tx_ref.try_into()?,
+                            tx: req_tx_ref.try_into()
+                            .map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?,
                         };
 
                         let mut ctx = abcf::manager::TContext {
@@ -574,7 +579,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             stateless: &mut context.stateless.#key_item,
                             calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
-                        let name = self.#key_item.metadata().name.to_string();
                         let result = self.#key_item
                             .check_tx(&mut ctx, &tx)
                             .await
@@ -648,7 +652,15 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut data_map = BTreeMap::new();
 
                     #(
-                        let tx = abcf::module::types::RequestDeliverTx { tx: req_tx_ref.try_into()? };
+                        let name = self.#key_item.metadata().name.to_string();
+                        let tx = abcf::module::types::RequestDeliverTx {
+                            tx: req_tx_ref
+                                .try_into()
+                                .map_err(|e| abcf::ModuleError {
+                                    namespace: String::from(name.clone()),
+                                    error: e,
+                                })?
+                        };
 
                         let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
@@ -658,7 +670,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             stateless: &mut context.stateless.#key_item,
                             calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
-                        let name = self.#key_item.metadata().name.to_string();
                         let result = self.#key_item
                             .deliver_tx(&mut ctx, &tx)
                             .await
