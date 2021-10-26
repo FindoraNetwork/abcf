@@ -41,7 +41,9 @@ pub fn event(input: TokenStream) -> TokenStream {
     let expanded = quote! {
 
         impl abcf::Event for #struct_name {
+
             fn to_abci_event(&self) -> abcf::Result<abcf::tm_protos::abci::Event> {
+                use abcf::module::EventValue;
 
                 let mut attributes = Vec::new();
 
