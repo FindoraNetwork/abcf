@@ -13,10 +13,3 @@ pub async fn send_tx<P: Provider, T: ToBytes>(
     log::debug!("Send object is {}", j);
     p.request(&method, &j).await
 }
-
-pub async fn query_tx<P: Provider>(mut p: P, method: &str, hash: &str) -> Result<Option<Value>> {
-    let hash = String::from("0x") + hash;
-    let j = json!({ "hash": hash });
-    log::debug!("Send object is {}", j);
-    p.request(&method, &j).await
-}
