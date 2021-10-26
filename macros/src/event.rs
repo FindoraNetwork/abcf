@@ -48,7 +48,7 @@ pub fn event(input: TokenStream) -> TokenStream {
                 #(
                     let key_byte = #key_str_vec.as_bytes().to_vec();
 
-                    let value_byte = serde_json::to_vec(&self.#key_vec)?;
+                    let value_byte = self.#key_vec.to_value_bytes()?;
                     let index = #index_vec;
 
                     let a = abcf::abci::EventAttribute{

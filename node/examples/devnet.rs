@@ -7,14 +7,23 @@ use std::marker::PhantomData;
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCResponse};
+use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
+use abcf::manager::TContext;
+use abcf::module::EventValue;
+use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
-pub struct Event1 {}
+pub struct SendEvent {
+    #[abcf(index)]
+    pub_key: String,
+    send_amount: Option<u64>,
+}
+
+
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct MockModule {
@@ -47,6 +56,29 @@ pub mod call_rpc {
 #[abcf::application]
 impl Application for MockModule {
     type Transaction = MockTransaction;
+
+    async fn check_tx(
+        &mut self,
+        context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        _req: &RequestCheckTx<Self::Transaction>,
+    ) -> abcf::Result<ResponseCheckTx> {
+        let e = SendEvent{ pub_key: "123".to_string(), send_amount: Some(3) };
+        context.events.emmit(e)?;
+        
+        Ok(Default::default())
+    }
+
+    async fn deliver_tx(
+        &mut self,
+        context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        req: &RequestDeliverTx<Self::Transaction>,
+    ) -> abcf::Result<ResponseDeliverTx> {
+
+        let e = SendEvent{ pub_key: "123".to_string(), send_amount: Some(1) };
+        context.events.emmit(e)?;
+
+        Ok(Default::default())
+    }
 }
 
 /// Module's methods.

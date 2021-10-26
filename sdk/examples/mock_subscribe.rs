@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use abcf::module::Event;
+use abcf::module::EventValue;
 use abcf_macros::Event as MacroEvent;
 use abcf_sdk::error::*;
 use abcf_sdk::jsonrpc::Request;
@@ -29,7 +31,8 @@ pub struct TestEvent {
 
 fn main() {
     let rt = Runtime::new().unwrap();
-    let query = json!(["tm.event='NewBlock'"]);
+    // let query = json!(["tm.event='NewBlock'"]);
+    let query = json!(["SendEvent.pub_key='123'"]);
 
     let mut provider = WsProvider::new();
 
@@ -45,10 +48,9 @@ fn main() {
 
 
         for _ in 0..5 {
-            let r = provider.receive().await.unwrap().unwrap();
+            let r = provider.receive().await.unwrap();
             println!("{:?}", r);
-            te.from_abci_event_string(r);
-            println!("{:#?}", te);
         }
     });
 }
+
