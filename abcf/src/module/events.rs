@@ -28,15 +28,13 @@ pub trait EventValue {
     fn to_value_bytes(&self) -> Result<Vec<u8>>;
 }
 
-impl<T:serde::Serialize> EventValue for T  {
+impl<T: serde::Serialize> EventValue for T {
     fn to_value_bytes(&self) -> Result<Vec<u8>> {
         let v = serde_json::to_value(self)?;
-        Ok(
-            match v {
-                Value::Null => Vec::new(),
-                Value::String(s) => s.as_bytes().to_vec(),
-                _ => serde_json::to_vec(&v)?
-            }
-        )
+        Ok(match v {
+            Value::Null => Vec::new(),
+            Value::String(s) => s.as_bytes().to_vec(),
+            _ => serde_json::to_vec(&v)?,
+        })
     }
 }

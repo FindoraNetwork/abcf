@@ -1,8 +1,8 @@
+use abcf::RPCResponse;
 use abcf_sdk::error::{Error, Result};
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::providers::Provider;
 use serde::{Deserialize, Serialize};
-use abcf::RPCResponse;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GetAccountRequest {
@@ -29,7 +29,8 @@ pub async fn get_account<P: Provider>(
         prove: false,
     };
 
-    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?.unwrap();
+    let result: endpoint::abci_query::Response =
+        p.request("abci_query", &abci_query_req).await?.unwrap();
 
     if result.response.code == 0 {
         let res = serde_json::from_slice(&result.response.value)?;

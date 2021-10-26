@@ -1,5 +1,5 @@
-use alloc::{boxed::Box, string::String};
 use alloc::string::ToString;
+use alloc::{boxed::Box, string::String};
 
 use crate::error::Result;
 
@@ -23,9 +23,9 @@ impl WsProvider {
 #[async_trait::async_trait]
 impl Provider for WsProvider {
     async fn request<Req, Resp>(&mut self, _method: &str, params: &Req) -> Result<Option<Resp>>
-        where
-            Req: Serialize + Sync + Send,
-            Resp: for<'de> Deserialize<'de> + Send + Sync,
+    where
+        Req: Serialize + Sync + Send,
+        Resp: for<'de> Deserialize<'de> + Send + Sync,
     {
         let url = "ws://localhost:26657/websocket";
         let p = serde_json::to_value(params)?;

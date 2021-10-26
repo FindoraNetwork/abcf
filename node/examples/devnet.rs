@@ -1,19 +1,19 @@
 #![feature(generic_associated_types)]
 
-use std::convert::TryInto;
+use std::convert::TryFrom;
 use std::marker::PhantomData;
 
+use abcf::manager::TContext;
+use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 /// Running in shell
 ///
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, ModuleError, RPCResponse, StatefulBatch, StatelessBatch};
+use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
-use abcf::manager::TContext;
-use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -22,8 +22,6 @@ pub struct SendEvent {
     pub_key: String,
     send_amount: Option<u64>,
 }
-
-
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct MockModule {
@@ -62,9 +60,12 @@ impl Application for MockModule {
         context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> abcf::Result<ResponseCheckTx> {
-        let e = SendEvent{ pub_key: "123".to_string(), send_amount: Some(3) };
+        let e = SendEvent {
+            pub_key: "123".to_string(),
+            send_amount: Some(3),
+        };
         context.events.emmit(e)?;
-        
+
         Ok(Default::default())
     }
 
@@ -73,8 +74,10 @@ impl Application for MockModule {
         context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> abcf::Result<ResponseDeliverTx> {
-
-        let e = SendEvent{ pub_key: "123".to_string(), send_amount: Some(1) };
+        let e = SendEvent {
+            pub_key: "123".to_string(),
+            send_amount: Some(1),
+        };
         context.events.emmit(e)?;
 
         Ok(Default::default())
@@ -115,11 +118,10 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
     }
 }
 
-impl TryInto<MockTransaction> for &SimpleNodeTransaction {
+impl TryFrom<&SimpleNodeTransaction> for MockTransaction {
     type Error = abcf::Error;
 
-
-    fn try_into(self) -> Result<MockTransaction, Self::Error> {
+    fn try_from(_: &SimpleNodeTransaction) -> Result<Self, Self::Error> {
         Ok(MockTransaction {})
     }
 }

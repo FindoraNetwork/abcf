@@ -548,6 +548,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use abcf::Module;
                     use abcf::Error;
                     use abcf::Application;
+                    use std::convert::TryInto;
 
                     let req_tx =
                         #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
@@ -638,6 +639,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use abcf::Module;
                     use abcf::Error;
                     use abcf::Application;
+                    use std::convert::TryInto;
 
                     let req_tx =
                         #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
