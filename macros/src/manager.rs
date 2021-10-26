@@ -541,7 +541,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                         #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
                         #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
                     >,
-                    _req: abcf::abci::RequestCheckTx,
+                    _req: abcf::tm_protos::abci::RequestCheckTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
                     use abcf::module::FromBytes;
                     use std::collections::BTreeMap;
@@ -626,7 +626,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                         #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
                         #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
                     >,
-                    _req: abcf::abci::RequestDeliverTx,
+                    _req: abcf::tm_protos::abci::RequestDeliverTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
 
                     use abcf::module::FromBytes;

@@ -41,7 +41,7 @@ pub fn event(input: TokenStream) -> TokenStream {
     let expanded = quote! {
 
         impl abcf::Event for #struct_name {
-            fn to_abci_event(&self) -> abcf::Result<abcf::abci::Event> {
+            fn to_abci_event(&self) -> abcf::Result<abcf::tm_protos::abci::Event> {
 
                 let mut attributes = Vec::new();
 
@@ -51,7 +51,7 @@ pub fn event(input: TokenStream) -> TokenStream {
                     let value_byte = self.#key_vec.to_value_bytes()?;
                     let index = #index_vec;
 
-                    let a = abcf::abci::EventAttribute{
+                    let a = abcf::tm_protos::abci::EventAttribute{
                         key: key_byte,
                         value: value_byte,
                         index,
@@ -60,7 +60,7 @@ pub fn event(input: TokenStream) -> TokenStream {
 
                 )*
 
-                Ok(abcf::abci::Event {
+                Ok(abcf::tm_protos::abci::Event {
                     r#type: self.name().to_string(),
                     attributes,
                 })
@@ -70,7 +70,7 @@ pub fn event(input: TokenStream) -> TokenStream {
                 #name
             }
 
-            fn from_abci_event(&mut self, e: abcf::abci::Event) -> abcf::Result<()> {
+            fn from_abci_event(&mut self, e: abcf::tm_protos::abci::Event) -> abcf::Result<()> {
                 Ok(())
             }
 
