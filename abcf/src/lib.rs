@@ -21,7 +21,7 @@ pub use error::{Error, ModuleError, ModuleResult, Result};
 
 pub use abcf_macros::*;
 
-pub use tm_protos::abci;
+pub use tm_protos;
 
 pub use bs3;
 pub use digest;
