@@ -1,5 +1,6 @@
 #![feature(generic_associated_types)]
 
+use std::convert::TryInto;
 use std::marker::PhantomData;
 
 /// Running in shell
@@ -7,12 +8,11 @@ use std::marker::PhantomData;
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
+use abcf::{Application, Event, ModuleError, RPCResponse, StatefulBatch, StatelessBatch};
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
 use abcf::manager::TContext;
-use abcf::module::EventValue;
 use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 
 /// Module's Event
@@ -71,7 +71,7 @@ impl Application for MockModule {
     async fn deliver_tx(
         &mut self,
         context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
-        req: &RequestDeliverTx<Self::Transaction>,
+        _req: &RequestDeliverTx<Self::Transaction>,
     ) -> abcf::Result<ResponseDeliverTx> {
 
         let e = SendEvent{ pub_key: "123".to_string(), send_amount: Some(1) };
@@ -115,9 +115,11 @@ impl abcf::module::FromBytes for SimpleNodeTransaction {
     }
 }
 
-impl Into<MockTransaction> for &SimpleNodeTransaction {
-    fn into(self) -> MockTransaction {
-        MockTransaction {}
+impl TryInto<MockTransaction> for &SimpleNodeTransaction {
+    type Error = ModuleError;
+
+    fn try_into(self) -> Result<MockTransaction, Self::Error> {
+        Ok(MockTransaction {})
     }
 }
 

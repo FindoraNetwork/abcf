@@ -29,7 +29,7 @@ pub async fn get_account<P: Provider>(
         prove: false,
     };
 
-    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?;
+    let result: endpoint::abci_query::Response = p.request("abci_query", &abci_query_req).await?.unwrap();
 
     if result.response.code == 0 {
         let res = serde_json::from_slice(&result.response.value)?;
