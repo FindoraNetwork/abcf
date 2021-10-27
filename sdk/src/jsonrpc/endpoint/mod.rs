@@ -1,5 +1,7 @@
 pub mod abci_query;
+pub mod event;
 pub mod subscribe;
+pub mod tx;
 pub mod unsubscribe;
 
 #[derive(Debug)]
@@ -29,6 +31,14 @@ where
     base64::decode(&string).map_err(serde::de::Error::custom)
 }
 
+pub fn deserialize_hex_bytes<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string = Option::<String>::deserialize(deserializer)?.unwrap_or_default();
+    hex::decode(string).map_err(serde::de::Error::custom)
+}
+
 pub fn deserialize_string<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
@@ -36,4 +46,20 @@ where
     let bytes = Vec::<u8>::deserialize(deserializer)?;
     let string = String::from_utf8(bytes).map_err(serde::de::Error::custom)?;
     Ok(string)
+}
+
+pub fn deserialize_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string = Option::<String>::deserialize(deserializer)?.unwrap_or_default();
+    i64::from_str_radix(&string, 10).map_err(serde::de::Error::custom)
+}
+
+pub fn deserialize_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string = Option::<String>::deserialize(deserializer)?.unwrap_or_default();
+    u64::from_str_radix(&string, 10).map_err(serde::de::Error::custom)
 }
