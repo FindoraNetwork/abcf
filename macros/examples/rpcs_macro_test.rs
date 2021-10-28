@@ -40,6 +40,18 @@ impl RpcTest {
         };
         RPCResponse::new(resp)
     }
+
+    pub async fn get_account1(
+        &mut self,
+        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        params: GetAccountRequest,
+    ) -> RPCResponse<GetAccountResponse> {
+        let resp = GetAccountResponse {
+            name: "jack".to_string(),
+            code: params.code,
+        };
+        RPCResponse::new(resp)
+    }
 }
 
 pub mod call_rpc {
