@@ -1,10 +1,10 @@
 use proc_macro::TokenStream;
 use quote::*;
 use std::{env, fs::File, io::Write, ops::Deref, path::Path};
-use syn::{Arm, PathArguments};
 use syn::{
     parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
 };
+use syn::{Arm, PathArguments};
 
 ///
 ///  Distribute the user-defined functions in the call function as a mapping

@@ -1,6 +1,6 @@
+use abcf::module::EventValue;
 use abcf::Event;
 use serde::{Deserialize, Serialize};
-use abcf::module::EventValue;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
 pub struct E {
