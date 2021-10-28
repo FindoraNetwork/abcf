@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::*;
 use std::{env, fs::File, io::Write, ops::Deref, path::Path};
-use syn::PathArguments;
+use syn::{Arm, PathArguments};
 use syn::{
     parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
 };
@@ -25,12 +25,15 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut fn_idents = vec![];
     let mut return_names = vec![];
     let mut is_empty_impl = true;
+    let mut rpc_call_match_arms = vec![];
 
     parsed.items.iter().for_each(|item| match item {
         ImplItem::Method(data) => {
-            let fn_name = data.sig.ident.clone().to_string();
-            fn_names.push(fn_name);
-            fn_idents.push(data.sig.ident.clone());
+            let fn_ident = data.sig.ident.clone();
+            let fn_name = fn_ident.to_string();
+
+            fn_names.push(fn_name.clone());
+            fn_idents.push(fn_ident.clone());
 
             match &data.sig.output {
                 ReturnType::Default => return_names.push(String::from("Result<()>")),
@@ -49,7 +52,25 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
                         p.path.segments.iter().for_each(|seg| {
                             let param_ident = seg.ident.clone();
                             param_names.push(param_ident.to_string());
-                            param_idents.push(param_ident);
+                            param_idents.push(param_ident.clone());
+
+                            let rcma:Arm = parse_quote! {
+                                #fn_name => {
+                                    let param = serde_json::from_value::<#param_ident>(params)?;
+
+                                    let response = self.#fn_ident(ctx, param).await;
+
+                                    if response.code != 0 {
+                                        Err(abcf::Error::new_rpc_error(response.code, response.message))
+                                    } else if let Some(v) = response.data {
+                                        Ok(Some(serde_json::to_value(v)?))
+                                    } else {
+                                        Ok(None)
+                                    }
+                                }
+                            };
+
+                            rpc_call_match_arms.push(rcma);
                         });
                     }
                     _ => {}
@@ -157,21 +178,7 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
                     match method {
-                        #(
-                            #fn_names
-                        )* => {#(
-                            let param = serde_json::from_value::<#param_idents>(params)?;
-
-                            let response = self.#fn_idents(ctx, param).await;
-
-                            if response.code != 0 {
-                                Err(abcf::Error::new_rpc_error(response.code, response.message))
-                            } else if let Some(v) = response.data {
-                                Ok(Some(serde_json::to_value(v)?))
-                            } else {
-                                Ok(None)
-                            }
-                        )*}
+                        #(#rpc_call_match_arms)*
                         _ => {Err(abcf::Error::TempOnlySupportRPC)}
                     }
                 }
