@@ -1,0 +1,43 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rustfmt
+    - uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: -- --check
+    - uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --all-features
+    - uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all-features
+    - uses: actions-rs/cargo@v1
+      with:
+        command: doc
+        args:  --no-deps -p bs3 -p abcf -p abcf-macros -p abcf-node -p abcf-sdk --all-features
+    - uses: crazy-max/ghaction-github-pages@v2
+      with:
+        target_branch: gh-pages
+        build_dir: target/doc
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
