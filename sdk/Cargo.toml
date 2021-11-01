@@ -16,7 +16,6 @@ rand = "0.8.4"
 futures = {version = "0.3", optional = true }
 reqwest = { version = "0.11", features = ["json"], optional = true }
 async-tungstenite = { version = "0.14.0", features = ["async-std-runtime"], optional = true }
-parking_lot = "0.11.1"
 tm-protos = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 log = "0.4.14"
 
