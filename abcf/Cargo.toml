@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tm-protos = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
-tm-abci = { git = "ssh://git@github.com/FindoraNetwork/tendermint-sys.git" }
+tm-protos = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
+tm-abci = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 async-trait = { version = "0.1.50" }
 serde = { version = "1.0", features = ["derive", "alloc"], default-features = false }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 log = "0.4.14"
 abcf-macros = { path = "../macros" }
-bs3 = { git = "ssh://git@github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.0", features = ["nightly", "cbor"] }
+bs3 = { git = "https://github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.0", features = ["nightly", "cbor"] }
 digest = "0.9.0"
 
 [dev-dependencies]
