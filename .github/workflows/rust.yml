@@ -34,7 +34,7 @@ jobs:
     - uses: actions-rs/cargo@v1
       with:
         command: doc
-        args:  --no-deps -p bs3 -p abcf -p abcf-macros -p tendermint-sys -p abcf-node -p abcf-sdk --all-features
+        args:  --no-deps -p bs3 -p abcf -p abcf-macros -p tendermint-sys -p tm-protos -p abcf-node -p abcf-sdk --all-features
     - uses: crazy-max/ghaction-github-pages@v2
       with:
         target_branch: gh-pages
