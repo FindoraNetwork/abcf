@@ -15,7 +15,7 @@ pub struct RContext<'a, Sl, Sf> {
 }
 
 pub struct AContext<'a, Sl, Sf> {
-    // pub calls: CallContext<'a>,
+    pub calls: CallContext<'a>,
     pub events: EventContext<'a>,
     pub stateless: &'a mut Sl,
     pub stateful: &'a mut Sf,

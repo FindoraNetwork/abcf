@@ -619,6 +619,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         self.#key_item.begin_block(&mut ctx, &_req).await;
                     )*
@@ -716,6 +717,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let resp = self.#key_item.end_block(&mut ctx, &_req).await;
 
