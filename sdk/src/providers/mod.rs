@@ -18,7 +18,11 @@ use crate::error::Result;
 
 #[async_trait::async_trait]
 pub trait Provider {
-    async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Option<Resp>>
+    async fn request<Req, Resp>(
+        &mut self,
+        method: &str,
+        params: Option<&Req>,
+    ) -> Result<Option<Resp>>
     where
         Req: Serialize + Send + Sync,
         Resp: for<'de> Deserialize<'de> + Send + Sync;
