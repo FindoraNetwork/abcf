@@ -142,7 +142,8 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
     parsed.generics.params.push(param_s);
 
-    let param_d: GenericParam = parse_quote!(D: abcf::digest::Digest + core::marker::Sync + core::marker::Send);
+    let param_d: GenericParam =
+        parse_quote!(D: abcf::digest::Digest + core::marker::Sync + core::marker::Send);
     parsed.generics.params.push(param_d);
 
     let mut generics_names = Vec::new();

@@ -120,12 +120,10 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                     let origin_ty = f.ty.clone();
                     stateless_arg.push(target_field.ident.clone().unwrap());
-                    target_field.ty =
-                        parse_quote!(abcf::bs3::SnapshotableStorage<S, abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
+                    target_field.ty = parse_quote!(abcf::bs3::SnapshotableStorage<S, abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
                     stateless.push(target_field.clone());
 
-                    target_field.ty =
-                        parse_quote!(abcf::bs3::Transaction<'a, S,  abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
+                    target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S,  abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
                     stateless_tx.push(target_field);
 
                     is_memory = false;
@@ -209,10 +207,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         .params
         .push(parse_quote!(S: abcf::bs3::Store + 'static));
 
-    parsed
-        .generics
-        .params
-        .push(parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send));
+    parsed.generics.params.push(
+        parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send),
+    );
 
     let mut generics_names = Vec::new();
     let mut lifetime_names = Vec::new();
