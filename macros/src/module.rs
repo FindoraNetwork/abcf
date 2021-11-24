@@ -5,8 +5,42 @@ use quote::quote;
 use std::mem::replace;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
-    FnArg, GenericParam, ItemImpl, ItemStruct, Lit, MetaNameValue, Token,
+    FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token,
 };
+
+#[derive(Debug)]
+struct FieldParsedMetaName {
+    pub merkle: LitStr,
+}
+
+impl Parse for FieldParsedMetaName {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let parsed = Punctuated::<MetaNameValue, Token![,]>::parse_terminated(input)?;
+
+        let mut merkle = None;
+
+        for mnv in parsed {
+            let key = mnv
+                .path
+                .get_ident()
+                .ok_or(input.error("no attr key"))?
+                .to_string();
+            match key.as_str() {
+                "merkle" => {
+                    merkle = match mnv.lit {
+                        Lit::Str(s) => Some(s),
+                        _ => None,
+                    }
+                }
+                _ => return Err(input.error(format_args!("key: {} no support", key))),
+            }
+        }
+
+        Ok(Self {
+            merkle: merkle.ok_or(input.error("name must set"))?,
+        })
+    }
+}
 
 #[derive(Debug)]
 struct PunctuatedMetaNameValue {
@@ -86,24 +120,35 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                     let origin_ty = f.ty.clone();
                     stateless_arg.push(target_field.ident.clone().unwrap());
-                    target_field.ty = parse_quote!(abcf::bs3::SnapshotableStorage<S, #origin_ty>);
+                    target_field.ty =
+                        parse_quote!(abcf::bs3::SnapshotableStorage<S, abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
                     stateless.push(target_field.clone());
 
-                    target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S, #origin_ty>);
+                    target_field.ty =
+                        parse_quote!(abcf::bs3::Transaction<'a, S,  abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
                     stateless_tx.push(target_field);
 
                     is_memory = false;
                 } else if attr.path.is_ident("stateful") {
+                    let parsed: FieldParsedMetaName = attr.parse_args().expect("parsed error");
+
+                    let merkle = parsed
+                        .merkle
+                        .parse_with(syn::Path::parse_mod_style)
+                        .expect("must be path");
+
                     let mut target_field = f.clone();
 
                     stateful_value.push(target_field.clone());
 
                     let origin_ty = f.ty.clone();
                     stateful_arg.push(target_field.ident.clone().unwrap());
-                    target_field.ty = parse_quote!(abcf::bs3::SnapshotableStorage<S, #origin_ty>);
+                    target_field.ty =
+                        parse_quote!(abcf::bs3::SnapshotableStorage<S, #merkle<D>, #origin_ty>);
                     stateful.push(target_field.clone());
 
-                    target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S, #origin_ty>);
+                    target_field.ty =
+                        parse_quote!(abcf::bs3::Transaction<'a, S, #merkle<D>, #origin_ty>);
                     stateful_tx.push(target_field);
 
                     is_memory = false;
@@ -163,6 +208,11 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         .generics
         .params
         .push(parse_quote!(S: abcf::bs3::Store + 'static));
+
+    parsed
+        .generics
+        .params
+        .push(parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send));
 
     let mut generics_names = Vec::new();
     let mut lifetime_names = Vec::new();
@@ -401,21 +451,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     };
     sf_storage_tx_impl.generics = parsed.generics.clone();
 
-    let mut stateful_merkle: ItemImpl = parse_quote! {
-        impl<S> abcf::module::Merkle<D> for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
+    let stateful_merkle: ItemImpl = parse_quote! {
+        impl<S, D> abcf::module::Merkle<D> for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
         where
             S: abcf::bs3::Store,
+            D: abcf::digest::Digest + core::marker::Sync + core::marker::Send,
         {
             fn root(&self) -> Result<abcf::digest::Output<D>> {
                 Ok(Default::default())
             }
         }
     };
-    stateful_merkle.generics = parsed.generics.clone();
-    stateful_merkle
-        .generics
-        .params
-        .push(parse_quote!(D: abcf::digest::Digest));
 
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {

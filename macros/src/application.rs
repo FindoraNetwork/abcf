@@ -18,6 +18,10 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let param_s: GenericParam = parse_quote!(S: abcf::bs3::Store);
     parsed.generics.params.push(param_s);
+
+    let param_d: GenericParam = parse_quote!(D: abcf::digest::Digest + core::marker::Sync + core::marker::Send);
+    parsed.generics.params.push(param_d);
+
     let mut generics_names = Vec::new();
     let mut lifetime_names = Vec::new();
 
@@ -42,9 +46,9 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
         let segments = &mut p.path.segments;
         let arguments = &mut segments.last_mut().unwrap().arguments;
         if let PathArguments::AngleBracketed(a) = arguments {
-            a.args.push(parse_quote!(S));
+            a.args.push(parse_quote!(D));
         } else {
-            *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
+            *arguments = PathArguments::AngleBracketed(parse_quote!(<S, D>));
         }
     }
 

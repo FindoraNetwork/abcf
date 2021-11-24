@@ -11,6 +11,7 @@ use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, Res
 /// $ cargo run --example devnet
 /// ```
 use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
+use bs3::merkle::append_only::AppendOnlyMerkle;
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
@@ -27,11 +28,11 @@ pub struct SendEvent {
 pub struct MockModule {
     // /// In memory.
     pub inner: u32,
-    #[stateful]
+    #[stateful(merkle = "AppendOnlyMerkle")]
     pub sf_value: Value<u32>,
-    #[stateless]
+    #[stateless(merkle = "AppendOnlyMerkle")]
     pub sl_value: Value<u32>,
-    #[stateless]
+    #[stateless(merkle = "AppendOnlyMerkle")]
     pub sl_map: Map<i32, u32>,
 }
 
@@ -149,32 +150,36 @@ fn main() {
     let simple_node = SimpleManager::<MemoryBackend>::new(mock, mock2);
 
     let stateless = abcf::Stateless::<SimpleManager<MemoryBackend>> {
-        mock: abcf::Stateless::<MockModule<MemoryBackend>> {
+        mock: abcf::Stateless::<MockModule<MemoryBackend, Sha3_512>> {
             sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             __marker_s: PhantomData,
+            __marker_d: PhantomData,
         },
-        mock2: abcf::Stateless::<MockModule<MemoryBackend>> {
+        mock2: abcf::Stateless::<MockModule<MemoryBackend, Sha3_512>> {
             sl_map: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             sl_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             __marker_s: PhantomData,
+            __marker_d: PhantomData,
         },
     };
 
     let stateful = abcf::Stateful::<SimpleManager<MemoryBackend>> {
-        mock: abcf::Stateful::<MockModule<MemoryBackend>> {
+        mock: abcf::Stateful::<MockModule<MemoryBackend, Sha3_512>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             __marker_s: PhantomData,
+            __marker_d: PhantomData,
         },
-        mock2: abcf::Stateful::<MockModule<MemoryBackend>> {
+        mock2: abcf::Stateful::<MockModule<MemoryBackend, Sha3_512>> {
             sf_value: abcf::bs3::SnapshotableStorage::new(Default::default(), MemoryBackend::new())
                 .unwrap(),
             __marker_s: PhantomData,
+            __marker_d: PhantomData,
         },
     };
 
