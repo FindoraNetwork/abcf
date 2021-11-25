@@ -1,6 +1,9 @@
 #![feature(generic_associated_types)]
 
-use abcf::bs3::model::{Map, Value};
+use abcf::bs3::{
+    merkle::append_only::AppendOnlyMerkle,
+    model::{Map, Value},
+};
 use abcf::RPCResponse;
 use abcf_macros::{module, rpcs};
 use serde::{Deserialize, Serialize};
@@ -8,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
 pub struct RpcTest {
     pub inner: u32,
-    #[stateful]
+    #[stateful(merkle = "AppendOnlyMerkle")]
     pub sf_value: Value<u32>,
     #[stateless]
     pub sl_value: Value<u32>,

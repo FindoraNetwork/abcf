@@ -89,8 +89,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             let arguments = &mut segments.last_mut().unwrap().arguments;
             if let PathArguments::AngleBracketed(a) = arguments {
                 a.args.push(parse_quote!(S));
+                a.args.push(parse_quote!(#digest));
             } else {
-                *arguments = PathArguments::AngleBracketed(parse_quote!(<S>));
+                *arguments = PathArguments::AngleBracketed(parse_quote!(<S, #digest>));
             }
         }
     }
