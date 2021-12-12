@@ -20,13 +20,16 @@ pub struct MockModule {
     pub sl_map: Map<i32, u32>,
 }
 
+#[abcf::rpcs]
+impl MockModule {}
+
 #[abcf::application]
 impl Application for MockModule {
     type Transaction = ();
 
     async fn check_tx<'a>(
         &mut self,
-        _context: &mut TxnContext<'a, Self>,
+        _context: TxnContext<'a, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> abcf::Result<ResponseCheckTx> {
         Ok(Default::default())
@@ -34,7 +37,7 @@ impl Application for MockModule {
 
     async fn deliver_tx<'a>(
         &mut self,
-        _context: &mut TxnContext<'a, Self>,
+        _context: TxnContext<'a, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> abcf::Result<ResponseDeliverTx> {
         Ok(Default::default())

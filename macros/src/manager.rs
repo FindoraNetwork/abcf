@@ -172,6 +172,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 let mut context = abcf::manager::RContext {
                     stateful: &ctx.stateful.#key,
                     stateless: &mut ctx.stateless.#key,
+                    deps: (),
                 };
 
                 self.#key
@@ -425,8 +426,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 let mut hasher = #digest::new();
                 #(
                     {
-                        let item = &self.#key_item as &dyn Merkle<#digest>;
-                        hasher.update(item.root()?);
+                        let root = self.#key_item.root()?;
+                        if root != abcf::digest::Output::<#digest>::default() {
+                            hasher.update(root);
+                        }
                     }
                 )*
                 Ok(hasher.finalize())
@@ -581,6 +584,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            deps: (),
                         };
                         let result = self.#key_item
                             .check_tx(&mut ctx, &tx)
@@ -621,6 +625,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            deps: (),
                         };
                         self.#key_item.begin_block(&mut ctx, &_req).await;
                     )*
@@ -672,6 +677,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            deps: (),
                         };
                         let result = self.#key_item
                             .deliver_tx(&mut ctx, &tx)
@@ -717,6 +723,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
+                            deps: (),
                         };
                         let resp = self.#key_item.end_block(&mut ctx, &_req).await;
 

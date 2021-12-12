@@ -49,7 +49,7 @@ impl<T: Serialize> Response<T> {
 pub trait RPCs: Send + Sync {
     async fn call<'a>(
         &mut self,
-        context: &mut RPCContext<'a, Self>,
+        context: RPCContext<'a, Self>,
         method: &str,
         params: Value,
     ) -> Result<Option<Value>>

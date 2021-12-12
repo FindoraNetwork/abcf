@@ -25,7 +25,7 @@ pub trait Application: Send + Sync {
     /// This method will be called at external user or another node.
     async fn check_tx<'a>(
         &mut self,
-        _context: &mut TxnContext<'a, Self>,
+        _context: TxnContext<'a, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> Result<ResponseCheckTx>
     where
@@ -37,7 +37,7 @@ pub trait Application: Send + Sync {
     /// Begin block.
     async fn begin_block<'a>(
         &mut self,
-        _context: &mut AppContext<'a, Self>,
+        _context: AppContext<'a, Self>,
         _req: &RequestBeginBlock,
     ) where
         Self: ModuleStorageDependence<'a> + ModuleStorage,
@@ -47,7 +47,7 @@ pub trait Application: Send + Sync {
     /// Execute transaction on state.
     async fn deliver_tx<'a>(
         &mut self,
-        _context: &mut TxnContext<'a, Self>,
+        _context: TxnContext<'a, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> Result<ResponseDeliverTx>
     where
@@ -59,7 +59,7 @@ pub trait Application: Send + Sync {
     /// End Block.
     async fn end_block<'a>(
         &mut self,
-        _context: &mut AppContext<'a, Self>,
+        _context: AppContext<'a, Self>,
         _req: &RequestEndBlock,
     ) -> ResponseEndBlock
     where
