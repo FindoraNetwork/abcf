@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::*;
-use std::{env, fs::File, io::Write, ops::Deref, path::Path};
+use std::{env, fs::File, io::Write, path::Path};
 use syn::{
     parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
 };

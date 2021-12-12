@@ -10,7 +10,8 @@ use tm_protos::abci::{
 };
 
 use crate::{
-    module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Storage,
+    module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Stateful,
+    Stateless, Storage,
 };
 
 use super::{
@@ -19,28 +20,24 @@ use super::{
     AContext, EventContext, EventContextImpl, RContext,
 };
 
-pub struct Node<D, Sl, Sf, M>
+pub struct Node<D, M>
 where
     D: Digest,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application + RPCs,
 {
-    stateless: Sl,
-    stateful: Sf,
+    stateless: Stateless<M>,
+    stateful: Stateful<M>,
     marker_d: PhantomData<D>,
     module: M,
     events: EventContextImpl,
 }
 
-impl<D, Sl, Sf, M> Node<D, Sl, Sf, M>
+impl<D, M> Node<D, M>
 where
     D: Digest,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application + RPCs,
 {
-    pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
+    pub fn new(stateless: Stateless<M>, stateful: Stateful<M>, module: M) -> Self {
         Self {
             stateful,
             stateless,
@@ -55,7 +52,7 @@ where
         sub_path: Option<&str>,
         req: &[u8],
     ) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
-        let mut ctx = RContext {
+        let ctx = RContext {
             stateless: &mut self.stateless,
             stateful: &self.stateful,
         };
@@ -68,7 +65,7 @@ where
             error: Error::JsonError(e),
         })?;
 
-        let result = self.module.call(&mut ctx, method, params).await?;
+        let result = self.module.call(ctx, method, params).await?;
 
         let value = serde_json::to_vec(&result).map_err(|e| ModuleError {
             namespace: String::from("abcf.rpc"),
@@ -96,12 +93,11 @@ where
 }
 
 #[async_trait::async_trait]
-impl<D, Sl, Sf, M> tm_abci::Application for Node<D, Sl, Sf, M>
+impl<D, M> tm_abci::Application for Node<D, M>
 where
     D: Digest + Send + Sync,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    Stateful<M>: Merkle<D>,
+    M: Module + Application + RPCs,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -204,20 +200,23 @@ where
     }
 
     async fn check_tx(&mut self, req: RequestCheckTx) -> ResponseCheckTx {
-        let mut resp = ResponseCheckTx::default();
 
-        let check_tx_events = &mut self.events.check_tx_events;
+        let result = {
+            let check_tx_events = &mut self.events.check_tx_events;
 
-        let mut stateful_tx = self.stateful.transaction();
-        let mut stateless_tx = self.stateless.transaction();
+            let mut stateful_tx = self.stateful.transaction();
+            let mut stateless_tx = self.stateless.transaction();
 
-        let mut ctx = TContext {
-            events: EventContext::new(check_tx_events),
-            stateless: &mut stateless_tx,
-            stateful: &mut stateful_tx,
+            let ctx = TContext {
+                events: EventContext::new(check_tx_events),
+                stateless: &mut stateless_tx,
+                stateful: &mut stateful_tx,
+            };
+
+            self.module.check_tx(ctx, req).await
         };
 
-        let result = self.module.check_tx(&mut ctx, req).await;
+        let mut resp = ResponseCheckTx::default();
 
         match result {
             Ok(v) => {
@@ -266,13 +265,13 @@ where
             }
         }
 
-        let mut ctx = AContext {
+        let ctx = AContext {
             events: EventContext::new(begin_block_events),
             stateful: &mut self.stateful,
             stateless: &mut self.stateless,
         };
 
-        self.module.begin_block(&mut ctx, req).await;
+        self.module.begin_block(ctx, req).await;
 
         let events = mem::replace(begin_block_events, Vec::new());
 
@@ -289,16 +288,16 @@ where
         let mut stateful_tx = self.stateful.transaction();
         let mut stateless_tx = self.stateless.transaction();
 
-        let mut ctx = TContext {
+        let ctx = TContext {
             events: EventContext::new(deliver_tx_events),
             stateless: &mut stateless_tx,
             stateful: &mut stateful_tx,
         };
 
-        let result = self.module.deliver_tx(&mut ctx, req).await;
+        let result = self.module.deliver_tx(ctx, req).await;
 
-        let stateful_cache = Sf::cache(stateful_tx);
-        let stateless_cache = Sl::cache(stateless_tx);
+        let stateful_cache = Stateful::<M>::cache(stateful_tx);
+        let stateless_cache = Stateless::<M>::cache(stateless_tx);
 
         match result {
             Ok(v) => {
@@ -330,13 +329,13 @@ where
 
         let end_block_events = &mut self.events.end_block_events;
 
-        let mut ctx = AContext {
+        let ctx = AContext {
             events: EventContext::new(end_block_events),
             stateful: &mut self.stateful,
             stateless: &mut self.stateless,
         };
 
-        let result = self.module.end_block(&mut ctx, req).await;
+        let result = self.module.end_block(ctx, req).await;
 
         resp.consensus_param_updates = result.consensus_param_updates;
         resp.validator_updates = result.validator_updates;

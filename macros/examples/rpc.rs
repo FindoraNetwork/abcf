@@ -1,10 +1,13 @@
 #![feature(generic_associated_types)]
 
-use abcf::{bs3::{
-    merkle::append_only::AppendOnlyMerkle,
-    model::{Map, Value},
-}, RPCContext};
 use abcf::RPCResponse;
+use abcf::{
+    bs3::{
+        merkle::append_only::AppendOnlyMerkle,
+        model::{Map, Value},
+    },
+    RPCContext,
+};
 use abcf_macros::{module, rpcs};
 use serde::{Deserialize, Serialize};
 

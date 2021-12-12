@@ -68,8 +68,8 @@ impl<
 }
 pub mod __abcf_storage_mockmodule {
     use super::*;
-    use abcf::Result;
     use abcf::module::StorageTransaction;
+    use abcf::Result;
     pub const MODULE_NAME: &'static str = "mock";
     pub struct ABCFModuleMockModuleSl<
         S: abcf::bs3::Store + 'static,
@@ -261,10 +261,10 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         clippy::type_repetition_in_bounds,
         clippy::used_underscore_binding
     )]
-    fn call<'a, 'life0, 'life1, 'life2, 'async_trait>(
+    fn call<'a, 'life0, 'life1, 'async_trait>(
         &'life0 mut self,
-        ctx: &'life1 mut abcf::RPCContext<'a, Self>,
-        method: &'life2 str,
+        ctx: abcf::RPCContext<'a, Self>,
+        method: &'life1 str,
         params: serde_json::Value,
     ) -> ::core::pin::Pin<
         Box<
@@ -277,7 +277,6 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         'a: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,
-        'life2: 'async_trait,
         Self: 'async_trait,
     {
         Box::pin(async move {
@@ -306,10 +305,10 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         clippy::type_repetition_in_bounds,
         clippy::used_underscore_binding
     )]
-    fn check_tx<'a, 'life0, 'life1, 'life2, 'async_trait>(
+    fn check_tx<'a, 'life0, 'life1, 'async_trait>(
         &'life0 mut self,
-        _context: &'life1 mut TxnContext<'a, Self>,
-        _req: &'life2 RequestCheckTx<Self::Transaction>,
+        _context: TxnContext<'a, Self>,
+        _req: &'life1 RequestCheckTx<Self::Transaction>,
     ) -> ::core::pin::Pin<
         Box<
             dyn ::core::future::Future<Output = abcf::Result<ResponseCheckTx>>
@@ -321,7 +320,6 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         'a: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,
-        'life2: 'async_trait,
         Self: 'async_trait,
     {
         Box::pin(async move {
@@ -344,10 +342,10 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         clippy::type_repetition_in_bounds,
         clippy::used_underscore_binding
     )]
-    fn deliver_tx<'a, 'life0, 'life1, 'life2, 'async_trait>(
+    fn deliver_tx<'a, 'life0, 'life1, 'async_trait>(
         &'life0 mut self,
-        _context: &'life1 mut TxnContext<'a, Self>,
-        _req: &'life2 RequestDeliverTx<Self::Transaction>,
+        _context: TxnContext<'a, Self>,
+        _req: &'life1 RequestDeliverTx<Self::Transaction>,
     ) -> ::core::pin::Pin<
         Box<
             dyn ::core::future::Future<Output = abcf::Result<ResponseDeliverTx>>
@@ -359,7 +357,6 @@ impl<S: abcf::bs3::Store, D: abcf::digest::Digest + core::marker::Sync + core::m
         'a: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,
-        'life2: 'async_trait,
         Self: 'async_trait,
     {
         Box::pin(async move {
@@ -757,8 +754,8 @@ pub mod __abcf_storage_simplemanager {
         for ABCFManagerSimpleManagerSf<S>
     {
         fn root(&self) -> abcf::Result<digest::Output<Sha3_512>> {
-            use digest::Digest;
             use abcf::module::Merkle;
+            use digest::Digest;
             let mut hasher = Sha3_512::new();
             {
                 let root = self.mock.root()?;
@@ -861,79 +858,81 @@ pub mod __abcf_storage_simplemanager {
                 let mut __self = self;
                 let context = context;
                 let _req = _req;
-                let __ret: abcf::ModuleResult<abcf::module::types::ResponseCheckTx> = {
-                    use abcf::module::FromBytes;
-                    use std::collections::BTreeMap;
-                    use abcf::Module;
-                    use abcf::Error;
-                    use abcf::Application;
-                    use std::convert::TryInto;
-                    let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from("abcf.manager"),
-                            error: e,
-                        }
-                    })?;
-                    let req_tx_ref = &req_tx;
-                    let mut resp_check_tx = abcf::module::types::ResponseCheckTx::default();
-                    let mut data_map = BTreeMap::new();
-                    let name = __self.mock.metadata().name.to_string();
-                    let tx = abcf::module::types::RequestCheckTx {
-                        ty: _req.r#type,
-                        tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        })?,
+                let __ret: abcf::ModuleResult<abcf::module::types::ResponseCheckTx> =
+                    {
+                        use abcf::module::FromBytes;
+                        use abcf::Application;
+                        use abcf::Error;
+                        use abcf::Module;
+                        use std::collections::BTreeMap;
+                        use std::convert::TryInto;
+                        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from("abcf.manager"),
+                                error: e,
+                            }
+                        })?;
+                        let req_tx_ref = &req_tx;
+                        let mut resp_check_tx = abcf::module::types::ResponseCheckTx::default();
+                        let mut data_map = BTreeMap::new();
+                        let name = __self.mock.metadata().name.to_string();
+                        let tx = abcf::module::types::RequestCheckTx {
+                            ty: _req.r#type,
+                            tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?,
+                        };
+                        let ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.mock,
+                            stateless: &mut context.stateless.mock,
+                            deps: (),
+                        };
+                        let result = __self.mock.check_tx(ctx, &tx).await.map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            }
+                        })?;
+                        data_map.insert(name.clone(), result.data);
+                        resp_check_tx.gas_used += result.gas_used;
+                        resp_check_tx.gas_wanted += result.gas_wanted;
+                        let name = __self.mock2.metadata().name.to_string();
+                        let tx = abcf::module::types::RequestCheckTx {
+                            ty: _req.r#type,
+                            tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?,
+                        };
+                        let ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.mock2,
+                            stateless: &mut context.stateless.mock2,
+                            deps: (),
+                        };
+                        let result = __self.mock2.check_tx(ctx, &tx).await.map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            }
+                        })?;
+                        data_map.insert(name.clone(), result.data);
+                        resp_check_tx.gas_used += result.gas_used;
+                        resp_check_tx.gas_wanted += result.gas_wanted;
+                        let data =
+                            serde_json::to_vec(&data_map).map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: Error::JsonError(e),
+                            })?;
+                        resp_check_tx.data = data;
+                        Ok(resp_check_tx)
                     };
-                    let mut ctx = abcf::manager::TContext {
-                        events: abcf::entry::EventContext {
-                            events: context.events.events,
-                        },
-                        stateful: &mut context.stateful.mock,
-                        stateless: &mut context.stateless.mock,
-                        deps: (),
-                    };
-                    let result = __self.mock.check_tx(&mut ctx, &tx).await.map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        }
-                    })?;
-                    data_map.insert(name.clone(), result.data);
-                    resp_check_tx.gas_used += result.gas_used;
-                    resp_check_tx.gas_wanted += result.gas_wanted;
-                    let name = __self.mock2.metadata().name.to_string();
-                    let tx = abcf::module::types::RequestCheckTx {
-                        ty: _req.r#type,
-                        tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        })?,
-                    };
-                    let mut ctx = abcf::manager::TContext {
-                        events: abcf::entry::EventContext {
-                            events: context.events.events,
-                        },
-                        stateful: &mut context.stateful.mock2,
-                        stateless: &mut context.stateless.mock2,
-                        deps: (),
-                    };
-                    let result = __self.mock2.check_tx(&mut ctx, &tx).await.map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        }
-                    })?;
-                    data_map.insert(name.clone(), result.data);
-                    resp_check_tx.gas_used += result.gas_used;
-                    resp_check_tx.gas_wanted += result.gas_wanted;
-                    let data = serde_json::to_vec(&data_map).map_err(|e| abcf::ModuleError {
-                        namespace: String::from(name.clone()),
-                        error: Error::JsonError(e),
-                    })?;
-                    resp_check_tx.data = data;
-                    Ok(resp_check_tx)
-                };
                 #[allow(unreachable_code)]
                 __ret
             })
@@ -966,7 +965,7 @@ pub mod __abcf_storage_simplemanager {
                 let _req = _req;
                 let _: () = {
                     use abcf::Application;
-                    let mut ctx = abcf::manager::AContext {
+                    let ctx = abcf::manager::AContext {
                         events: abcf::entry::EventContext {
                             events: context.events.events,
                         },
@@ -974,8 +973,8 @@ pub mod __abcf_storage_simplemanager {
                         stateless: &mut context.stateless.mock,
                         deps: (),
                     };
-                    __self.mock.begin_block(&mut ctx, &_req).await;
-                    let mut ctx = abcf::manager::AContext {
+                    __self.mock.begin_block(ctx, &_req).await;
+                    let ctx = abcf::manager::AContext {
                         events: abcf::entry::EventContext {
                             events: context.events.events,
                         },
@@ -983,7 +982,7 @@ pub mod __abcf_storage_simplemanager {
                         stateless: &mut context.stateless.mock2,
                         deps: (),
                     };
-                    __self.mock2.begin_block(&mut ctx, &_req).await;
+                    __self.mock2.begin_block(ctx, &_req).await;
                 };
             })
         }
@@ -1025,77 +1024,79 @@ pub mod __abcf_storage_simplemanager {
                 let mut __self = self;
                 let context = context;
                 let _req = _req;
-                let __ret: abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> = {
-                    use abcf::module::FromBytes;
-                    use std::collections::BTreeMap;
-                    use abcf::Module;
-                    use abcf::Error;
-                    use abcf::Application;
-                    use std::convert::TryInto;
-                    let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from("abcf.manager"),
-                            error: e,
-                        }
-                    })?;
-                    let req_tx_ref = &req_tx;
-                    let mut resp_deliver_tx = abcf::module::types::ResponseDeliverTx::default();
-                    let mut data_map = BTreeMap::new();
-                    let name = __self.mock.metadata().name.to_string();
-                    let tx = abcf::module::types::RequestDeliverTx {
-                        tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        })?,
+                let __ret: abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> =
+                    {
+                        use abcf::module::FromBytes;
+                        use abcf::Application;
+                        use abcf::Error;
+                        use abcf::Module;
+                        use std::collections::BTreeMap;
+                        use std::convert::TryInto;
+                        let req_tx = SimpleNodeTransaction::from_bytes(&_req.tx).map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from("abcf.manager"),
+                                error: e,
+                            }
+                        })?;
+                        let req_tx_ref = &req_tx;
+                        let mut resp_deliver_tx = abcf::module::types::ResponseDeliverTx::default();
+                        let mut data_map = BTreeMap::new();
+                        let name = __self.mock.metadata().name.to_string();
+                        let tx = abcf::module::types::RequestDeliverTx {
+                            tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?,
+                        };
+                        let ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.mock,
+                            stateless: &mut context.stateless.mock,
+                            deps: (),
+                        };
+                        let result = __self.mock.deliver_tx(ctx, &tx).await.map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            }
+                        })?;
+                        data_map.insert(name.clone(), result.data);
+                        resp_deliver_tx.gas_used += result.gas_used;
+                        resp_deliver_tx.gas_wanted += result.gas_wanted;
+                        let name = __self.mock2.metadata().name.to_string();
+                        let tx = abcf::module::types::RequestDeliverTx {
+                            tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            })?,
+                        };
+                        let ctx = abcf::manager::TContext {
+                            events: abcf::entry::EventContext {
+                                events: context.events.events,
+                            },
+                            stateful: &mut context.stateful.mock2,
+                            stateless: &mut context.stateless.mock2,
+                            deps: (),
+                        };
+                        let result = __self.mock2.deliver_tx(ctx, &tx).await.map_err(|e| {
+                            abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: e,
+                            }
+                        })?;
+                        data_map.insert(name.clone(), result.data);
+                        resp_deliver_tx.gas_used += result.gas_used;
+                        resp_deliver_tx.gas_wanted += result.gas_wanted;
+                        let data =
+                            serde_json::to_vec(&data_map).map_err(|e| abcf::ModuleError {
+                                namespace: String::from(name.clone()),
+                                error: Error::JsonError(e),
+                            })?;
+                        resp_deliver_tx.data = data;
+                        Ok(resp_deliver_tx)
                     };
-                    let mut ctx = abcf::manager::TContext {
-                        events: abcf::entry::EventContext {
-                            events: context.events.events,
-                        },
-                        stateful: &mut context.stateful.mock,
-                        stateless: &mut context.stateless.mock,
-                        deps: (),
-                    };
-                    let result = __self.mock.deliver_tx(&mut ctx, &tx).await.map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        }
-                    })?;
-                    data_map.insert(name.clone(), result.data);
-                    resp_deliver_tx.gas_used += result.gas_used;
-                    resp_deliver_tx.gas_wanted += result.gas_wanted;
-                    let name = __self.mock2.metadata().name.to_string();
-                    let tx = abcf::module::types::RequestDeliverTx {
-                        tx: req_tx_ref.try_into().map_err(|e| abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        })?,
-                    };
-                    let mut ctx = abcf::manager::TContext {
-                        events: abcf::entry::EventContext {
-                            events: context.events.events,
-                        },
-                        stateful: &mut context.stateful.mock2,
-                        stateless: &mut context.stateless.mock2,
-                        deps: (),
-                    };
-                    let result = __self.mock2.deliver_tx(&mut ctx, &tx).await.map_err(|e| {
-                        abcf::ModuleError {
-                            namespace: String::from(name.clone()),
-                            error: e,
-                        }
-                    })?;
-                    data_map.insert(name.clone(), result.data);
-                    resp_deliver_tx.gas_used += result.gas_used;
-                    resp_deliver_tx.gas_wanted += result.gas_wanted;
-                    let data = serde_json::to_vec(&data_map).map_err(|e| abcf::ModuleError {
-                        namespace: String::from(name.clone()),
-                        error: Error::JsonError(e),
-                    })?;
-                    resp_deliver_tx.data = data;
-                    Ok(resp_deliver_tx)
-                };
                 #[allow(unreachable_code)]
                 __ret
             })
@@ -1139,7 +1140,7 @@ pub mod __abcf_storage_simplemanager {
                     use abcf::Application;
                     let mut validator_updates_vec = Vec::new();
                     let mut resp_end_block = abcf::module::types::ResponseEndBlock::default();
-                    let mut ctx = abcf::manager::AContext {
+                    let ctx = abcf::manager::AContext {
                         events: abcf::entry::EventContext {
                             events: context.events.events,
                         },
@@ -1147,14 +1148,14 @@ pub mod __abcf_storage_simplemanager {
                         stateless: &mut context.stateless.mock,
                         deps: (),
                     };
-                    let resp = __self.mock.end_block(&mut ctx, &_req).await;
+                    let resp = __self.mock.end_block(ctx, &_req).await;
                     resp.validator_updates.into_iter().for_each(|v| {
                         if !validator_updates_vec.contains(&v) {
                             validator_updates_vec.push(v);
                         }
                     });
                     resp_end_block.consensus_param_updates = resp.consensus_param_updates;
-                    let mut ctx = abcf::manager::AContext {
+                    let ctx = abcf::manager::AContext {
                         events: abcf::entry::EventContext {
                             events: context.events.events,
                         },
@@ -1162,7 +1163,7 @@ pub mod __abcf_storage_simplemanager {
                         stateless: &mut context.stateless.mock2,
                         deps: (),
                     };
-                    let resp = __self.mock2.end_block(&mut ctx, &_req).await;
+                    let resp = __self.mock2.end_block(ctx, &_req).await;
                     resp.validator_updates.into_iter().for_each(|v| {
                         if !validator_updates_vec.contains(&v) {
                             validator_updates_vec.push(v);
@@ -1231,14 +1232,14 @@ pub mod __abcf_storage_simplemanager {
                     })?;
                     match module_name {
                         "mock" => {
-                            let mut context = abcf::manager::RContext {
+                            let context = abcf::manager::RContext {
                                 stateful: &ctx.stateful.mock,
                                 stateless: &mut ctx.stateless.mock,
                                 deps: (),
                             };
                             __self
                                 .mock
-                                .call(&mut context, method, params)
+                                .call(context, method, params)
                                 .await
                                 .map_err(|e| abcf::ModuleError {
                                     namespace: String::from("mock"),
@@ -1246,14 +1247,14 @@ pub mod __abcf_storage_simplemanager {
                                 })
                         }
                         "mock2" => {
-                            let mut context = abcf::manager::RContext {
+                            let context = abcf::manager::RContext {
                                 stateful: &ctx.stateful.mock2,
                                 stateless: &mut ctx.stateless.mock2,
                                 deps: (),
                             };
                             __self
                                 .mock2
-                                .call(&mut context, method, params)
+                                .call(context, method, params)
                                 .await
                                 .map_err(|e| abcf::ModuleError {
                                     namespace: String::from("mock2"),

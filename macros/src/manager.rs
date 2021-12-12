@@ -169,14 +169,14 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let rma: Arm = parse_quote! {
             #name_lit_str => {
-                let mut context = abcf::manager::RContext {
+                let context = abcf::manager::RContext {
                     stateful: &ctx.stateful.#key,
                     stateless: &mut ctx.stateless.#key,
                     deps: (),
                 };
 
                 self.#key
-                    .call(&mut context, method, params)
+                    .call(context, method, params)
                     .await
                     .map_err(|e| abcf::ModuleError {
                         namespace: String::from(#name_lit_str),
@@ -578,7 +578,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             })?,
                         };
 
-                        let mut ctx = abcf::manager::TContext {
+                        let ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
@@ -587,7 +587,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             deps: (),
                         };
                         let result = self.#key_item
-                            .check_tx(&mut ctx, &tx)
+                            .check_tx(ctx, &tx)
                             .await
                             .map_err(|e| abcf::ModuleError {
                                 namespace: String::from(name.clone()),
@@ -619,7 +619,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 ) {
                     use abcf::Application;
                     #(
-                        let mut ctx = abcf::manager::AContext {
+                        let ctx = abcf::manager::AContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
@@ -627,7 +627,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             stateless: &mut context.stateless.#key_item,
                             deps: (),
                         };
-                        self.#key_item.begin_block(&mut ctx, &_req).await;
+                        self.#key_item.begin_block(ctx, &_req).await;
                     )*
                 }
 
@@ -671,7 +671,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                                 })?
                         };
 
-                        let mut ctx = abcf::manager::TContext {
+                        let ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
@@ -680,7 +680,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             deps: (),
                         };
                         let result = self.#key_item
-                            .deliver_tx(&mut ctx, &tx)
+                            .deliver_tx(ctx, &tx)
                             .await
                             .map_err(|e| abcf::ModuleError {
                                 namespace: String::from(name.clone()),
@@ -717,7 +717,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut resp_end_block = abcf::module::types::ResponseEndBlock::default();
 
                     #(
-                        let mut ctx = abcf::manager::AContext {
+                        let ctx = abcf::manager::AContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
@@ -725,7 +725,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             stateless: &mut context.stateless.#key_item,
                             deps: (),
                         };
-                        let resp = self.#key_item.end_block(&mut ctx, &_req).await;
+                        let resp = self.#key_item.end_block(ctx, &_req).await;
 
                         resp.validator_updates.into_iter().for_each(|v| {
                             if !validator_updates_vec.contains(&v) {

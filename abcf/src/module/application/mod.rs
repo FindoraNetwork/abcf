@@ -35,11 +35,8 @@ pub trait Application: Send + Sync {
     }
 
     /// Begin block.
-    async fn begin_block<'a>(
-        &mut self,
-        _context: AppContext<'a, Self>,
-        _req: &RequestBeginBlock,
-    ) where
+    async fn begin_block<'a>(&mut self, _context: AppContext<'a, Self>, _req: &RequestBeginBlock)
+    where
         Self: ModuleStorageDependence<'a> + ModuleStorage,
     {
     }

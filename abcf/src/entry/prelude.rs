@@ -3,23 +3,23 @@ use serde_json::Value;
 use tm_protos::abci::{RequestCheckTx, RequestDeliverTx};
 
 use crate::{
-    module::{
-        types::{
-            RequestBeginBlock, RequestEndBlock, ResponseCheckTx, ResponseDeliverTx,
-            ResponseEndBlock,
-        },
-        StorageTransaction,
+    manager::ModuleStorage,
+    module::types::{
+        RequestBeginBlock, RequestEndBlock, ResponseCheckTx, ResponseDeliverTx, ResponseEndBlock,
     },
-    ModuleResult, Storage,
+    ModuleResult,
 };
 
-use super::{context::TContext, AContext, RContext};
+use super::{AppContext, RPCContext, TxnContext};
 
 #[async_trait::async_trait]
-pub trait RPCs<Sl, Sf>: Send + Sync {
+pub trait RPCs: Send + Sync
+where
+    Self: ModuleStorage,
+{
     async fn call(
         &mut self,
-        ctx: &mut RContext<Sl, Sf>,
+        ctx: RPCContext<'_, Self>,
         method: &str,
         params: Value,
     ) -> ModuleResult<Option<Value>>;
@@ -27,10 +27,9 @@ pub trait RPCs<Sl, Sf>: Send + Sync {
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application<Sl, Sf>: Send + Sync
+pub trait Application: Send + Sync
 where
-    Sl: Storage + StorageTransaction,
-    Sf: Storage + StorageTransaction,
+    Self: ModuleStorage,
 {
     /// Define how to check transaction.
     ///
@@ -39,19 +38,19 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: TxnContext<'_, Self>,
         _req: RequestCheckTx,
     ) -> ModuleResult<ResponseCheckTx> {
         Ok(Default::default())
     }
 
     /// Begin block.
-    async fn begin_block(&mut self, _context: &mut AContext<Sl, Sf>, _req: RequestBeginBlock) {}
+    async fn begin_block(&mut self, _context: AppContext<'_, Self>, _req: RequestBeginBlock) {}
 
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: TxnContext<'_, Self>,
         _req: RequestDeliverTx,
     ) -> ModuleResult<ResponseDeliverTx> {
         Ok(Default::default())
@@ -60,7 +59,7 @@ where
     /// End Block.
     async fn end_block(
         &mut self,
-        _context: &mut AContext<Sl, Sf>,
+        _context: AppContext<'_, Self>,
         _req: RequestEndBlock,
     ) -> ResponseEndBlock {
         Default::default()
