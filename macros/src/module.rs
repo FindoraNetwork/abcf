@@ -332,7 +332,19 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
         Some(impl_deps)
     } else {
-        None
+        let mut impl_deps: ItemImpl = parse_quote!(
+            impl abcf::manager::ModuleStorageDependence<'__abcf_dep> for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
+                type Dependence = ();
+            }
+        );
+
+        impl_deps.generics = parsed.generics.clone();
+        impl_deps
+            .generics
+            .params
+            .insert(0, parse_quote!('__abcf_dep));
+
+        Some(impl_deps)
     };
 
     let mut metadata_trait: ItemImpl = parse_quote! {

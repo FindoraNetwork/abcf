@@ -21,7 +21,6 @@ pub struct RContext<'a, Sl, Sf, D> {
 }
 
 pub struct AContext<'a, Sl, Sf, D> {
-    pub calls: CallContext<'a>,
     pub events: EventContext<'a>,
     pub stateless: &'a mut Sl,
     pub stateful: &'a mut Sf,
@@ -29,7 +28,6 @@ pub struct AContext<'a, Sl, Sf, D> {
 }
 
 pub struct TContext<'a, Sl, Sf, D> {
-    pub calls: CallContext<'a>,
     pub events: EventContext<'a>,
     pub stateless: &'a mut Sl,
     pub stateful: &'a mut Sf,

@@ -7,8 +7,8 @@ pub use types::{
 };
 
 use crate::{
-    manager::{AContext, ModuleStorage, ModuleStorageDependence, TContext},
-    Result,
+    manager::{ModuleStorage, ModuleStorageDependence},
+    AppContext, Result, TxnContext,
 };
 
 // use super::StorageTransaction;
@@ -25,11 +25,7 @@ pub trait Application: Send + Sync {
     /// This method will be called at external user or another node.
     async fn check_tx<'a>(
         &mut self,
-        _context: &mut TContext<
-            crate::StatelessBatch<'a, Self>,
-            crate::StatefulBatch<'a, Self>,
-            crate::Dependence<'a, Self>,
-        >,
+        _context: &mut TxnContext<'a, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> Result<ResponseCheckTx>
     where
@@ -41,11 +37,7 @@ pub trait Application: Send + Sync {
     /// Begin block.
     async fn begin_block<'a>(
         &mut self,
-        _context: &mut AContext<
-            crate::Stateless<Self>,
-            crate::Stateful<Self>,
-            crate::Dependence<'a, Self>,
-        >,
+        _context: &mut AppContext<'a, Self>,
         _req: &RequestBeginBlock,
     ) where
         Self: ModuleStorageDependence<'a> + ModuleStorage,
@@ -55,11 +47,7 @@ pub trait Application: Send + Sync {
     /// Execute transaction on state.
     async fn deliver_tx<'a>(
         &mut self,
-        _context: &mut TContext<
-            crate::StatelessBatch<'a, Self>,
-            crate::StatefulBatch<'a, Self>,
-            crate::Dependence<'a, Self>,
-        >,
+        _context: &mut TxnContext<'a, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> Result<ResponseDeliverTx>
     where
@@ -71,11 +59,7 @@ pub trait Application: Send + Sync {
     /// End Block.
     async fn end_block<'a>(
         &mut self,
-        _context: &mut AContext<
-            crate::Stateless<Self>,
-            crate::Stateful<Self>,
-            crate::Dependence<'a, Self>,
-        >,
+        _context: &mut AppContext<'a, Self>,
         _req: &RequestEndBlock,
     ) -> ResponseEndBlock
     where

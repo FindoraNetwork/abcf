@@ -34,7 +34,7 @@ pub struct GetAccountResponse {
 impl RpcTest {
     pub async fn get_account(
         &mut self,
-        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut abcf::RPCContext<'_, Self>,
         params: GetAccountRequest,
     ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {
@@ -46,7 +46,7 @@ impl RpcTest {
 
     pub async fn get_account1(
         &mut self,
-        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut abcf::RPCContext<'_, Self>,
         params: GetAccountRequest,
     ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {

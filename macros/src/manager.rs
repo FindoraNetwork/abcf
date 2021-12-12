@@ -94,6 +94,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 *arguments = PathArguments::AngleBracketed(parse_quote!(<S, #digest>));
             }
         }
+
+        let attrs = std::mem::take(&mut parsed.attrs);
     }
 
     let mut init_items = Vec::new();
@@ -579,7 +581,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let result = self.#key_item
                             .check_tx(&mut ctx, &tx)
@@ -620,7 +621,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         self.#key_item.begin_block(&mut ctx, &_req).await;
                     )*
@@ -672,7 +672,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let result = self.#key_item
                             .deliver_tx(&mut ctx, &tx)
@@ -718,7 +717,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
                         };
                         let resp = self.#key_item.end_block(&mut ctx, &_req).await;
 

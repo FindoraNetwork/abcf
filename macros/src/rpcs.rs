@@ -160,10 +160,10 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     let mut pre_rpc: ItemImpl = if is_empty_impl {
         parse_quote! {
             #[async_trait::async_trait]
-            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
-                async fn call(
+            impl #trait_name for #struct_name {
+                async fn call<'a>(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
+                    ctx: &mut abcf::RPCContext<'a, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
@@ -174,10 +174,10 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     } else {
         parse_quote! {
             #[async_trait::async_trait]
-            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
-                async fn call(
+            impl #trait_name for #struct_name {
+                async fn call<'a>(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
+                    ctx: &mut abcf::RPCContext<'a, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
