@@ -36,4 +36,6 @@ pub type StatefulBatch<'a, M> = <Stateful<M> as module::StorageTransaction>::Tra
 pub type StatelessCache<M> = <Stateless<M> as module::StorageTransaction>::Cache;
 pub type StatefulCache<M> = <Stateful<M> as module::StorageTransaction>::Cache;
 
+pub type Dependence<'a, M> = <M as manager::ModuleStorageDependence<'a>>::Dependence;
+
 pub trait Config: Send + Sync + Debug + Clone + 'static {}

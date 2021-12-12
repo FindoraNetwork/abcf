@@ -7,8 +7,5 @@ pub trait ModuleStorage {
 }
 
 pub trait ModuleStorageDependence<'a> {
-    type Stateless;
-
-    type Stateful;
+    type Dependence: Send;
 }
-

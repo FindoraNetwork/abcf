@@ -1,4 +1,4 @@
-use crate::manager::RContext;
+use crate::manager::{ModuleStorage, ModuleStorageDependence, RContext};
 use crate::{Error, Result};
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -47,10 +47,16 @@ impl<T: Serialize> Response<T> {
 /// Define module's RPC.
 #[async_trait::async_trait]
 pub trait RPCs<Sl, Sf>: Send + Sync {
-    async fn call(
+    async fn call<'a>(
         &mut self,
-        ctx: &mut RContext<Sl, Sf>,
+        context: &mut RContext<
+            crate::Stateless<Self>,
+            crate::Stateful<Self>,
+            crate::Dependence<'a, Self>,
+        >,
         method: &str,
         params: Value,
-    ) -> Result<Option<Value>>;
+    ) -> Result<Option<Value>>
+    where
+        Self: ModuleStorageDependence<'a> + ModuleStorage;
 }

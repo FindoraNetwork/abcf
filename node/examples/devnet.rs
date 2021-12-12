@@ -25,7 +25,7 @@ pub struct SendEvent {
 }
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-// #[dependence(mock2 = "MockModule")]
+#[dependence(external_module = "MockModule")]
 pub struct MockModule {
     // /// In memory.
     pub inner: u32,
@@ -137,6 +137,7 @@ impl TryFrom<&SimpleNodeTransaction> for MockTransaction {
 )]
 pub struct SimpleManager {
     pub mock: MockModule,
+    // #[dependence(external_module = "mock2")]
     pub mock2: MockModule,
 }
 

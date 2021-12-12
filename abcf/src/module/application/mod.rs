@@ -7,19 +7,15 @@ pub use types::{
 };
 
 use crate::{
-    manager::{AContext, TContext},
-    Result, Storage,
+    manager::{AContext, ModuleStorage, ModuleStorageDependence, TContext},
+    Result,
 };
 
-use super::StorageTransaction;
+// use super::StorageTransaction;
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application<Sl, Sf>: Send + Sync
-where
-    Sl: Storage + StorageTransaction,
-    Sf: Storage + StorageTransaction,
-{
+pub trait Application: Send + Sync {
     type Transaction: Default + Send + Sync;
 
     /// Define how to check transaction.
@@ -27,32 +23,64 @@ where
     /// In this function, do some lightweight check for transaction, for example: check signature,
     /// check balance and so on.
     /// This method will be called at external user or another node.
-    async fn check_tx(
+    async fn check_tx<'a>(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: &mut TContext<
+            crate::StatelessBatch<'a, Self>,
+            crate::StatefulBatch<'a, Self>,
+            crate::Dependence<'a, Self>,
+        >,
         _req: &RequestCheckTx<Self::Transaction>,
-    ) -> Result<ResponseCheckTx> {
+    ) -> Result<ResponseCheckTx>
+    where
+        Self: ModuleStorageDependence<'a> + ModuleStorage,
+    {
         Ok(Default::default())
     }
 
     /// Begin block.
-    async fn begin_block(&mut self, _context: &mut AContext<Sl, Sf>, _req: &RequestBeginBlock) {}
+    async fn begin_block<'a>(
+        &mut self,
+        _context: &mut AContext<
+            crate::Stateless<Self>,
+            crate::Stateful<Self>,
+            crate::Dependence<'a, Self>,
+        >,
+        _req: &RequestBeginBlock,
+    ) where
+        Self: ModuleStorageDependence<'a> + ModuleStorage,
+    {
+    }
 
     /// Execute transaction on state.
-    async fn deliver_tx(
+    async fn deliver_tx<'a>(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: &mut TContext<
+            crate::StatelessBatch<'a, Self>,
+            crate::StatefulBatch<'a, Self>,
+            crate::Dependence<'a, Self>,
+        >,
         _req: &RequestDeliverTx<Self::Transaction>,
-    ) -> Result<ResponseDeliverTx> {
+    ) -> Result<ResponseDeliverTx>
+    where
+        Self: ModuleStorageDependence<'a> + ModuleStorage,
+    {
         Ok(Default::default())
     }
 
     /// End Block.
-    async fn end_block(
+    async fn end_block<'a>(
         &mut self,
-        _context: &mut AContext<Sl, Sf>,
+        _context: &mut AContext<
+            crate::Stateless<Self>,
+            crate::Stateful<Self>,
+            crate::Dependence<'a, Self>,
+        >,
         _req: &RequestEndBlock,
-    ) -> ResponseEndBlock {
+    ) -> ResponseEndBlock
+    where
+        Self: ModuleStorageDependence<'a> + ModuleStorage,
+    {
         Default::default()
     }
 }
