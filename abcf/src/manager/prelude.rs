@@ -5,3 +5,10 @@ pub trait ModuleStorage {
 
     type Stateful: Storage + StorageTransaction;
 }
+
+pub trait ModuleStorageDependence<'a> {
+    type Stateless;
+
+    type Stateful;
+}
+

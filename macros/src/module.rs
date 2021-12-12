@@ -5,7 +5,7 @@ use quote::quote;
 use std::mem::replace;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
-    FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token,
+    FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token, Attribute,
 };
 
 #[derive(Debug)]
@@ -83,6 +83,54 @@ impl Parse for PunctuatedMetaNameValue {
     }
 }
 
+pub fn build_dependence_for_module(store_name: &Ident, attrs: &[Attribute], is_stateless: bool) -> Option<ItemStruct> {
+    for attr in attrs {
+        if attr.path.is_ident("dependence") {
+            let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
+            let metas = attr.parse_args_with(parser).unwrap();
+
+            let mut v = Vec::new();
+
+            for meta in metas {
+                let name = meta.path.get_ident();
+
+                if let Lit::Str(s) = meta.lit {
+                    let ttt = s.parse_with(syn::Path::parse_mod_style).expect("Must be types for deps");
+
+                    let slf_type: syn::Path = if is_stateless {
+                        parse_quote!(abcf::Stateless)
+                    } else {
+                        parse_quote!(abcf::Stateful)
+                    };
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(&'a mut #slf_type<#ttt<S, D>>),
+                    };
+
+                    v.push(field);
+                }
+            }
+
+            let stateful = parse_quote!(
+                pub struct #store_name<
+                    'a,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#v,)*
+                }
+            );
+
+            return Some(stateful);
+        }
+    }
+    None
+}
+
 /// Define Module
 pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as PunctuatedMetaNameValue);
@@ -92,6 +140,21 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let version = args.version;
     let impl_version = args.impl_version;
     let target_height = args.target_height;
+
+    let attrs = std::mem::take(&mut parsed.attrs);
+
+    let stateful_deps_ident = Ident::new(
+        &format!("ABCFDeps{}Sf", parsed.ident.to_string()),
+        Span::call_site(),
+    );
+
+    let stateful_deps = build_dependence_for_module(&stateful_deps_ident, &attrs, false);
+
+    let stateless_deps_ident = Ident::new(
+        &format!("ABCFDeps{}Sl", parsed.ident.to_string()),
+        Span::call_site(),
+    );
+    let stateless_deps = build_dependence_for_module(&stateless_deps_ident, &attrs, true);
 
     let mut stateless = Vec::new();
     let mut stateless_arg = Vec::new();
@@ -263,6 +326,22 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     store_trait.generics = parsed.generics.clone();
+
+    let impl_deps = if stateless_deps.is_some() {
+        let mut impl_deps: ItemImpl = parse_quote!(
+            impl abcf::manager::ModuleStorageDependence<'__abcf_dep> for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
+                type Stateless = #storage_module_ident::#stateless_deps_ident<'__abcf_dep, #(#lifetime_names,)* #(#generics_names,)*>;
+                type Stateful = #storage_module_ident::#stateful_deps_ident<'__abcf_dep, #(#lifetime_names,)* #(#generics_names,)*>;
+            }
+        );
+
+        impl_deps.generics = parsed.generics.clone();
+        impl_deps.generics.params.insert(0, parse_quote!('__abcf_dep));
+        
+        Some(impl_deps)
+    } else {
+        None
+    };
 
     let mut metadata_trait: ItemImpl = parse_quote! {
         impl abcf::Module for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
@@ -478,12 +557,18 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #metadata_trait
 
+        #impl_deps
+
         pub mod #storage_module_ident {
             use super::*;
             use abcf::Result;
             use abcf::module::StorageTransaction;
 
             pub const MODULE_NAME: &'static str = #name;
+
+            #stateful_deps
+
+            #stateless_deps
 
             #stateless_struct
 

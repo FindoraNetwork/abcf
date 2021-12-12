@@ -25,6 +25,7 @@ pub struct SendEvent {
 }
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
+// #[dependence(mock2 = "MockModule")]
 pub struct MockModule {
     // /// In memory.
     pub inner: u32,
