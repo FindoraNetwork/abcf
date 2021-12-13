@@ -80,14 +80,13 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut f = File::create(&out_dir).expect("create file error");
     let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
-    let dependency = format!(
-        r#"
+    let dependency = r#"
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::error::*;
 use abcf_sdk::providers::Provider;
 use super::*;
       "#
-    );
+    .to_string();
 
     f.write_all(dependency.as_bytes()).expect("write error");
 

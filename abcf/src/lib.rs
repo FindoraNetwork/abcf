@@ -4,7 +4,6 @@
 extern crate alloc;
 
 pub mod module;
-use core::fmt::Debug;
 
 pub use module::{
     Application, Callable, Event, FromBytes, Genesis, Merkle, Module, ModuleMetadata, ModuleType,
@@ -45,4 +44,4 @@ pub type TxnContext<'a, M> =
 
 pub type AppContext<'a, M> = manager::AContext<'a, Stateless<M>, Stateful<M>, Dependence<'a, M>>;
 
-pub trait Config: Send + Sync + Debug + Clone + 'static {}
+// pub trait Config: Send + Sync + Debug + Clone + 'static {}

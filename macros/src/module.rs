@@ -218,10 +218,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    let stateless_struct_ident = Ident::new(
-        &format!("ABCFModule{}Sl", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateless_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sl", parsed.ident), Span::call_site());
 
     let stateless_tx_struct_ident = Ident::new(
         &format!("ABCFModule{}SlTx", parsed.ident.to_string()),

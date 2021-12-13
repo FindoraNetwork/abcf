@@ -15,11 +15,11 @@ use super::{AppContext, RPCContext, TxnContext};
 #[async_trait::async_trait]
 pub trait RPCs: Send + Sync
 where
-    Self: ModuleStorage,
+    Self: ModuleStorage + Sized,
 {
     async fn call(
         &mut self,
-        ctx: RPCContext<'_, Self>,
+        ctx: &mut RPCContext<'_, Self>,
         method: &str,
         params: Value,
     ) -> ModuleResult<Option<Value>>;
@@ -29,7 +29,7 @@ where
 #[async_trait::async_trait]
 pub trait Application: Send + Sync
 where
-    Self: ModuleStorage,
+    Self: ModuleStorage + Sized,
 {
     /// Define how to check transaction.
     ///
@@ -38,19 +38,19 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: TxnContext<'_, Self>,
+        _context: &mut TxnContext<'_, Self>,
         _req: RequestCheckTx,
     ) -> ModuleResult<ResponseCheckTx> {
         Ok(Default::default())
     }
 
     /// Begin block.
-    async fn begin_block(&mut self, _context: AppContext<'_, Self>, _req: RequestBeginBlock) {}
+    async fn begin_block(&mut self, _context: &mut AppContext<'_, Self>, _req: RequestBeginBlock) {}
 
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: TxnContext<'_, Self>,
+        _context: &mut TxnContext<'_, Self>,
         _req: RequestDeliverTx,
     ) -> ModuleResult<ResponseDeliverTx> {
         Ok(Default::default())
@@ -59,7 +59,7 @@ where
     /// End Block.
     async fn end_block(
         &mut self,
-        _context: AppContext<'_, Self>,
+        _context: &mut AppContext<'_, Self>,
         _req: RequestEndBlock,
     ) -> ResponseEndBlock {
         Default::default()

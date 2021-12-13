@@ -1,4 +1,4 @@
-use crate::{module::StorageTransaction, Storage, entry::Tree};
+use crate::{entry::Tree, module::StorageTransaction, Storage};
 
 pub trait ModuleStorage {
     type Stateless: Storage + StorageTransaction + Tree;
