@@ -22,20 +22,28 @@ impl WsProvider {
 
 #[async_trait::async_trait]
 impl Provider for WsProvider {
-    async fn request<Req, Resp>(&mut self, _method: &str, params: &Req) -> Result<Option<Resp>>
+    async fn request<Req, Resp>(
+        &mut self,
+        _method: &str,
+        params: Option<&Req>,
+    ) -> Result<Option<Resp>>
     where
         Req: Serialize + Sync + Send,
         Resp: for<'de> Deserialize<'de> + Send + Sync,
     {
-        let url = "ws://localhost:26657/websocket";
-        let p = serde_json::to_value(params)?;
+        if let Some(params) = params {
+            let url = "ws://localhost:26657/websocket";
+            let p = serde_json::to_value(params)?;
 
-        let (mut ws_stream, _) = connect_async(url).await.expect("Failed to connect");
+            let (mut ws_stream, _) = connect_async(url).await.expect("Failed to connect");
 
-        ws_stream.send(Message::Text(p.to_string())).await?;
-        ws_stream.next().await.ok_or("didn't receive anything")??;
+            ws_stream.send(Message::Text(p.to_string())).await?;
+            ws_stream.next().await.ok_or("didn't receive anything")??;
 
-        self.receiver = Some(ws_stream);
+            self.receiver = Some(ws_stream);
+
+            return Ok(None);
+        }
 
         Ok(None)
     }

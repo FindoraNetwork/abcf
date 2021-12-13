@@ -11,5 +11,5 @@ pub async fn send_tx<P: Provider, T: ToBytes>(
     let tx_hex = String::from("0x") + &hex::encode(tx.to_bytes()?);
     let j = json!({ "tx": tx_hex });
     log::debug!("Send object is {}", j);
-    p.request(&method, &j).await
+    p.request(&method, Some(&j)).await
 }
