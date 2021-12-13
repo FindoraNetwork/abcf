@@ -86,42 +86,42 @@ impl Parse for PunctuatedMetaNameValue {
 pub fn build_dependence_for_module(store_name: &Ident, attrs: &[Attribute]) -> Option<ItemStruct> {
     for attr in attrs {
         if attr.path.is_ident("dependence") {
-            let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
-            let metas = attr.parse_args_with(parser).unwrap();
+                let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
+                let metas = attr.parse_args_with(parser).unwrap();
 
-            let mut v = Vec::new();
-
-            for meta in metas {
-                let name = meta.path.get_ident();
-
-                if let Lit::Str(s) = meta.lit {
-                    let ttt = s
-                        .parse_with(syn::Path::parse_mod_style)
-                        .expect("Must be types for deps");
-
-                    let field = syn::Field {
-                        attrs: Vec::new(),
-                        vis: parse_quote!(pub),
-                        ident: name.cloned(),
-                        colon_token: Some(Default::default()),
-                        ty: parse_quote!(abcf::manager::Dependence<'a, #ttt<S, D>, abcf::Stateless<#ttt<S, D>>, abcf::Stateful<#ttt<S, D>>),
-                    };
-
-                    v.push(field);
-                }
-            }
-
-            let stateful = parse_quote!(
-                pub struct #store_name<
-                    'a,
-                    S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
-                > {
-                    #(#v,)*
-                }
-            );
-
-            return Some(stateful);
+            //     let mut v = Vec::new();
+            //
+            //     for meta in metas {
+            //         let name = meta.path.get_ident();
+            //
+            //         if let Lit::Str(s) = meta.lit {
+            //             let ttt = s
+            //                 .parse_with(syn::Path::parse_mod_style)
+            //                 .expect("Must be types for deps");
+            //
+            //             let field = syn::Field {
+            //                 attrs: Vec::new(),
+            //                 vis: parse_quote!(pub),
+            //                 ident: name.cloned(),
+            //                 colon_token: Some(Default::default()),
+            //                 ty: parse_quote!(abcf::manager::Dependence<'a, #ttt<S, D>, abcf::Stateless<#ttt<S, D>>, abcf::Stateful<#ttt<S, D>>),
+            //             };
+            //
+            //             v.push(field);
+            //         }
+            //     }
+            //
+            //     let stateful = parse_quote!(
+            //         pub struct #store_name<
+            //             'a,
+            //             S: abcf::bs3::Store + 'static,
+            //             D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            //         > {
+            //             #(#v,)*
+            //         }
+            //     );
+            //
+            //     return Some(stateful);
         }
     }
     None
@@ -157,6 +157,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut init_items = Vec::new();
     let mut fn_items = Vec::new();
+
+    let mut merkle_items = Vec::new();
 
     if let Fields::Named(fields) = &mut parsed.fields {
         let origin_fields = replace(&mut fields.named, Punctuated::new());
@@ -201,6 +203,13 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     target_field.ty =
                         parse_quote!(abcf::bs3::Transaction<'a, S, #merkle<D>, #origin_ty>);
                     stateful_tx.push(target_field);
+
+                    let stateful_name = f.ident.clone().unwrap();
+
+                    let merkle_stmt: syn::Expr = parse_quote!(
+                        self.#stateful_name.root()?
+                    );
+                    merkle_items.push(merkle_stmt);
 
                     is_memory = false;
                 }
@@ -314,36 +323,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     store_trait.generics = parsed.generics.clone();
-
-    let impl_deps = if deps.is_some() {
-        let mut impl_deps: ItemImpl = parse_quote!(
-            impl abcf::manager::ModuleStorageDependence<'__abcf_dep> for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
-                type Dependence = #storage_module_ident::#deps_ident<'__abcf_dep, #(#lifetime_names,)* #(#generics_names,)*>;
-            }
-        );
-
-        impl_deps.generics = parsed.generics.clone();
-        impl_deps
-            .generics
-            .params
-            .insert(0, parse_quote!('__abcf_dep));
-
-        Some(impl_deps)
-    } else {
-        let mut impl_deps: ItemImpl = parse_quote!(
-            impl abcf::manager::ModuleStorageDependence<'__abcf_dep> for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
-                type Dependence = ();
-            }
-        );
-
-        impl_deps.generics = parsed.generics.clone();
-        impl_deps
-            .generics
-            .params
-            .insert(0, parse_quote!('__abcf_dep));
-
-        Some(impl_deps)
-    };
 
     let mut metadata_trait: ItemImpl = parse_quote! {
         impl abcf::Module for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
@@ -536,7 +515,11 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             D: abcf::digest::Digest + core::marker::Sync + core::marker::Send,
         {
             fn root(&self) -> Result<abcf::digest::Output<D>> {
-                Ok(Default::default())
+                let mut hasher = D::new();
+
+                #(hasher.update(#merkle_items);)*
+
+                Ok(hasher.finalize())
             }
         }
     };
@@ -558,8 +541,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         #store_trait
 
         #metadata_trait
-
-        #impl_deps
 
         pub mod #storage_module_ident {
             use super::*;

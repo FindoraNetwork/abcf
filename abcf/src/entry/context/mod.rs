@@ -2,7 +2,7 @@ mod events;
 
 pub use events::{EventContext, EventContextImpl};
 
-use crate::{manager::ModuleStorage, StatefulBatch, StatelessBatch, Stateless, Stateful};
+use crate::{manager::ModuleStorage, Stateful, StatefulBatch, Stateless, StatelessBatch};
 
 pub struct RContext<'a, M: ModuleStorage> {
     pub stateless: &'a mut Stateless<M>,

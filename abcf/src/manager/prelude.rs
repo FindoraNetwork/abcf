@@ -6,6 +6,6 @@ pub trait ModuleStorage {
     type Stateful: Storage + StorageTransaction + Tree;
 }
 
-pub trait ModuleStorageDependence<'a> {
-    type Dependence: Send;
-}
+// pub trait ModuleStorageDependence<'a> {
+// type Dependence: Send;
+// }

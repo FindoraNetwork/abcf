@@ -146,7 +146,7 @@ where
             let stateless_cache = Stateless::<M>::cache(ctx.stateless);
             (result, stateful_cache, stateless_cache)
         };
-        
+
         match result {
             Ok(v) => {
                 resp.data = v.data;

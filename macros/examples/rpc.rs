@@ -37,7 +37,7 @@ pub struct GetAccountResponse {
 impl RpcTest {
     pub async fn get_account<'a>(
         &mut self,
-        _ctx: RPCContext<'a, Self>,
+        _ctx: &mut RPCContext<'a, Self>,
         params: GetAccountRequest,
     ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {

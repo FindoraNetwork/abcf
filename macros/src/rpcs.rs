@@ -154,9 +154,9 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
         parse_quote! {
             #[async_trait::async_trait]
             impl #trait_name for #struct_name {
-                async fn call<'a>(
+                async fn call(
                     &mut self,
-                    ctx: abcf::RPCContext<'a, Self>,
+                    ctx: &mut abcf::RPCContext<'_, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
@@ -168,9 +168,9 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
         parse_quote! {
             #[async_trait::async_trait]
             impl #trait_name for #struct_name {
-                async fn call<'a>(
+                async fn call(
                     &mut self,
-                    ctx: abcf::RPCContext<'a, Self>,
+                    ctx: &mut abcf::RPCContext<'_, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
