@@ -83,48 +83,167 @@ impl Parse for PunctuatedMetaNameValue {
     }
 }
 
-pub fn build_dependence_for_module(store_name: &Ident, attrs: &[Attribute]) -> Option<ItemStruct> {
+pub fn build_dependence_for_module(
+    store_name: &Ident,
+    namespace_ident: &Ident,
+    generics: &syn::Generics,
+    attrs: &[Attribute],
+    generics_names: &[Ident],
+    lifetime_names: &[syn::Lifetime],
+) -> (Vec<ItemStruct>, ItemImpl) {
+    let mut result_item = Vec::new();
+
+    let rpc_ident = Ident::new(
+        &format!("ABCFDeps{}RPC", store_name.to_string()),
+        Span::call_site(),
+    );
+
+    let app_ident = Ident::new(
+        &format!("ABCFDeps{}App", store_name.to_string()),
+        Span::call_site(),
+    );
+
+    let txn_ident = Ident::new(
+        &format!("ABCFDeps{}Txn", store_name.to_string()),
+        Span::call_site(),
+    );
+
     for attr in attrs {
         if attr.path.is_ident("dependence") {
-                let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
-                let metas = attr.parse_args_with(parser).unwrap();
+            let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
+            let metas = attr.parse_args_with(parser).unwrap();
 
-            //     let mut v = Vec::new();
-            //
-            //     for meta in metas {
-            //         let name = meta.path.get_ident();
-            //
-            //         if let Lit::Str(s) = meta.lit {
-            //             let ttt = s
-            //                 .parse_with(syn::Path::parse_mod_style)
-            //                 .expect("Must be types for deps");
-            //
-            //             let field = syn::Field {
-            //                 attrs: Vec::new(),
-            //                 vis: parse_quote!(pub),
-            //                 ident: name.cloned(),
-            //                 colon_token: Some(Default::default()),
-            //                 ty: parse_quote!(abcf::manager::Dependence<'a, #ttt<S, D>, abcf::Stateless<#ttt<S, D>>, abcf::Stateful<#ttt<S, D>>),
-            //             };
-            //
-            //             v.push(field);
-            //         }
-            //     }
-            //
-            //     let stateful = parse_quote!(
-            //         pub struct #store_name<
-            //             'a,
-            //             S: abcf::bs3::Store + 'static,
-            //             D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
-            //         > {
-            //             #(#v,)*
-            //         }
-            //     );
-            //
-            //     return Some(stateful);
+            let mut r_fields = Vec::new();
+            let mut a_fields = Vec::new();
+            let mut t_fields = Vec::new();
+
+            for meta in metas {
+                let name = meta.path.get_ident();
+
+                if let Lit::Str(s) = meta.lit {
+                    let ttt = s
+                        .parse_with(syn::Path::parse_mod_style)
+                        .expect("Must be types for deps");
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(abcf::manager::context::RDependence<'__abcf_deps, #ttt<S, D>>),
+                    };
+
+                    r_fields.push(field);
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(abcf::manager::context::ADependence<'__abcf_deps, #ttt<S, D>>),
+                    };
+
+                    a_fields.push(field);
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(abcf::manager::context::TDependence<'__abcf_deps, #ttt<S, D>>),
+                    };
+
+                    t_fields.push(field);
+                }
+            }
+
+            let r_struct: ItemStruct = parse_quote!(
+                pub struct #rpc_ident<
+                    '__abcf_deps,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#r_fields,)*
+                }
+            );
+
+            let a_struct: ItemStruct = parse_quote!(
+                pub struct #app_ident<
+                    '__abcf_deps,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#a_fields,)*
+                }
+            );
+
+            let t_struct: ItemStruct = parse_quote!(
+                pub struct #txn_ident<
+                    '__abcf_deps,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#t_fields,)*
+                }
+            );
+
+            result_item.push(r_struct);
+            result_item.push(a_struct);
+            result_item.push(t_struct);
         }
     }
-    None
+
+    if result_item.len() == 0 {
+        let r_struct: ItemStruct = parse_quote!(
+            pub struct #rpc_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        let a_struct: ItemStruct = parse_quote!(
+            pub struct #app_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        let t_struct: ItemStruct = parse_quote!(
+            pub struct #txn_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        result_item.push(r_struct);
+        result_item.push(a_struct);
+        result_item.push(t_struct);
+    }
+
+    let mut deps_trait: ItemImpl = parse_quote! {
+        impl abcf::manager::Dependence<'__abcf_deps> for #store_name<#(#lifetime_names,)* #(#generics_names,)*> {
+            type RPC = #namespace_ident::#rpc_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type App = #namespace_ident::#app_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type Txn = #namespace_ident::#txn_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+        }
+    };
+
+    deps_trait.generics = generics.clone();
+    deps_trait.generics.params.push(parse_quote!('__abcf_deps));
+
+    (result_item, deps_trait)
 }
 
 /// Define Module
@@ -136,15 +255,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let version = args.version;
     let impl_version = args.impl_version;
     let target_height = args.target_height;
-
-    let attrs = std::mem::take(&mut parsed.attrs);
-
-    let deps_ident = Ident::new(
-        &format!("ABCFDeps{}", parsed.ident.to_string()),
-        Span::call_site(),
-    );
-
-    let deps = build_dependence_for_module(&deps_ident, &attrs);
 
     let mut stateless = Vec::new();
     let mut stateless_arg = Vec::new();
@@ -295,6 +405,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             lifetime_names.push(l.lifetime.clone());
         }
     }
+
+    let attrs = std::mem::take(&mut parsed.attrs);
+
+    let (dep_items, dep_impl) = build_dependence_for_module(
+        &parsed.ident,
+        &storage_module_ident,
+        &parsed.generics,
+        &attrs,
+        &generics_names,
+        &lifetime_names,
+    );
 
     if let Fields::Named(fields) = &mut parsed.fields {
         for x in markers_with_generics.clone() {
@@ -542,6 +663,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #metadata_trait
 
+        #dep_impl
+
         pub mod #storage_module_ident {
             use super::*;
             use abcf::Result;
@@ -549,7 +672,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             pub const MODULE_NAME: &'static str = #name;
 
-            #deps
+            #(#dep_items)*
 
             #stateless_struct
 

@@ -1,5 +1,5 @@
-mod context;
-pub use context::{AContext, Dependence, RContext, TContext};
+pub mod context;
+pub use context::{AContext, RContext, TContext, Dependence};
 
 mod prelude;
 pub use prelude::ModuleStorage;

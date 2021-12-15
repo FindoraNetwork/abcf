@@ -95,7 +95,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        let attrs = std::mem::take(&mut parsed.attrs);
+        // let attrs = std::mem::take(&mut parsed.attrs);
     }
 
     let mut init_items = Vec::new();
