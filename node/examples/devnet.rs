@@ -9,7 +9,7 @@ use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, Res
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCResponse, TxnContext, RPCContext};
+use abcf::{Application, Event, RPCContext, RPCResponse, TxnContext};
 use bs3::merkle::append_only::AppendOnlyMerkle;
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
