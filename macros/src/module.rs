@@ -164,8 +164,8 @@ pub fn build_dependence_for_module(
                     D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
                 > {
                     #(#r_fields,)*
-                    __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                    __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
                 }
             );
 
@@ -176,8 +176,8 @@ pub fn build_dependence_for_module(
                     D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
                 > {
                     #(#a_fields,)*
-                    __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                    __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
                 }
             );
 
@@ -188,8 +188,8 @@ pub fn build_dependence_for_module(
                     D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
                 > {
                     #(#t_fields,)*
-                    __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                    __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
                 }
             );
 
@@ -206,8 +206,8 @@ pub fn build_dependence_for_module(
                 S: abcf::bs3::Store + 'static,
                 D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
             > {
-                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
             }
         );
 
@@ -217,8 +217,8 @@ pub fn build_dependence_for_module(
                 S: abcf::bs3::Store + 'static,
                 D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
             > {
-                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
             }
         );
 
@@ -228,8 +228,8 @@ pub fn build_dependence_for_module(
                 S: abcf::bs3::Store + 'static,
                 D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
             > {
-                __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
-                __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
             }
         );
 

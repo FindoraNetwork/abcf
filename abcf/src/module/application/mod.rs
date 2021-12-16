@@ -6,7 +6,10 @@ pub use types::{
     ResponseDeliverTx, ResponseEndBlock,
 };
 
-use crate::{manager::{ModuleStorage, Dependence}, AppContext, Result, TxnContext};
+use crate::{
+    manager::{Dependence, ModuleStorage},
+    AppContext, Result, TxnContext,
+};
 
 // use super::StorageTransaction;
 

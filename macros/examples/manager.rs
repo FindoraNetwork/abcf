@@ -10,8 +10,43 @@ use abcf::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
+#[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
+pub struct DepModule {
+    pub inner: u32,
+    #[stateful(merkle = "AppendOnlyMerkle")]
+    pub sf_value: Value<u32>,
+    #[stateless]
+    pub sl_value: Value<u32>,
+    #[stateless]
+    pub sl_map: Map<i32, u32>,
+}
+
+#[abcf::rpcs]
+impl DepModule {}
+
+#[abcf::application]
+impl Application for DepModule {
+    type Transaction = DepsTransaction;
+}
+
+pub struct DepsTransaction {}
+
+impl Default for DepsTransaction {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl TryFrom<&SimpleNodeTransaction> for DepsTransaction {
+    type Error = abcf::Error;
+
+    fn try_from(_value: &SimpleNodeTransaction) -> Result<Self, Self::Error> {
+        Ok(Self {})
+    }
+}
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
+#[dependence(dep_module = "DepModule")]
 pub struct MockModule {
     pub inner: u32,
     #[stateful(merkle = "AppendOnlyMerkle")]
@@ -92,8 +127,8 @@ impl TryFrom<&SimpleNodeTransaction> for MockTransaction {
     transaction = "SimpleNodeTransaction"
 )]
 pub struct SimpleManager {
-    pub mock: MockModule,
-    // #[dependence(external_module = "mock2")]
+    pub mock: DepModule,
+    #[dependence(dep_module = "mock")]
     pub mock2: MockModule,
 }
 #[tokio::main]
