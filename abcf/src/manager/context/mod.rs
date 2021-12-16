@@ -31,14 +31,14 @@ pub struct TDependence<'a, M: ModuleStorage> {
 pub struct RContext<'a, M: ModuleStorage> {
     pub stateless: &'a mut Stateless<M>,
     pub stateful: &'a Stateful<M>,
-    pub deps: RDependence<'a, M>,
+    // pub deps: RDependence<'a, M>,
 }
 
 pub struct AContext<'a, M: ModuleStorage> {
     pub events: EventContext<'a>,
     pub stateless: &'a mut Stateless<M>,
     pub stateful: &'a mut Stateful<M>,
-    pub deps: ADependence<'a, M>,
+    // pub deps: ADependence<'a, M>,
 }
 
 pub struct TContext<'a, M: ModuleStorage>
@@ -48,5 +48,5 @@ where
     pub events: EventContext<'a>,
     pub stateless: StatelessBatch<'a, M>,
     pub stateful: StatefulBatch<'a, M>,
-    pub deps: TDependence<'a, M>,
+    // pub deps: TDependence<'a, M>,
 }

@@ -169,14 +169,13 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let rma: Arm = parse_quote! {
             #name_lit_str => {
-                let context = abcf::manager::RContext {
+                let mut context = abcf::manager::RContext {
                     stateful: &ctx.stateful.#key,
                     stateless: &mut ctx.stateless.#key,
-                    deps: (),
                 };
 
                 self.#key
-                    .call(context, method, params)
+                    .call(&mut context, method, params)
                     .await
                     .map_err(|e| abcf::ModuleError {
                         namespace: String::from(#name_lit_str),
@@ -193,11 +192,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         fields.named.push(backked_s.inner.clone());
     };
 
-    let calls: ParseField = parse_quote!(__calls: abcf::manager::CallImpl);
-
-    if let Fields::Named(fields) = &mut parsed.fields {
-        fields.named.push(calls.inner.clone());
-    };
     //     stateless_struct_items.push(backked_s.clone());
     //     stateful_struct_items.push(backked_s.clone());
 
@@ -224,7 +218,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 Self {
                     #(#init_items,)*
                     __marker_s: core::marker::PhantomData,
-                    __calls: abcf::manager::CallImpl::new(),
                 }
             }
         }
@@ -535,18 +528,11 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut app_impl: ItemImpl = parse_quote! {
             #[async_trait::async_trait]
-            impl abcf::entry::Application<
-                #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-                #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
-            >
-            for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
+            impl abcf::entry::Application for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
             {
                 async fn check_tx(
                     &mut self,
-                    context: &mut abcf::entry::TContext<
-                        #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                        #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::TxnContext<'_, Self>,
                     _req: abcf::tm_protos::abci::RequestCheckTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
                     use abcf::module::FromBytes;
@@ -578,16 +564,15 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             })?,
                         };
 
-                        let ctx = abcf::manager::TContext {
+                        let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: &mut context.stateful.#key_item,
-                            stateless: &mut context.stateless.#key_item,
-                            deps: (),
+                            stateful: context.stateful.#key_item,
+                            stateless: context.stateless.#key_item,
                         };
                         let result = self.#key_item
-                            .check_tx(ctx, &tx)
+                            .check_tx(&mut ctx, &tx)
                             .await
                             .map_err(|e| abcf::ModuleError {
                                 namespace: String::from(name.clone()),
@@ -611,10 +596,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 /// Begin block.
                 async fn begin_block(
                     &mut self,
-                    context: &mut abcf::entry::AContext<
-                        #stateless_struct_ident<#(#generics_names,)*>,
-                        #stateful_struct_ident<#(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::AppContext<'_, Self>,
                     _req: abcf::module::types::RequestBeginBlock,
                 ) {
                     use abcf::Application;
@@ -625,19 +607,15 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            deps: (),
                         };
-                        self.#key_item.begin_block(ctx, &_req).await;
+                        self.#key_item.begin_block(&mut ctx, &_req).await;
                     )*
                 }
 
                 /// Execute transaction on state.
                 async fn deliver_tx(
                     &mut self,
-                    context: &mut abcf::entry::TContext<
-                        #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                        #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::TxnContext<'_, Self>,
                     _req: abcf::tm_protos::abci::RequestDeliverTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
 
@@ -671,16 +649,15 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                                 })?
                         };
 
-                        let ctx = abcf::manager::TContext {
+                        let mut ctx = abcf::manager::TContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: &mut context.stateful.#key_item,
-                            stateless: &mut context.stateless.#key_item,
-                            deps: (),
+                            stateful: context.stateful.#key_item,
+                            stateless: context.stateless.#key_item,
                         };
                         let result = self.#key_item
-                            .deliver_tx(ctx, &tx)
+                            .deliver_tx(&mut ctx, &tx)
                             .await
                             .map_err(|e| abcf::ModuleError {
                                 namespace: String::from(name.clone()),
@@ -705,10 +682,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 /// End Block.
                 async fn end_block(
                     &mut self,
-                    context: &mut abcf::entry::AContext<
-                        #stateless_struct_ident<#(#generics_names,)*>,
-                        #stateful_struct_ident<#(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::AppContext<'_, Self>,
                     _req: abcf::module::types::RequestEndBlock,
                 ) -> abcf::module::types::ResponseEndBlock {
                     use abcf::Application;
@@ -717,15 +691,14 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut resp_end_block = abcf::module::types::ResponseEndBlock::default();
 
                     #(
-                        let ctx = abcf::manager::AContext {
+                        let mut ctx = abcf::manager::AContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            deps: (),
                         };
-                        let resp = self.#key_item.end_block(ctx, &_req).await;
+                        let resp = self.#key_item.end_block(&mut ctx, &_req).await;
 
                         resp.validator_updates.into_iter().for_each(|v| {
                             if !validator_updates_vec.contains(&v) {
@@ -745,18 +718,11 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut rpc_impl: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
-        impl abcf::entry::RPCs<
-            #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-            #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-        >
-        for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
+        impl abcf::entry::RPCs for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
         {
             async fn call(
                 &mut self,
-                ctx: &mut abcf::entry::RContext<
-                    #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-                    #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
-                >,
+                ctx: &mut abcf::entry::RPCContext<'_, Self>,
                 method: &str,
                 params: serde_json::Value,
             ) -> abcf::ModuleResult<Option<serde_json::Value>> {

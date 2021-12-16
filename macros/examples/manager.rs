@@ -29,17 +29,17 @@ impl MockModule {}
 impl Application for MockModule {
     type Transaction = MockTransaction;
 
-    async fn check_tx<'a>(
+    async fn check_tx(
         &mut self,
-        _context: TxnContext<'a, Self>,
+        _context: &mut TxnContext<'_, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> abcf::Result<ResponseCheckTx> {
         Ok(Default::default())
     }
 
-    async fn deliver_tx<'a>(
+    async fn deliver_tx(
         &mut self,
-        _context: TxnContext<'a, Self>,
+        _context: &mut TxnContext<'_, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> abcf::Result<ResponseDeliverTx> {
         Ok(Default::default())
