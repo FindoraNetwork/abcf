@@ -6,13 +6,13 @@ pub use types::{
     ResponseDeliverTx, ResponseEndBlock,
 };
 
-use crate::{manager::ModuleStorage, AppContext, Result, TxnContext};
+use crate::{manager::{ModuleStorage, Dependence}, AppContext, Result, TxnContext};
 
 // use super::StorageTransaction;
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application: Send + Sync + Sized + ModuleStorage {
+pub trait Application: Send + Sync + Sized + ModuleStorage + Dependence {
     type Transaction: Default + Send + Sync;
 
     /// Define how to check transaction.

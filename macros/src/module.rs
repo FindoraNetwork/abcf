@@ -239,15 +239,14 @@ pub fn build_dependence_for_module(
     }
 
     let mut deps_trait: ItemImpl = parse_quote! {
-        impl abcf::manager::Dependence<'__abcf_deps> for #store_name<#(#lifetime_names,)* #(#generics_names,)*> {
-            type RPC = #namespace_ident::#rpc_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
-            type App = #namespace_ident::#app_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
-            type Txn = #namespace_ident::#txn_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+        impl abcf::manager::Dependence for #store_name<#(#lifetime_names,)* #(#generics_names,)*> {
+            type RPC<'__abcf_deps> = #namespace_ident::#rpc_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type App<'__abcf_deps> = #namespace_ident::#app_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type Txn<'__abcf_deps> = #namespace_ident::#txn_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
         }
     };
 
     deps_trait.generics = generics.clone();
-    deps_trait.generics.params.push(parse_quote!('__abcf_deps));
 
     (result_item, deps_trait)
 }

@@ -2,13 +2,21 @@ use crate::{entry::EventContext, Stateful, StatefulBatch, Stateless, StatelessBa
 
 use super::ModuleStorage;
 
-pub trait Dependence<'a> {
-    type RPC;
+pub trait Dependence {
+    type RPC<'a>: Send
+    where
+        Self: 'a;
 
-    type App;
+    type App<'a>: Send
+    where
+        Self: 'a;
 
-    type Txn;
+    type Txn<'a>: Send
+    where
+        Self: 'a;
 }
+
+pub type AppDependence<'a, M> = <M as Dependence>::RPC<'a>;
 
 pub struct RDependence<'a, M: ModuleStorage> {
     pub module: &'a mut M,
@@ -34,11 +42,11 @@ pub struct RContext<'a, M: ModuleStorage> {
     // pub deps: RDependence<'a, M>,
 }
 
-pub struct AContext<'a, M: ModuleStorage> {
+pub struct AContext<'a, M: ModuleStorage + Dependence + 'a> {
     pub events: EventContext<'a>,
     pub stateless: &'a mut Stateless<M>,
     pub stateful: &'a mut Stateful<M>,
-    // pub deps: ADependence<'a, M>,
+    pub deps: AppDependence<'a, M>,
 }
 
 pub struct TContext<'a, M: ModuleStorage>
