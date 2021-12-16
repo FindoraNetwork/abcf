@@ -3,14 +3,13 @@
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 
-use abcf::manager::TContext;
 use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
 /// Running in shell
 ///
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCResponse, StatefulBatch, StatelessBatch};
+use abcf::{Application, Event, RPCResponse, TxnContext, RPCContext};
 use bs3::merkle::append_only::AppendOnlyMerkle;
 use bs3::model::{Map, Value};
 use serde::{Deserialize, Serialize};
@@ -25,7 +24,7 @@ pub struct SendEvent {
 }
 
 #[abcf::module(name = "mock", version = 1, impl_version = "0.1.1", target_height = 0)]
-#[dependence(external_module = "MockModule")]
+// #[dependence(external_module = "MockModule")]
 pub struct MockModule {
     // /// In memory.
     pub inner: u32,
@@ -41,7 +40,7 @@ pub struct MockModule {
 impl MockModule {
     pub async fn get_owned_outputs(
         &mut self,
-        _context: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut RPCContext<'_, Self>,
         request: String,
     ) -> RPCResponse<String> {
         RPCResponse::new(request)
@@ -59,7 +58,7 @@ impl Application for MockModule {
 
     async fn check_tx(
         &mut self,
-        context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        context: &mut TxnContext<'_, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> abcf::Result<ResponseCheckTx> {
         let e = SendEvent {
@@ -73,7 +72,7 @@ impl Application for MockModule {
 
     async fn deliver_tx(
         &mut self,
-        context: &mut TContext<StatelessBatch<'_, Self>, StatefulBatch<'_, Self>>,
+        context: &mut TxnContext<'_, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> abcf::Result<ResponseDeliverTx> {
         let e = SendEvent {
