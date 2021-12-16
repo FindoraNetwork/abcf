@@ -568,8 +568,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: context.stateful.#key_item,
-                            stateless: context.stateless.#key_item,
+                            stateful: context.stateful.#key_item.clone(),
+                            stateless: context.stateless.#key_item.clone(),
                         };
                         let result = self.#key_item
                             .check_tx(&mut ctx, &tx)
@@ -601,7 +601,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 ) {
                     use abcf::Application;
                     #(
-                        let ctx = abcf::manager::AContext {
+                        let mut ctx = abcf::manager::AContext {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
@@ -653,8 +653,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: context.stateful.#key_item,
-                            stateless: context.stateless.#key_item,
+                            stateful: context.stateful.#key_item.clone(),
+                            stateless: context.stateless.#key_item.clone(),
                         };
                         let result = self.#key_item
                             .deliver_tx(&mut ctx, &tx)

@@ -501,6 +501,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_tx.generics = parsed.generics.clone();
     sl_tx.generics.params.push(parse_quote!('a));
 
+    let mut sl_tx_clone: ItemImpl = parse_quote! {
+        impl Clone for #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            fn clone(&self) -> Self {
+                Self {
+                    #(#stateless_arg: self.#stateless_arg.clone(),)*
+                    #(#markers,)*
+                }
+            }
+        }
+    };
+
+    sl_tx_clone.generics = parsed.generics.clone();
+    sl_tx_clone.generics.params.push(parse_quote!('a));
+
     let mut sl_cache: ItemStruct = parse_quote! {
         pub struct #stateless_tx_cache_struct_ident {
             #(#stateless_value,)*
@@ -576,6 +590,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     sf_tx.generics = parsed.generics.clone();
     sf_tx.generics.params.push(parse_quote!('a));
+
+    let mut sf_tx_clone: ItemImpl = parse_quote! {
+        impl Clone for #stateful_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            fn clone(&self) -> Self {
+                Self {
+                    #(#stateful_arg: self.#stateful_arg.clone(),)*
+                    #(#markers,)*
+                }
+            }
+        }
+    };
+
+    sf_tx_clone.generics = parsed.generics.clone();
+    sf_tx_clone.generics.params.push(parse_quote!('a));
 
     let mut sf_cache: ItemStruct = parse_quote! {
         pub struct #stateful_tx_cache_struct_ident {
@@ -686,6 +714,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             #sl_tx
 
+            #sl_tx_clone
+
             #sl_cache
 
             #sl_storage_impl
@@ -695,6 +725,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #stateful_struct
 
             #sf_tx
+
+            #sf_tx_clone
 
             #sf_cache
 
