@@ -483,8 +483,21 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateless_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                Ok(Vec::new())
+            fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResultVec<u8>> {
+                let key_hex_decode = hex::decode(_key)
+                    .map_err(|e|abcf::ModuleError::new(#name,
+                        abcf::Error::ABCIApplicationError(90002,e.to_string())))?;
+
+                let value = self.tree_get(key_hex_decode, _height)
+                    .map_err(|e|abcf::ModuleError::new(#name,
+                        abcf::Error::ABCIApplicationError(90003,e.to_string())))?;
+
+                if let Some(value) = value {
+                    Ok(value)
+                } else {
+                    Ok(Vec::new())
+                }
+
             }
         }
     };
@@ -681,7 +694,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                Ok(Vec::new())
+
+                let key_hex_decode = hex::decode(_key)
+                    .map_err(|e|abcf::ModuleError::new(#name,
+                        abcf::Error::ABCIApplicationError(90002,e.to_string())))?;
+
+                let value = self.tree_get(key_hex_decode, _height)
+                    .map_err(|e|abcf::ModuleError::new(#name,
+                        abcf::Error::ABCIApplicationError(90003,e.to_string())))?;
+
+                if let Some(value) = value {
+                    Ok(value)
+                } else {
+                    Ok(Vec::new())
+                }
             }
         }
     };
