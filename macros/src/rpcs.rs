@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::*;
-use std::{env, fs::File, io::Write, ops::Deref, path::Path};
+use std::{env, fs::File, io::Write, path::Path};
 use syn::{
     parse_macro_input, parse_quote, FnArg, GenericParam, ImplItem, ItemImpl, ReturnType, Type,
 };
@@ -21,79 +21,72 @@ pub fn rpcs(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut fn_names = vec![];
     let mut param_names = vec![];
-    let mut param_idents = vec![];
+    // let mut param_idents = vec![];
     let mut fn_idents = vec![];
     let mut return_names = vec![];
     let mut is_empty_impl = true;
     let mut rpc_call_match_arms = vec![];
 
-    parsed.items.iter().for_each(|item| match item {
-        ImplItem::Method(data) => {
-            let fn_ident = data.sig.ident.clone();
+    for item in &parsed.items {
+        if let ImplItem::Method(method) = item {
+            let fn_ident = method.sig.ident.clone();
             let fn_name = fn_ident.to_string();
 
             fn_names.push(fn_name.clone());
             fn_idents.push(fn_ident.clone());
 
-            match &data.sig.output {
+            match &method.sig.output {
                 ReturnType::Default => return_names.push(String::from("Result<()>")),
                 ReturnType::Type(_, t) => {
                     return_names.push(format!("Result<{}>", t.to_token_stream()))
                 }
             };
 
-            // TODO: Replace by RPC types
-            // return_names.push("Result<Value>");
+            let param_ident = {
+                let input = &method.sig.inputs[2];
 
-            data.sig.inputs.iter().for_each(|input| match input {
-                FnArg::Receiver(_) => {}
-                FnArg::Typed(typed) => match typed.ty.deref() {
-                    Type::Path(p) => {
-                        p.path.segments.iter().for_each(|seg| {
-                            let param_ident = seg.ident.clone();
-                            param_names.push(param_ident.to_string());
-                            param_idents.push(param_ident.clone());
+                if let FnArg::Typed(t) = input {
+                    let ttt = *t.ty.clone();
+                    param_names.push(ttt.to_token_stream().to_string());
+                    ttt
+                } else {
+                    panic!("error for type define.");
+                }
+            };
 
-                            let rcma:Arm = parse_quote! {
-                                #fn_name => {
-                                    let param = serde_json::from_value::<#param_ident>(params)?;
+            let rcma: Arm = parse_quote! {
+                #fn_name => {
+                    let param = serde_json::from_value::<#param_ident>(params)?;
 
-                                    let response = self.#fn_ident(ctx, param).await;
+                    let response = self.#fn_ident(ctx, param).await;
 
-                                    if response.code != 0 {
-                                        Err(abcf::Error::new_rpc_error(response.code, response.message))
-                                    } else if let Some(v) = response.data {
-                                        Ok(Some(serde_json::to_value(v)?))
-                                    } else {
-                                        Ok(None)
-                                    }
-                                }
-                            };
-
-                            rpc_call_match_arms.push(rcma);
-                        });
+                    if response.code != 0 {
+                        Err(abcf::Error::new_rpc_error(response.code, response.message))
+                    } else if let Some(v) = response.data {
+                        Ok(Some(serde_json::to_value(v)?))
+                    } else {
+                        Ok(None)
                     }
-                    _ => {}
-                },
-            });
+                }
+            };
+
+            rpc_call_match_arms.push(rcma);
             is_empty_impl = false;
         }
-        _ => {}
-    });
+    }
 
     let out_dir_str = env::var("OUT_DIR").expect("please create build.rs");
     let out_dir = Path::new(&out_dir_str).join(name.to_lowercase() + ".rs");
     let mut f = File::create(&out_dir).expect("create file error");
     let module_name_mod_name = format!("__abcf_storage_{}", name.to_lowercase());
 
-    let dependency = format!(
-        r#"
+    let dependency = r#"
 use abcf_sdk::jsonrpc::endpoint;
 use abcf_sdk::error::*;
 use abcf_sdk::providers::Provider;
 use super::*;
       "#
-    );
+    .to_string();
 
     f.write_all(dependency.as_bytes()).expect("write error");
 
@@ -160,10 +153,10 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     let mut pre_rpc: ItemImpl = if is_empty_impl {
         parse_quote! {
             #[async_trait::async_trait]
-            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
+            impl #trait_name for #struct_name {
                 async fn call(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
+                    ctx: &mut abcf::RPCContext<'_, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {
@@ -174,10 +167,10 @@ pub async fn {}<P: Provider>(p: P, param: {}) -> {} {{
     } else {
         parse_quote! {
             #[async_trait::async_trait]
-            impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
+            impl #trait_name for #struct_name {
                 async fn call(
                     &mut self,
-                    ctx: &mut abcf::manager::RContext<abcf::Stateless<Self>, abcf::Stateful<Self>>,
+                    ctx: &mut abcf::RPCContext<'_, Self>,
                     method: &str,
                     params: serde_json::Value)
                 -> abcf::Result<Option<serde_json::Value>> {

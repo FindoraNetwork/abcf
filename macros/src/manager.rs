@@ -94,6 +94,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 *arguments = PathArguments::AngleBracketed(parse_quote!(<S, #digest>));
             }
         }
+
+        // let attrs = std::mem::take(&mut parsed.attrs);
     }
 
     let mut init_items = Vec::new();
@@ -117,6 +119,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut tx_execute_items = Vec::new();
 
     let mut rpc_match_arms = Vec::new();
+
+    let mut app_deps = Vec::new();
+    let mut txn_deps = Vec::new();
 
     // list items.
     for item in &mut parsed.fields {
@@ -165,11 +170,99 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let tei: ExprMethodCall = parse_quote!(self.#key.execute(transaction.#key));
         tx_execute_items.push(tei);
 
+        let attrs = std::mem::take(&mut item.attrs);
+
+        let mut metas = Vec::new();
+
+        for attr in attrs {
+            if attr.path.is_ident("dependence") {
+                let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
+                let mut imetas = attr
+                    .parse_args_with(parser)
+                    .unwrap()
+                    .iter()
+                    .map(|e| e.clone())
+                    .collect::<Vec<MetaNameValue>>();
+
+                metas.append(&mut imetas);
+            }
+        }
+        let mut app_key_map = Vec::new();
+        let mut rpc_key_map = Vec::new();
+        let mut txn_key_map = Vec::new();
+
+        for meta in metas {
+            let name_key = meta.path.get_ident();
+
+            if let Lit::Str(s) = meta.lit {
+                let get_key = Ident::new(&s.value(), Span::call_site());
+
+                let map: FieldValue = parse_quote! {
+                    #name_key: abcf::manager::context::ADependence {
+                        module: &mut self.#get_key,
+                        stateful: &mut context.stateful.#get_key,
+                        stateless: &mut context.stateless.#get_key,
+                    }
+                };
+
+                app_key_map.push(map);
+
+                let map: FieldValue = parse_quote! {
+                    #name_key: abcf::manager::context::RDependence {
+                        module: &mut self.#get_key,
+                        stateful: &ctx.stateful.#get_key,
+                        stateless: &mut ctx.stateless.#get_key,
+                    }
+                };
+
+                rpc_key_map.push(map);
+
+                let map: FieldValue = parse_quote! {
+                    #name_key: abcf::manager::context::TDependence {
+                        module: &mut self.#get_key,
+                        stateful: context.stateful.#get_key.clone(),
+                        stateless: context.stateless.#get_key.clone(),
+                    }
+                };
+
+                txn_key_map.push(map);
+            }
+        }
+
+        let a_dep: syn::ExprStruct = parse_quote! {
+            abcf::manager::AppDependence::<#ty> {
+                #( #app_key_map, )*
+                __marker_s: core::marker::PhantomData,
+                __marker_d: core::marker::PhantomData,
+            }
+        };
+
+        app_deps.push(a_dep);
+
+        let t_dep: syn::ExprStruct = parse_quote! {
+            abcf::manager::TxnDependence::<#ty> {
+                #( #txn_key_map, )*
+                __marker_s: core::marker::PhantomData,
+                __marker_d: core::marker::PhantomData,
+            }
+        };
+
+        txn_deps.push(t_dep);
+
+        let r_dep: syn::ExprStruct = parse_quote! {
+            abcf::manager::RPCDependence::<#ty> {
+                #( #rpc_key_map, )*
+                __marker_s: core::marker::PhantomData,
+                __marker_d: core::marker::PhantomData,
+            }
+        };
+
         let rma: Arm = parse_quote! {
             #name_lit_str => {
                 let mut context = abcf::manager::RContext {
                     stateful: &ctx.stateful.#key,
                     stateless: &mut ctx.stateless.#key,
+                    deps: #r_dep,
                 };
 
                 self.#key
@@ -189,14 +282,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     if let Fields::Named(fields) = &mut parsed.fields {
         fields.named.push(backked_s.inner.clone());
     };
-
-    let calls: ParseField = parse_quote!(__calls: abcf::manager::CallImpl);
-
-    if let Fields::Named(fields) = &mut parsed.fields {
-        fields.named.push(calls.inner.clone());
-    };
-    //     stateless_struct_items.push(backked_s.clone());
-    //     stateful_struct_items.push(backked_s.clone());
 
     parsed
         .generics
@@ -221,7 +306,6 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 Self {
                     #(#init_items,)*
                     __marker_s: core::marker::PhantomData,
-                    __calls: abcf::manager::CallImpl::new(),
                 }
             }
         }
@@ -423,8 +507,10 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 let mut hasher = #digest::new();
                 #(
                     {
-                        let item = &self.#key_item as &dyn Merkle<#digest>;
-                        hasher.update(item.root()?);
+                        let root = self.#key_item.root()?;
+                        if root != abcf::digest::Output::<#digest>::default() {
+                            hasher.update(root);
+                        }
                     }
                 )*
                 Ok(hasher.finalize())
@@ -530,18 +616,11 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut app_impl: ItemImpl = parse_quote! {
             #[async_trait::async_trait]
-            impl abcf::entry::Application<
-                #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-                #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
-            >
-            for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
+            impl abcf::entry::Application for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
             {
                 async fn check_tx(
                     &mut self,
-                    context: &mut abcf::entry::TContext<
-                        #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                        #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::TxnContext<'_, Self>,
                     _req: abcf::tm_protos::abci::RequestCheckTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseCheckTx> {
                     use abcf::module::FromBytes;
@@ -577,9 +656,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: &mut context.stateful.#key_item,
-                            stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
+                            stateful: context.stateful.#key_item.clone(),
+                            stateless: context.stateless.#key_item.clone(),
+                            deps: #txn_deps
                         };
                         let result = self.#key_item
                             .check_tx(&mut ctx, &tx)
@@ -606,10 +685,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 /// Begin block.
                 async fn begin_block(
                     &mut self,
-                    context: &mut abcf::entry::AContext<
-                        #stateless_struct_ident<#(#generics_names,)*>,
-                        #stateful_struct_ident<#(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::AppContext<'_, Self>,
                     _req: abcf::module::types::RequestBeginBlock,
                 ) {
                     use abcf::Application;
@@ -620,7 +696,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
+                            deps: #app_deps,
                         };
                         self.#key_item.begin_block(&mut ctx, &_req).await;
                     )*
@@ -629,10 +705,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 /// Execute transaction on state.
                 async fn deliver_tx(
                     &mut self,
-                    context: &mut abcf::entry::TContext<
-                        #sl_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                        #sf_tx_struct_ident<'_, #(#lifetime_names,)* #(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::TxnContext<'_, Self>,
                     _req: abcf::tm_protos::abci::RequestDeliverTx,
                 ) -> abcf::ModuleResult<abcf::module::types::ResponseDeliverTx> {
 
@@ -670,9 +743,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             events: abcf::entry::EventContext {
                                 events: context.events.events,
                             },
-                            stateful: &mut context.stateful.#key_item,
-                            stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
+                            stateful: context.stateful.#key_item.clone(),
+                            stateless: context.stateless.#key_item.clone(),
+                            deps: #txn_deps
                         };
                         let result = self.#key_item
                             .deliver_tx(&mut ctx, &tx)
@@ -700,10 +773,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 /// End Block.
                 async fn end_block(
                     &mut self,
-                    context: &mut abcf::entry::AContext<
-                        #stateless_struct_ident<#(#generics_names,)*>,
-                        #stateful_struct_ident<#(#generics_names,)*>,
-                    >,
+                    context: &mut abcf::entry::AppContext<'_, Self>,
                     _req: abcf::module::types::RequestEndBlock,
                 ) -> abcf::module::types::ResponseEndBlock {
                     use abcf::Application;
@@ -718,7 +788,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             stateful: &mut context.stateful.#key_item,
                             stateless: &mut context.stateless.#key_item,
-                            calls: abcf::manager::CallContext::new(&mut self.__calls),
+                            deps: #app_deps,
                         };
                         let resp = self.#key_item.end_block(&mut ctx, &_req).await;
 
@@ -740,18 +810,11 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut rpc_impl: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
-        impl abcf::entry::RPCs<
-            #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-            #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-        >
-        for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
+        impl abcf::entry::RPCs for #module_name<#(#lifetime_names,)* #(#generics_names,)*>
         {
             async fn call(
                 &mut self,
-                ctx: &mut abcf::entry::RContext<
-                    #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>,
-                    #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
-                >,
+                ctx: &mut abcf::entry::RPCContext<'_, Self>,
                 method: &str,
                 params: serde_json::Value,
             ) -> abcf::ModuleResult<Option<serde_json::Value>> {

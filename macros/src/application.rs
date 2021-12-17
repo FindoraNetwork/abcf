@@ -36,7 +36,7 @@ pub fn application(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut pre_app: ItemImpl = parse_quote! {
         #[async_trait::async_trait]
-        impl #trait_name<abcf::Stateless<Self>, abcf::Stateful<Self>> for #struct_name {
+        impl #trait_name for #struct_name {
             #(
                 #inner
             )*

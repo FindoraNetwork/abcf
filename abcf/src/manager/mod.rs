@@ -1,5 +1,7 @@
-mod context;
-pub use context::{AContext, CallContext, CallEntry, CallImpl, Context, RContext, TContext};
+pub mod context;
+pub use context::{
+    AContext, AppDependence, Dependence, RContext, RPCDependence, TContext, TxnDependence,
+};
 
 mod prelude;
-pub use prelude::{ModuleStorage, ModuleStorageDependence};
+pub use prelude::ModuleStorage;

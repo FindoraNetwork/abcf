@@ -7,19 +7,15 @@ pub use types::{
 };
 
 use crate::{
-    manager::{AContext, TContext},
-    Result, Storage,
+    manager::{Dependence, ModuleStorage},
+    AppContext, Result, TxnContext,
 };
 
-use super::StorageTransaction;
+// use super::StorageTransaction;
 
 /// This trait define module's main blockchain logic.
 #[async_trait::async_trait]
-pub trait Application<Sl, Sf>: Send + Sync
-where
-    Sl: Storage + StorageTransaction,
-    Sf: Storage + StorageTransaction,
-{
+pub trait Application: Send + Sync + Sized + ModuleStorage + Dependence {
     type Transaction: Default + Send + Sync;
 
     /// Define how to check transaction.
@@ -29,19 +25,20 @@ where
     /// This method will be called at external user or another node.
     async fn check_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: &mut TxnContext<'_, Self>,
         _req: &RequestCheckTx<Self::Transaction>,
     ) -> Result<ResponseCheckTx> {
         Ok(Default::default())
     }
 
     /// Begin block.
-    async fn begin_block(&mut self, _context: &mut AContext<Sl, Sf>, _req: &RequestBeginBlock) {}
+    async fn begin_block(&mut self, _context: &mut AppContext<'_, Self>, _req: &RequestBeginBlock) {
+    }
 
     /// Execute transaction on state.
     async fn deliver_tx(
         &mut self,
-        _context: &mut TContext<Sl::Transaction<'_>, Sf::Transaction<'_>>,
+        _context: &mut TxnContext<'_, Self>,
         _req: &RequestDeliverTx<Self::Transaction>,
     ) -> Result<ResponseDeliverTx> {
         Ok(Default::default())
@@ -50,7 +47,7 @@ where
     /// End Block.
     async fn end_block(
         &mut self,
-        _context: &mut AContext<Sl, Sf>,
+        _context: &mut AppContext<'_, Self>,
         _req: &RequestEndBlock,
     ) -> ResponseEndBlock {
         Default::default()
