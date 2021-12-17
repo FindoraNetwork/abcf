@@ -141,6 +141,9 @@ pub struct SimpleManager {
 }
 
 fn main() {
+    let r = hex::decode("")
+        .map_err(|e|abcf::ModuleError::new("",
+                                           abcf::Error::ABCIApplicationError(90002,e.to_string())));
     env_logger::init();
     use bs3::backend::MemoryBackend;
 
