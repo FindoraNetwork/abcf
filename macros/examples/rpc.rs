@@ -1,10 +1,13 @@
 #![feature(generic_associated_types)]
 
-use abcf::bs3::{
-    merkle::append_only::AppendOnlyMerkle,
-    model::{Map, Value},
-};
 use abcf::RPCResponse;
+use abcf::{
+    bs3::{
+        merkle::append_only::AppendOnlyMerkle,
+        model::{Map, Value},
+    },
+    RPCContext,
+};
 use abcf_macros::{module, rpcs};
 use serde::{Deserialize, Serialize};
 
@@ -32,21 +35,9 @@ pub struct GetAccountResponse {
 
 #[rpcs]
 impl RpcTest {
-    pub async fn get_account(
+    pub async fn get_account<'a>(
         &mut self,
-        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
-        params: GetAccountRequest,
-    ) -> RPCResponse<GetAccountResponse> {
-        let resp = GetAccountResponse {
-            name: "jack".to_string(),
-            code: params.code,
-        };
-        RPCResponse::new(resp)
-    }
-
-    pub async fn get_account1(
-        &mut self,
-        _ctx: &mut abcf::manager::RContext<'_, abcf::Stateless<Self>, abcf::Stateful<Self>>,
+        _ctx: &mut RPCContext<'a, Self>,
         params: GetAccountRequest,
     ) -> RPCResponse<GetAccountResponse> {
         let resp = GetAccountResponse {

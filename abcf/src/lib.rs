@@ -4,7 +4,6 @@
 extern crate alloc;
 
 pub mod module;
-use core::fmt::Debug;
 
 pub use module::{
     Application, Callable, Event, FromBytes, Genesis, Merkle, Module, ModuleMetadata, ModuleType,
@@ -14,7 +13,6 @@ pub use module::{
 pub mod entry;
 
 pub mod manager;
-pub use manager::Context;
 
 mod error;
 pub use error::{Error, ModuleError, ModuleResult, Result};
@@ -36,4 +34,12 @@ pub type StatefulBatch<'a, M> = <Stateful<M> as module::StorageTransaction>::Tra
 pub type StatelessCache<M> = <Stateless<M> as module::StorageTransaction>::Cache;
 pub type StatefulCache<M> = <Stateful<M> as module::StorageTransaction>::Cache;
 
-pub trait Config: Send + Sync + Debug + Clone + 'static {}
+// pub type Dependence<'a, M> = <M as manager::ModuleStorageDependence<'a>>::Dependence;
+
+pub type RPCContext<'a, M> = manager::RContext<'a, M>;
+
+pub type TxnContext<'a, M> = manager::TContext<'a, M>;
+
+pub type AppContext<'a, M> = manager::AContext<'a, M>;
+
+// pub trait Config: Send + Sync + Debug + Clone + 'static {}

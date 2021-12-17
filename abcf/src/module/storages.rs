@@ -12,7 +12,9 @@ pub trait Storage: Send + Sync {
 }
 
 pub trait StorageTransaction {
-    type Transaction<'a>: Send;
+    type Transaction<'a>: Send
+    where
+        Self: 'a;
 
     type Cache: Send;
 

@@ -4,8 +4,8 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use std::mem::replace;
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, FieldValue, Fields,
-    FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token, Attribute,
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Attribute, FieldValue,
+    Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token,
 };
 
 #[derive(Debug)]
@@ -83,53 +83,172 @@ impl Parse for PunctuatedMetaNameValue {
     }
 }
 
-pub fn build_dependence_for_module(store_name: &Ident, attrs: &[Attribute], is_stateless: bool) -> Option<ItemStruct> {
+pub fn build_dependence_for_module(
+    store_name: &Ident,
+    namespace_ident: &Ident,
+    generics: &syn::Generics,
+    attrs: &[Attribute],
+    generics_names: &[Ident],
+    lifetime_names: &[syn::Lifetime],
+) -> (Vec<ItemStruct>, ItemImpl) {
+    let mut result_item = Vec::new();
+
+    let rpc_ident = Ident::new(
+        &format!("ABCFDeps{}RPC", store_name.to_string()),
+        Span::call_site(),
+    );
+
+    let app_ident = Ident::new(
+        &format!("ABCFDeps{}App", store_name.to_string()),
+        Span::call_site(),
+    );
+
+    let txn_ident = Ident::new(
+        &format!("ABCFDeps{}Txn", store_name.to_string()),
+        Span::call_site(),
+    );
 
     for attr in attrs {
         if attr.path.is_ident("dependence") {
             let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
             let metas = attr.parse_args_with(parser).unwrap();
 
-            let mut v = Vec::new();
+            let mut r_fields = Vec::new();
+            let mut a_fields = Vec::new();
+            let mut t_fields = Vec::new();
 
             for meta in metas {
                 let name = meta.path.get_ident();
 
                 if let Lit::Str(s) = meta.lit {
-                    let ttt = s.parse_with(syn::Path::parse_mod_style).expect("Must be types for deps");
-
-                    let slf_type: syn::Path = if is_stateless {
-                        parse_quote!(abcf::Stateless)
-                    } else {
-                        parse_quote!(abcf::Stateful)
-                    };
+                    let ttt = s
+                        .parse_with(syn::Path::parse_mod_style)
+                        .expect("Must be types for deps");
 
                     let field = syn::Field {
                         attrs: Vec::new(),
                         vis: parse_quote!(pub),
                         ident: name.cloned(),
                         colon_token: Some(Default::default()),
-                        ty: parse_quote!(&'a mut #slf_type<#ttt<S, D>>),
+                        ty: parse_quote!(abcf::manager::context::RDependence<'__abcf_deps, #ttt<S, D>>),
                     };
 
-                    v.push(field);
+                    r_fields.push(field);
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(abcf::manager::context::ADependence<'__abcf_deps, #ttt<S, D>>),
+                    };
+
+                    a_fields.push(field);
+
+                    let field = syn::Field {
+                        attrs: Vec::new(),
+                        vis: parse_quote!(pub),
+                        ident: name.cloned(),
+                        colon_token: Some(Default::default()),
+                        ty: parse_quote!(abcf::manager::context::TDependence<'__abcf_deps, #ttt<S, D>>),
+                    };
+
+                    t_fields.push(field);
                 }
             }
 
-            let stateful = parse_quote!(
-                pub struct #store_name<
-                    'a,
+            let r_struct: ItemStruct = parse_quote!(
+                pub struct #rpc_ident<
+                    '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
                     D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
                 > {
-                    #(#v,)*
+                    #(#r_fields,)*
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
                 }
             );
 
-            return Some(stateful);
+            let a_struct: ItemStruct = parse_quote!(
+                pub struct #app_ident<
+                    '__abcf_deps,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#a_fields,)*
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                }
+            );
+
+            let t_struct: ItemStruct = parse_quote!(
+                pub struct #txn_ident<
+                    '__abcf_deps,
+                    S: abcf::bs3::Store + 'static,
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                > {
+                    #(#t_fields,)*
+                    pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                    pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+                }
+            );
+
+            result_item.push(r_struct);
+            result_item.push(a_struct);
+            result_item.push(t_struct);
         }
     }
-    None
+
+    if result_item.len() == 0 {
+        let r_struct: ItemStruct = parse_quote!(
+            pub struct #rpc_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        let a_struct: ItemStruct = parse_quote!(
+            pub struct #app_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        let t_struct: ItemStruct = parse_quote!(
+            pub struct #txn_ident<
+                '__abcf_deps,
+                S: abcf::bs3::Store + 'static,
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+            > {
+                pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
+                pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
+            }
+        );
+
+        result_item.push(r_struct);
+        result_item.push(a_struct);
+        result_item.push(t_struct);
+    }
+
+    let mut deps_trait: ItemImpl = parse_quote! {
+        impl abcf::manager::Dependence for #store_name<#(#lifetime_names,)* #(#generics_names,)*> {
+            type RPC<'__abcf_deps> = #namespace_ident::#rpc_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type App<'__abcf_deps> = #namespace_ident::#app_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+            type Txn<'__abcf_deps> = #namespace_ident::#txn_ident<'__abcf_deps, #(#lifetime_names,)* #(#generics_names,)*>;
+        }
+    };
+
+    deps_trait.generics = generics.clone();
+
+    (result_item, deps_trait)
 }
 
 /// Define Module
@@ -142,21 +261,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let impl_version = args.impl_version;
     let target_height = args.target_height;
 
-    let attrs = std::mem::take(&mut parsed.attrs);
-
-    let stateful_deps_ident = Ident::new(
-        &format!("ABCFDeps{}Sf", parsed.ident.to_string()),
-        Span::call_site(),
-    );
-
-    let stateful_deps = build_dependence_for_module(&stateful_deps_ident, &attrs, false);
-
-    let stateless_deps_ident = Ident::new(
-        &format!("ABCFDeps{}Sl", parsed.ident.to_string()),
-        Span::call_site(),
-    );
-    let stateless_deps = build_dependence_for_module(&stateless_deps_ident, &attrs, true);
-
     let mut stateless = Vec::new();
     let mut stateless_arg = Vec::new();
     let mut stateless_value = Vec::new();
@@ -168,6 +272,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut init_items = Vec::new();
     let mut fn_items = Vec::new();
+
+    let mut merkle_items = Vec::new();
 
     if let Fields::Named(fields) = &mut parsed.fields {
         let origin_fields = replace(&mut fields.named, Punctuated::new());
@@ -213,6 +319,13 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                         parse_quote!(abcf::bs3::Transaction<'a, S, #merkle<D>, #origin_ty>);
                     stateful_tx.push(target_field);
 
+                    let stateful_name = f.ident.clone().unwrap();
+
+                    let merkle_stmt: syn::Expr = parse_quote!(
+                        self.#stateful_name.root()?
+                    );
+                    merkle_items.push(merkle_stmt);
+
                     is_memory = false;
                 }
             }
@@ -229,10 +342,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    let stateless_struct_ident = Ident::new(
-        &format!("ABCFModule{}Sl", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateless_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sl", parsed.ident), Span::call_site());
 
     let stateless_tx_struct_ident = Ident::new(
         &format!("ABCFModule{}SlTx", parsed.ident.to_string()),
@@ -300,6 +411,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
+    let attrs = std::mem::take(&mut parsed.attrs);
+
+    let (dep_items, dep_impl) = build_dependence_for_module(
+        &parsed.ident,
+        &storage_module_ident,
+        &parsed.generics,
+        &attrs,
+        &generics_names,
+        &lifetime_names,
+    );
+
     if let Fields::Named(fields) = &mut parsed.fields {
         for x in markers_with_generics.clone() {
             fields.named.push(x.inner);
@@ -327,22 +449,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     store_trait.generics = parsed.generics.clone();
-
-    let impl_deps = if stateless_deps.is_some() {
-        let mut impl_deps: ItemImpl = parse_quote!(
-            impl abcf::manager::ModuleStorageDependence<'__abcf_dep> for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
-                type Stateless = #storage_module_ident::#stateless_deps_ident<'__abcf_dep, #(#lifetime_names,)* #(#generics_names,)*>;
-                type Stateful = #storage_module_ident::#stateful_deps_ident<'__abcf_dep, #(#lifetime_names,)* #(#generics_names,)*>;
-            }
-        );
-
-        impl_deps.generics = parsed.generics.clone();
-        impl_deps.generics.params.insert(0, parse_quote!('__abcf_dep));
-        
-        Some(impl_deps)
-    } else {
-        None
-    };
 
     let mut metadata_trait: ItemImpl = parse_quote! {
         impl abcf::Module for #module_name<#(#lifetime_names,)* #(#generics_names,)*> {
@@ -406,6 +512,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     sl_tx.generics = parsed.generics.clone();
     sl_tx.generics.params.push(parse_quote!('a));
+
+    let mut sl_tx_clone: ItemImpl = parse_quote! {
+        impl Clone for #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            fn clone(&self) -> Self {
+                Self {
+                    #(#stateless_arg: self.#stateless_arg.clone(),)*
+                    #(#markers,)*
+                }
+            }
+        }
+    };
+
+    sl_tx_clone.generics = parsed.generics.clone();
+    sl_tx_clone.generics.params.push(parse_quote!('a));
 
     let mut sl_cache: ItemStruct = parse_quote! {
         pub struct #stateless_tx_cache_struct_ident {
@@ -483,6 +603,20 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_tx.generics = parsed.generics.clone();
     sf_tx.generics.params.push(parse_quote!('a));
 
+    let mut sf_tx_clone: ItemImpl = parse_quote! {
+        impl Clone for #stateful_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            fn clone(&self) -> Self {
+                Self {
+                    #(#stateful_arg: self.#stateful_arg.clone(),)*
+                    #(#markers,)*
+                }
+            }
+        }
+    };
+
+    sf_tx_clone.generics = parsed.generics.clone();
+    sf_tx_clone.generics.params.push(parse_quote!('a));
+
     let mut sf_cache: ItemStruct = parse_quote! {
         pub struct #stateful_tx_cache_struct_ident {
             #(#stateful_value,)*
@@ -548,7 +682,11 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             D: abcf::digest::Digest + core::marker::Sync + core::marker::Send,
         {
             fn root(&self) -> Result<abcf::digest::Output<D>> {
-                Ok(Default::default())
+                let mut hasher = D::new();
+
+                #(hasher.update(#merkle_items);)*
+
+                Ok(hasher.finalize())
             }
         }
     };
@@ -584,7 +722,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #metadata_trait
 
-        #impl_deps
+        #dep_impl
 
         pub mod #storage_module_ident {
             use super::*;
@@ -593,15 +731,15 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             pub const MODULE_NAME: &'static str = #name;
 
-            #stateful_deps
-
-            #stateless_deps
+            #(#dep_items)*
 
             #stateless_struct
 
             #stateless_struct_tree
 
             #sl_tx
+
+            #sl_tx_clone
 
             #sl_cache
 
@@ -612,6 +750,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #stateful_struct
 
             #sf_tx
+
+            #sf_tx_clone
 
             #sf_cache
 

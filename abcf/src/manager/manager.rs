@@ -5,8 +5,7 @@ use crate::{
     framework::{context::CallContext, EventContextImpl},
     module::{Application, Module, ModuleMetadata, RPCs},
     Error, ModuleError, ModuleResult, Result,
-};
-use alloc::collections::BTreeMap;
+};Ause alloc::collections::BTreeMap;
 use alloc::{
     boxed::Box,
     string::{String, ToString},

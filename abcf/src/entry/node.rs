@@ -10,7 +10,8 @@ use tm_protos::abci::{
 };
 
 use crate::{
-    module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Storage,
+    module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Stateful,
+    Stateless, Storage,
 };
 
 use super::{
@@ -19,28 +20,24 @@ use super::{
     AContext, EventContext, EventContextImpl, RContext,
 };
 
-pub struct Node<D, Sl, Sf, M>
+pub struct Node<D, M>
 where
     D: Digest,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application + RPCs,
 {
-    stateless: Sl,
-    stateful: Sf,
+    stateless: Stateless<M>,
+    stateful: Stateful<M>,
     marker_d: PhantomData<D>,
     module: M,
     events: EventContextImpl,
 }
 
-impl<D, Sl, Sf, M> Node<D, Sl, Sf, M>
+impl<D, M> Node<D, M>
 where
     D: Digest,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    M: Module + Application + RPCs,
 {
-    pub fn new(stateless: Sl, stateful: Sf, module: M) -> Self {
+    pub fn new(stateless: Stateless<M>, stateful: Stateful<M>, module: M) -> Self {
         Self {
             stateful,
             stateless,
@@ -93,15 +90,94 @@ where
         let value = store.get(key, height)?;
         Ok((key.as_bytes().to_vec(), value))
     }
+
+    async fn _check_tx(&mut self, req: RequestCheckTx) -> ResponseCheckTx {
+        let result = {
+            let check_tx_events = &mut self.events.check_tx_events;
+
+            let stateful_tx = self.stateful.transaction();
+            let stateless_tx = self.stateless.transaction();
+
+            let mut ctx = TContext {
+                events: EventContext::new(check_tx_events),
+                stateless: stateless_tx,
+                stateful: stateful_tx,
+            };
+
+            self.module.check_tx(&mut ctx, req).await
+        };
+
+        let mut resp = ResponseCheckTx::default();
+
+        match result {
+            Ok(v) => {
+                resp.data = v.data;
+                resp.gas_wanted = v.gas_wanted;
+                resp.gas_used = v.gas_used;
+            }
+            Err(e) => {
+                resp.code = e.error.code();
+                resp.log = e.error.message();
+                resp.codespace = e.namespace;
+            }
+        }
+
+        resp
+    }
+
+    async fn _deliver_tx(&mut self, req: RequestDeliverTx) -> ResponseDeliverTx {
+        let mut resp = ResponseDeliverTx::default();
+
+        let (result, sf_cache, sl_cache) = {
+            let deliver_tx_events = &mut self.events.deliver_tx_events;
+
+            let stateful_tx = self.stateful.transaction();
+            let stateless_tx = self.stateless.transaction();
+
+            let mut ctx = TContext {
+                events: EventContext::new(deliver_tx_events),
+                stateless: stateless_tx,
+                stateful: stateful_tx,
+            };
+
+            let result = self.module.deliver_tx(&mut ctx, req).await;
+
+            let stateful_cache = Stateful::<M>::cache(ctx.stateful);
+            let stateless_cache = Stateless::<M>::cache(ctx.stateless);
+            (result, stateful_cache, stateless_cache)
+        };
+
+        match result {
+            Ok(v) => {
+                resp.data = v.data;
+                resp.gas_wanted = v.gas_wanted;
+                resp.gas_used = v.gas_used;
+
+                self.stateful.execute(sf_cache);
+                self.stateless.execute(sl_cache);
+            }
+            Err(e) => {
+                resp.code = e.error.code();
+                resp.log = e.error.message();
+                resp.codespace = e.namespace;
+            }
+        }
+
+        let events = mem::replace(&mut self.events.deliver_tx_events, Vec::new());
+
+        resp.events = events;
+
+        resp
+    }
 }
 
 #[async_trait::async_trait]
-impl<D, Sl, Sf, M> tm_abci::Application for Node<D, Sl, Sf, M>
+impl<D, M> tm_abci::Application for Node<D, M>
 where
     D: Digest + Send + Sync,
-    Sl: Storage + StorageTransaction + Tree,
-    Sf: Storage + StorageTransaction + Tree + Merkle<D>,
-    M: Module + Application<Sl, Sf> + RPCs<Sl, Sf>,
+    Stateful<M>: Merkle<D> + 'static,
+    Stateless<M>: 'static,
+    M: Module + Application + RPCs,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
         let mut resp = ResponseInitChain::default();
@@ -204,35 +280,7 @@ where
     }
 
     async fn check_tx(&mut self, req: RequestCheckTx) -> ResponseCheckTx {
-        let mut resp = ResponseCheckTx::default();
-
-        let check_tx_events = &mut self.events.check_tx_events;
-
-        let mut stateful_tx = self.stateful.transaction();
-        let mut stateless_tx = self.stateless.transaction();
-
-        let mut ctx = TContext {
-            events: EventContext::new(check_tx_events),
-            stateless: &mut stateless_tx,
-            stateful: &mut stateful_tx,
-        };
-
-        let result = self.module.check_tx(&mut ctx, req).await;
-
-        match result {
-            Ok(v) => {
-                resp.data = v.data;
-                resp.gas_wanted = v.gas_wanted;
-                resp.gas_used = v.gas_used;
-            }
-            Err(e) => {
-                resp.code = e.error.code();
-                resp.log = e.error.message();
-                resp.codespace = e.namespace;
-            }
-        }
-
-        resp
+        self._check_tx(req).await
     }
 
     async fn begin_block(&mut self, req: RequestBeginBlock) -> ResponseBeginBlock {
@@ -282,47 +330,7 @@ where
     }
 
     async fn deliver_tx(&mut self, req: RequestDeliverTx) -> ResponseDeliverTx {
-        let mut resp = ResponseDeliverTx::default();
-
-        let deliver_tx_events = &mut self.events.deliver_tx_events;
-
-        let mut stateful_tx = self.stateful.transaction();
-        let mut stateless_tx = self.stateless.transaction();
-
-        let mut ctx = TContext {
-            events: EventContext::new(deliver_tx_events),
-            stateless: &mut stateless_tx,
-            stateful: &mut stateful_tx,
-        };
-
-        let result = self.module.deliver_tx(&mut ctx, req).await;
-
-        let stateful_cache = Sf::cache(stateful_tx);
-        let stateless_cache = Sl::cache(stateless_tx);
-
-        match result {
-            Ok(v) => {
-                resp.data = v.data;
-                resp.gas_wanted = v.gas_wanted;
-                resp.gas_used = v.gas_used;
-
-                self.stateful.execute(stateful_cache);
-                self.stateless.execute(stateless_cache);
-            }
-            Err(e) => {
-                resp.code = e.error.code();
-                resp.log = e.error.message();
-                resp.codespace = e.namespace;
-            }
-        }
-
-        // TODO: add config for module to add or drop events.
-
-        let events = mem::replace(deliver_tx_events, Vec::new());
-
-        resp.events = events;
-
-        resp
+        self._deliver_tx(req).await
     }
 
     async fn end_block(&mut self, req: RequestEndBlock) -> ResponseEndBlock {

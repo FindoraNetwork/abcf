@@ -2,19 +2,24 @@ mod events;
 
 pub use events::{EventContext, EventContextImpl};
 
-pub struct RContext<'a, Sl, Sf> {
-    pub stateless: &'a mut Sl,
-    pub stateful: &'a Sf,
+use crate::{manager::ModuleStorage, Stateful, StatefulBatch, Stateless, StatelessBatch};
+
+pub struct RContext<'a, M: ModuleStorage> {
+    pub stateless: &'a mut Stateless<M>,
+    pub stateful: &'a Stateful<M>,
 }
 
-pub struct AContext<'a, Sl, Sf> {
+pub struct AContext<'a, M: ModuleStorage> {
     pub events: EventContext<'a>,
-    pub stateless: &'a mut Sl,
-    pub stateful: &'a mut Sf,
+    pub stateless: &'a mut Stateless<M>,
+    pub stateful: &'a mut Stateful<M>,
 }
 
-pub struct TContext<'a, Sl, Sf> {
+pub struct TContext<'a, M: ModuleStorage>
+where
+    Self: 'a,
+{
     pub events: EventContext<'a>,
-    pub stateless: &'a mut Sl,
-    pub stateful: &'a mut Sf,
+    pub stateless: StatelessBatch<'a, M>,
+    pub stateful: StatefulBatch<'a, M>,
 }
