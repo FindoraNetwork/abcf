@@ -3,15 +3,18 @@
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 
-use abcf::module::types::{RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx};
+use abcf::module::types::{
+    RequestBeginBlock, RequestCheckTx, RequestDeliverTx, ResponseCheckTx, ResponseDeliverTx,
+};
 /// Running in shell
 ///
 /// ``` bash
 /// $ cargo run --example devnet
 /// ```
-use abcf::{Application, Event, RPCContext, RPCResponse, TxnContext};
+use abcf::{AppContext, Application, Event, RPCContext, RPCResponse, TxnContext};
 use bs3::merkle::append_only::AppendOnlyMerkle;
 use bs3::model::{Map, Value};
+use bs3::MapStore;
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
 
@@ -33,7 +36,7 @@ pub struct MockModule {
     #[stateless(merkle = "AppendOnlyMerkle")]
     pub sl_value: Value<u32>,
     #[stateless(merkle = "AppendOnlyMerkle")]
-    pub sl_map: Map<i32, u32>,
+    pub sl_map: Map<i64, i64>,
 }
 
 #[abcf::rpcs]
@@ -55,6 +58,16 @@ pub mod call_rpc {
 #[abcf::application]
 impl Application for MockModule {
     type Transaction = MockTransaction;
+
+    async fn begin_block(&mut self, context: &mut AppContext<'_, Self>, _req: &RequestBeginBlock) {
+        let height = &_req.header.as_ref().unwrap().height;
+        context.stateless.sl_map.insert(*height, *height);
+
+        if height > &1 {
+            let key = height - 1;
+            if let Ok(Some(val)) = context.stateless.sl_map.get(&key) {}
+        }
+    }
 
     async fn check_tx(
         &mut self,
@@ -141,9 +154,6 @@ pub struct SimpleManager {
 }
 
 fn main() {
-    let r = hex::decode("")
-        .map_err(|e|abcf::ModuleError::new("",
-                                           abcf::Error::ABCIApplicationError(90002,e.to_string())));
     env_logger::init();
     use bs3::backend::MemoryBackend;
 
