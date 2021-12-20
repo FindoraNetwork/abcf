@@ -513,7 +513,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateless_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                use bs3::prelude::Tree;
+                use abcf::bs3::prelude::Tree;
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {
@@ -748,7 +748,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                use bs3::prelude::Tree;
+                use abcf::bs3::prelude::Tree;
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {
