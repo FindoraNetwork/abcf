@@ -162,7 +162,7 @@ pub fn build_dependence_for_module(
                 pub struct #rpc_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#r_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -174,7 +174,7 @@ pub fn build_dependence_for_module(
                 pub struct #app_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#a_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -186,7 +186,7 @@ pub fn build_dependence_for_module(
                 pub struct #txn_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#t_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -205,7 +205,7 @@ pub fn build_dependence_for_module(
             pub struct #rpc_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -216,7 +216,7 @@ pub fn build_dependence_for_module(
             pub struct #app_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -227,7 +227,7 @@ pub fn build_dependence_for_module(
             pub struct #txn_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -304,8 +304,14 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     let target_field_ident = target_field.ident.clone().unwrap();
                     let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
                     let stateless_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
-                            let v = self.#target_field_ident
-                                .tree_get(&key_vec.to_vec(), height)
+                            let mut ss = self.#target_field_ident.clone();
+                            ss.rollback(height)
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+
+                            let v = ss.tree_get(&key_vec.to_vec())
                                 .map_err(|_|abcf::ModuleError {
                                     namespace: String::from(#name),
                                     error: abcf::Error::QueryPathFormatError,
@@ -348,12 +354,22 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                     let target_field_ident = target_field.ident.clone().unwrap();
                     let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
-                    let stateful_tree_arm: Arm = parse_quote!(#target_field_ident_str => Ok(self.#target_field_ident
-                        .tree_get(&key_vec.to_vec(), height)
-                        .map_err(|_|abcf::ModuleError {
-                            namespace: String::from(#name),
-                            error: abcf::Error::QueryPathFormatError,
-                        })?));
+                    let stateful_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
+                            let mut ss = self.#target_field_ident.clone();
+                            ss.rollback(height)
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+
+                            let v = ss.tree_get(&key_vec.to_vec())
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+                            Ok(v)
+                        }
+                    );
 
                     stateful_tree_match_arms.push(stateful_tree_arm);
                 }
@@ -412,7 +428,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         .push(parse_quote!(S: abcf::bs3::Store + 'static));
 
     parsed.generics.params.push(
-        parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send),
+        parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone),
     );
 
     let mut generics_names = Vec::new();
@@ -512,8 +528,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateless_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                use bs3::prelude::Tree;
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                use abcf::bs3::prelude::Tree;
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {
@@ -543,7 +559,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     return Err(abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError));
                 };
-
 
                 match store_name {
                     #(#stateless_tree_match_arms,)*
@@ -733,7 +748,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         impl<S, D> abcf::module::Merkle<D> for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
         where
             S: abcf::bs3::Store,
-            D: abcf::digest::Digest + core::marker::Sync + core::marker::Send,
+            D: abcf::digest::Digest + core::marker::Sync + core::marker::Send + core::clone::Clone,
         {
             fn root(&self) -> Result<abcf::digest::Output<D>> {
                 let mut hasher = D::new();
@@ -747,8 +762,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                use bs3::prelude::Tree;
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                use abcf::bs3::prelude::Tree;
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {

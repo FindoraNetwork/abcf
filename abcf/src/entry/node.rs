@@ -78,8 +78,8 @@ where
     }
 
     async fn call_store(
-        &self,
-        store: &impl Tree,
+        &mut self,
+        store: &str,
         sub_path: Option<&str>,
         height: i64,
     ) -> ModuleResult<(Vec<u8>, Vec<u8>)> {
@@ -87,7 +87,12 @@ where
             namespace: String::from("abcf.store"),
             error: Error::QueryPathFormatError,
         })?;
-        let value = store.get(key, height)?;
+        // let value = self.stateless.get(key, height)?;
+        let value = match store {
+            "stateless" => self.stateless.get(key, height)?,
+            "stateful" => self.stateful.get(key, height)?,
+            _ => Vec::new(),
+        };
         Ok((key.as_bytes().to_vec(), value))
     }
 
@@ -250,14 +255,8 @@ where
 
         let res = match target_path {
             Some("rpc") => self.call_rpc(sub_path, request.data.as_ref()).await,
-            Some("stateful") => {
-                self.call_store(&self.stateful, sub_path, request.height)
-                    .await
-            }
-            Some("stateless") => {
-                self.call_store(&self.stateless, sub_path, request.height)
-                    .await
-            }
+            Some("stateful") => self.call_store("stateful", sub_path, request.height).await,
+            Some("stateless") => self.call_store("stateless", sub_path, request.height).await,
             Some(_) | None => Err(ModuleError {
                 namespace: String::from("abcf"),
                 error: Error::QueryPathFormatError,

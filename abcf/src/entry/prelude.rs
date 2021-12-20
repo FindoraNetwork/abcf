@@ -67,11 +67,11 @@ where
 }
 
 pub trait Tree {
-    fn get(&self, key: &str, height: i64) -> ModuleResult<Vec<u8>>;
+    fn get(&mut self, key: &str, height: i64) -> ModuleResult<Vec<u8>>;
 }
 
 impl Tree for () {
-    fn get(&self, _key: &str, _height: i64) -> ModuleResult<Vec<u8>> {
+    fn get(&mut self, _key: &str, _height: i64) -> ModuleResult<Vec<u8>> {
         Ok(Vec::new())
     }
 }
