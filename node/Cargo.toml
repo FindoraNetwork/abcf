@@ -10,7 +10,7 @@ build = "build.rs"
 tendermint-sys = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 tm-abci = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 abcf = { path = "../abcf" }
-bs3 = { git = "https://github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.4", features = ["nightly", "cbor"] }
+bs3 = { git = "https://github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.7", features = ["nightly", "cbor"] }
 
 [dev-dependencies]
 # abcf-macros = { path = "../macros" }
