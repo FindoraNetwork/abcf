@@ -473,6 +473,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
                 let mut splited = key.splitn(2, "/");
 
+
                 let module_name = splited.next().ok_or(abcf::ModuleError {
                     namespace: String::from(#name),
                     error: abcf::Error::QueryPathFormatError,
