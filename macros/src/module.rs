@@ -4,8 +4,9 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use std::mem::replace;
 use syn::{
-    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Attribute, FieldValue,
-    Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue, Token,
+    parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Arm, Attribute,
+    FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
+    Token,
 };
 
 #[derive(Debug)]
@@ -161,7 +162,7 @@ pub fn build_dependence_for_module(
                 pub struct #rpc_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#r_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -173,7 +174,7 @@ pub fn build_dependence_for_module(
                 pub struct #app_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#a_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -185,7 +186,7 @@ pub fn build_dependence_for_module(
                 pub struct #txn_ident<
                     '__abcf_deps,
                     S: abcf::bs3::Store + 'static,
-                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                    D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
                 > {
                     #(#t_fields,)*
                     pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
@@ -204,7 +205,7 @@ pub fn build_dependence_for_module(
             pub struct #rpc_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -215,7 +216,7 @@ pub fn build_dependence_for_module(
             pub struct #app_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -226,7 +227,7 @@ pub fn build_dependence_for_module(
             pub struct #txn_ident<
                 '__abcf_deps,
                 S: abcf::bs3::Store + 'static,
-                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send
+                D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone
             > {
                 pub __marker_s: core::marker::PhantomData<&'__abcf_deps S>,
                 pub __marker_d: core::marker::PhantomData<&'__abcf_deps D>,
@@ -275,6 +276,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut merkle_items = Vec::new();
 
+    let mut stateless_tree_match_arms = Vec::new();
+    let mut stateful_tree_match_arms = Vec::new();
+
     if let Fields::Named(fields) = &mut parsed.fields {
         let origin_fields = replace(&mut fields.named, Punctuated::new());
 
@@ -285,7 +289,6 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             for attr in attrs {
                 if attr.path.is_ident("stateless") {
                     let mut target_field = f.clone();
-
                     stateless_value.push(target_field.clone());
 
                     let origin_ty = f.ty.clone();
@@ -294,9 +297,30 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     stateless.push(target_field.clone());
 
                     target_field.ty = parse_quote!(abcf::bs3::Transaction<'a, S,  abcf::bs3::merkle::empty::EmptyMerkle<D>, #origin_ty>);
-                    stateless_tx.push(target_field);
+                    stateless_tx.push(target_field.clone());
 
                     is_memory = false;
+
+                    let target_field_ident = target_field.ident.clone().unwrap();
+                    let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
+                    let stateless_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
+                            let mut ss = self.#target_field_ident.clone();
+                            ss.rollback(height)
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+
+                            let v = ss.tree_get(&key_vec.to_vec())
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+                            Ok(v)
+                        }
+                    );
+
+                    stateless_tree_match_arms.push(stateless_tree_arm);
                 } else if attr.path.is_ident("stateful") {
                     let parsed: FieldParsedMetaName = attr.parse_args().expect("parsed error");
 
@@ -317,7 +341,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                     target_field.ty =
                         parse_quote!(abcf::bs3::Transaction<'a, S, #merkle<D>, #origin_ty>);
-                    stateful_tx.push(target_field);
+                    stateful_tx.push(target_field.clone());
 
                     let stateful_name = f.ident.clone().unwrap();
 
@@ -327,6 +351,27 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     merkle_items.push(merkle_stmt);
 
                     is_memory = false;
+
+                    let target_field_ident = target_field.ident.clone().unwrap();
+                    let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
+                    let stateful_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
+                            let mut ss = self.#target_field_ident.clone();
+                            ss.rollback(height)
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+
+                            let v = ss.tree_get(&key_vec.to_vec())
+                                .map_err(|_|abcf::ModuleError {
+                                    namespace: String::from(#name),
+                                    error: abcf::Error::QueryPathFormatError,
+                                })?;
+                            Ok(v)
+                        }
+                    );
+
+                    stateful_tree_match_arms.push(stateful_tree_arm);
                 }
             }
             if is_memory {
@@ -383,7 +428,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         .push(parse_quote!(S: abcf::bs3::Store + 'static));
 
     parsed.generics.params.push(
-        parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send),
+        parse_quote!(D: abcf::digest::Digest + 'static + core::marker::Sync + core::marker::Send + core::clone::Clone),
     );
 
     let mut generics_names = Vec::new();
@@ -483,8 +528,45 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateless_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                Ok(Vec::new())
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                use abcf::bs3::prelude::Tree;
+                let mut splited = key.splitn(2, "/");
+
+                let store_name = splited.next().ok_or(abcf::ModuleError {
+                    namespace: String::from(#name),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+                let inner_key = splited.next().ok_or(abcf::ModuleError {
+                    namespace: String::from(#name),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+
+                let inner_key = &inner_key.to_string()[2..];
+
+
+                let mut key_hex_decode = hex::decode(inner_key)
+                    .map_err(|e|{
+                    log::debug!("hex::decode:{}",e.to_string());
+                    abcf::ModuleError::new(#name,
+                        abcf::Error::QueryPathFormatError)
+                })?;
+
+                let key_vec = if key_hex_decode[0] == 34 && key_hex_decode[key_hex_decode.len()-1] == 34 {
+                    &key_hex_decode[1..key_hex_decode.len()-1]
+                } else {
+                    return Err(abcf::ModuleError::new(#name,
+                        abcf::Error::QueryPathFormatError));
+                };
+
+                match store_name {
+                    #(#stateless_tree_match_arms,)*
+                    _ => Err(abcf::ModuleError {
+                        namespace: String::from(#name),
+                        error: abcf::Error::NoModule,
+                    })
+                }
             }
         }
     };
@@ -666,7 +748,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         impl<S, D> abcf::module::Merkle<D> for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>
         where
             S: abcf::bs3::Store,
-            D: abcf::digest::Digest + core::marker::Sync + core::marker::Send,
+            D: abcf::digest::Digest + core::marker::Sync + core::marker::Send + core::clone::Clone,
         {
             fn root(&self) -> Result<abcf::digest::Output<D>> {
                 let mut hasher = D::new();
@@ -680,8 +762,43 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, _key: &str, _height: i64) -> abcf::ModuleResult<Vec<u8>> {
-                Ok(Vec::new())
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+                use abcf::bs3::prelude::Tree;
+                let mut splited = key.splitn(2, "/");
+
+                let store_name = splited.next().ok_or(abcf::ModuleError {
+                    namespace: String::from(#name),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+                let inner_key = splited.next().ok_or(abcf::ModuleError {
+                    namespace: String::from(#name),
+                    error: abcf::Error::QueryPathFormatError,
+                })?;
+
+                let mut key_hex_decode = hex::decode(inner_key)
+                    .map_err(|e|{
+                    log::debug!("hex::decode:{}",e.to_string());
+                    abcf::ModuleError::new(#name,
+                        abcf::Error::QueryPathFormatError)
+                })?;
+
+                let key_vec = if key_hex_decode[0] == 34 && key_hex_decode[key_hex_decode.len()-1] == 34 {
+                    &key_hex_decode[1..key_hex_decode.len()-1]
+                } else {
+                    return Err(abcf::ModuleError::new(#name,
+                        abcf::Error::QueryPathFormatError));
+                };
+
+
+
+                match store_name {
+                    #(#stateful_tree_match_arms,)*
+                    _ => Err(abcf::ModuleError {
+                        namespace: String::from(#name),
+                        error: abcf::Error::NoModule,
+                    })
+                }
             }
         }
     };

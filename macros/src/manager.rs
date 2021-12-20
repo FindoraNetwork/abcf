@@ -143,7 +143,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let sf_struct_item: ParseField = parse_quote!(pub #key: abcf::Stateful<#ty>);
         stateful_struct_items.push(sf_struct_item);
 
-        let tree_arm: Arm = parse_quote!(#name_lit_str => Ok(self.#key.get(key, height)?));
+        let tree_arm: Arm = parse_quote!(#name_lit_str => Ok(self.#key.get(inner_key, height)?));
         tree_match_arms.push(tree_arm);
 
         let sl_tx_item: ParseField = parse_quote!(#key: abcf::StatelessBatch<'a, #ty>);
@@ -346,7 +346,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateless_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
                 let mut splited = key.splitn(2, "/");
 
                 let module_name = splited.next().ok_or(abcf::ModuleError {
@@ -470,8 +470,9 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut stateful_struct_tree: ItemImpl = parse_quote! {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
-            fn get(&self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
+            fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
                 let mut splited = key.splitn(2, "/");
+
 
                 let module_name = splited.next().ok_or(abcf::ModuleError {
                     namespace: String::from(#name),
