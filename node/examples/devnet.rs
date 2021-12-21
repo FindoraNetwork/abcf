@@ -61,11 +61,11 @@ impl Application for MockModule {
 
     async fn begin_block(&mut self, context: &mut AppContext<'_, Self>, _req: &RequestBeginBlock) {
         let height = &_req.header.as_ref().unwrap().height;
-        context.stateless.sl_map.insert(*height, *height);
+        let _ = context.stateless.sl_map.insert(*height, *height);
 
         if height > &1 {
             let key = height - 1;
-            if let Ok(Some(val)) = context.stateless.sl_map.get(&key) {}
+            if let Ok(Some(_)) = context.stateless.sl_map.get(&key) {}
         }
     }
 

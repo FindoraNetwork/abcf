@@ -530,6 +530,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         impl abcf::entry::Tree for #stateless_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
                 use abcf::bs3::prelude::Tree;
+
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {
@@ -546,9 +547,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 let inner_key = &inner_key.to_string()[2..];
 
 
-                let mut key_hex_decode = hex::decode(inner_key)
+                let mut key_hex_decode = abcf::hex::decode(inner_key)
                     .map_err(|e|{
-                    log::debug!("hex::decode:{}",e.to_string());
+                    abcf::log::debug!("hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
@@ -764,6 +765,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         impl abcf::entry::Tree for #stateful_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
             fn get(&mut self, key: &str, height: i64) -> abcf::ModuleResult<Vec<u8>> {
                 use abcf::bs3::prelude::Tree;
+
                 let mut splited = key.splitn(2, "/");
 
                 let store_name = splited.next().ok_or(abcf::ModuleError {
@@ -776,9 +778,9 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     error: abcf::Error::QueryPathFormatError,
                 })?;
 
-                let mut key_hex_decode = hex::decode(inner_key)
+                let mut key_hex_decode = abcf::hex::decode(inner_key)
                     .map_err(|e|{
-                    log::debug!("hex::decode:{}",e.to_string());
+                    abcf::log::debug!("hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
