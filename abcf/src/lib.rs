@@ -23,6 +23,7 @@ pub use tm_protos;
 
 pub use bs3;
 pub use digest;
+pub use hex;
 pub use log;
 
 pub type Stateless<M> = <M as manager::ModuleStorage>::Stateless;
