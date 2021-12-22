@@ -305,11 +305,14 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
                     let stateless_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
                             let mut ss = self.#target_field_ident.clone();
-                            ss.rollback(height)
-                                .map_err(|_|abcf::ModuleError {
-                                    namespace: String::from(#name),
-                                    error: abcf::Error::QueryPathFormatError,
-                                })?;
+
+                            if height > 0 {
+                                ss.rollback(height)
+                                    .map_err(|_|abcf::ModuleError {
+                                        namespace: String::from(#name),
+                                        error: abcf::Error::QueryPathFormatError,
+                                    })?;
+                            }
 
                             let v = ss.tree_get(&key_vec.to_vec())
                                 .map_err(|_|abcf::ModuleError {
@@ -356,11 +359,14 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     let target_field_ident_str = target_field.ident.clone().unwrap().to_string();
                     let stateful_tree_arm: Arm = parse_quote!(#target_field_ident_str => {
                             let mut ss = self.#target_field_ident.clone();
-                            ss.rollback(height)
-                                .map_err(|_|abcf::ModuleError {
-                                    namespace: String::from(#name),
-                                    error: abcf::Error::QueryPathFormatError,
-                                })?;
+
+                            if height > 0 {
+                                ss.rollback(height)
+                                    .map_err(|_|abcf::ModuleError {
+                                        namespace: String::from(#name),
+                                        error: abcf::Error::QueryPathFormatError,
+                                    })?;
+                            }
 
                             let v = ss.tree_get(&key_vec.to_vec())
                                 .map_err(|_|abcf::ModuleError {
