@@ -553,19 +553,12 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 let inner_key = &inner_key.to_string()[2..];
 
 
-                let mut key_hex_decode = abcf::hex::decode(inner_key)
+                let mut key_vec = abcf::hex::decode(inner_key)
                     .map_err(|e|{
                     abcf::log::debug!("hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
-
-                let key_vec = if key_hex_decode[0] == 34 && key_hex_decode[key_hex_decode.len()-1] == 34 {
-                    &key_hex_decode[1..key_hex_decode.len()-1]
-                } else {
-                    return Err(abcf::ModuleError::new(#name,
-                        abcf::Error::QueryPathFormatError));
-                };
 
                 match store_name {
                     #(#stateless_tree_match_arms,)*
@@ -784,21 +777,12 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     error: abcf::Error::QueryPathFormatError,
                 })?;
 
-                let mut key_hex_decode = abcf::hex::decode(inner_key)
+                let mut key_vec = abcf::hex::decode(inner_key)
                     .map_err(|e|{
                     abcf::log::debug!("hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
-
-                let key_vec = if key_hex_decode[0] == 34 && key_hex_decode[key_hex_decode.len()-1] == 34 {
-                    &key_hex_decode[1..key_hex_decode.len()-1]
-                } else {
-                    return Err(abcf::ModuleError::new(#name,
-                        abcf::Error::QueryPathFormatError));
-                };
-
-
 
                 match store_name {
                     #(#stateful_tree_match_arms,)*
