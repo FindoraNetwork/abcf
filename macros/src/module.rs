@@ -24,7 +24,7 @@ impl Parse for FieldParsedMetaName {
             let key = mnv
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "merkle" => {
@@ -38,7 +38,7 @@ impl Parse for FieldParsedMetaName {
         }
 
         Ok(Self {
-            merkle: merkle.ok_or(input.error("name must set"))?,
+            merkle: merkle.ok_or_else(|| input.error("name must set"))?,
         })
     }
 }
@@ -64,7 +64,7 @@ impl Parse for PunctuatedMetaNameValue {
             let key = mnv
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "name" => name = Some(mnv.lit),
@@ -76,10 +76,10 @@ impl Parse for PunctuatedMetaNameValue {
         }
 
         Ok(Self {
-            name: name.ok_or(input.error("name must set"))?,
-            version: version.ok_or(input.error("verison must set"))?,
-            impl_version: impl_version.ok_or(input.error("impl_version must set"))?,
-            target_height: target_height.ok_or(input.error("target_height must set"))?,
+            name: name.ok_or_else(|| input.error("name must set"))?,
+            version: version.ok_or_else(|| input.error("verison must set"))?,
+            impl_version: impl_version.ok_or_else(|| input.error("impl_version must set"))?,
+            target_height: target_height.ok_or_else(|| input.error("target_height must set"))?,
         })
     }
 }
@@ -200,7 +200,7 @@ pub fn build_dependence_for_module(
         }
     }
 
-    if result_item.len() == 0 {
+    if result_item.is_empty() {
         let r_struct: ItemStruct = parse_quote!(
             pub struct #rpc_ident<
                 '__abcf_deps,
@@ -285,7 +285,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         for field in origin_fields {
             let mut f = field;
             let mut is_memory = true;
-            let attrs = replace(&mut f.attrs, Vec::new());
+            let attrs = std::mem::take(&mut f.attrs);
             for attr in attrs {
                 if attr.path.is_ident("stateless") {
                     let mut target_field = f.clone();

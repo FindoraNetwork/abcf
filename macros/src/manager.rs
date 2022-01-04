@@ -33,7 +33,7 @@ impl Parse for ManagerMetaInfo {
             let key = meta
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "name" => name = Some(meta.lit),
@@ -56,11 +56,11 @@ impl Parse for ManagerMetaInfo {
         }
 
         Ok(Self {
-            name: name.ok_or(input.error("name must set"))?,
-            digest: digest.ok_or(input.error("digest must set"))?,
-            transaction: transaction.ok_or(input.error("digest must set"))?,
-            version: version.ok_or(input.error("verison must set"))?,
-            impl_version: impl_version.ok_or(input.error("impl_version must set"))?,
+            name: name.ok_or_else(|| input.error("name must set"))?,
+            digest: digest.ok_or_else(|| input.error("digest must set"))?,
+            transaction: transaction.ok_or_else(|| input.error("digest must set"))?,
+            version: version.ok_or_else(|| input.error("verison must set"))?,
+            impl_version: impl_version.ok_or_else(|| input.error("impl_version must set"))?,
         })
     }
 }
@@ -181,7 +181,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     .parse_args_with(parser)
                     .unwrap()
                     .iter()
-                    .map(|e| e.clone())
+                    .cloned()
                     .collect::<Vec<MetaNameValue>>();
 
                 metas.append(&mut imetas);
@@ -280,7 +280,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     // add <S> on manager.
     let backked_s: ParseField = parse_quote!(__marker_s: core::marker::PhantomData<S>);
     if let Fields::Named(fields) = &mut parsed.fields {
-        fields.named.push(backked_s.inner.clone());
+        fields.named.push(backked_s.inner);
     };
 
     parsed
