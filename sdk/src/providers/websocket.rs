@@ -20,6 +20,12 @@ impl WsProvider {
     }
 }
 
+impl Default for WsProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait::async_trait]
 impl Provider for WsProvider {
     async fn request<Req, Resp>(&mut self, _method: &str, params: &Req) -> Result<Option<Resp>>

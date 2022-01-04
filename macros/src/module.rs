@@ -2,7 +2,6 @@ use crate::utils::ParseField;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use std::mem::replace;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Arm, Attribute,
     FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
@@ -269,7 +268,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_tree_match_arms = Vec::new();
 
     if let Fields::Named(fields) = &mut parsed.fields {
-        let origin_fields = replace(&mut fields.named, Punctuated::new());
+        let origin_fields = core::mem::take(&mut fields.named);
 
         for field in origin_fields {
             let mut f = field;

@@ -21,8 +21,8 @@ fn main() {
 
     if let Ok(abci_event) = e.to_abci_event() {
         assert_eq!(e.name(), "E");
-        assert_eq!(abci_event.attributes[0].index, true);
-        assert_eq!(abci_event.attributes[3].index, true);
+        assert!(abci_event.attributes[0].index);
+        assert!(abci_event.attributes[3].index);
 
         assert_eq!(
             abci_event.attributes[0].key,

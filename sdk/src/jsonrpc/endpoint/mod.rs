@@ -53,7 +53,7 @@ where
     D: Deserializer<'de>,
 {
     let string = Option::<String>::deserialize(deserializer)?.unwrap_or_default();
-    i64::from_str_radix(&string, 10).map_err(serde::de::Error::custom)
+    string.parse::<i64>().map_err(serde::de::Error::custom)
 }
 
 pub fn deserialize_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
@@ -61,5 +61,5 @@ where
     D: Deserializer<'de>,
 {
     let string = Option::<String>::deserialize(deserializer)?.unwrap_or_default();
-    u64::from_str_radix(&string, 10).map_err(serde::de::Error::custom)
+    string.parse::<u64>().map_err(serde::de::Error::custom)
 }

@@ -170,7 +170,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let tei: ExprMethodCall = parse_quote!(self.#key.execute(transaction.#key));
         tx_execute_items.push(tei);
 
-        let attrs = std::mem::take(&mut item.attrs);
+        let attrs = core::mem::take(&mut item.attrs);
 
         let mut metas = Vec::new();
 

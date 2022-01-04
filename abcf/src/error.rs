@@ -41,8 +41,8 @@ impl Error {
             Error::NoRPCMethod => 10006,
 
             Error::TempOnlySupportRPC => 90001,
-            Error::RPCApplicationError(code, _) => code.clone(),
-            Error::ABCIApplicationError(code, _) => code.clone(),
+            Error::RPCApplicationError(code, _) => *code,
+            Error::ABCIApplicationError(code, _) => *code,
             Error::BS3Error(_) => 20001,
         }
     }
