@@ -143,7 +143,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let sf_struct_item: ParseField = parse_quote!(pub #key: abcf::Stateful<#ty>);
         stateful_struct_items.push(sf_struct_item);
 
-        let tree_arm: Arm = parse_quote!(#name_lit_str => Ok(self.#key.get(inner_key, height)?));
+        let tree_arm: Arm = parse_quote!(#name_lit_str => self.#key.get(inner_key, height));
         tree_match_arms.push(tree_arm);
 
         let sl_tx_item: ParseField = parse_quote!(#key: abcf::StatelessBatch<'a, #ty>);
@@ -408,7 +408,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn height(&self) -> Result<i64> {
-                Ok(self.#__module1.height()?)
+                self.#__module1.height()
             }
 
             fn commit(&mut self) -> Result<()> {
@@ -567,7 +567,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn height(&self) -> Result<i64> {
-                Ok(self.#__module1.height()?)
+                self.#__module1.height()
             }
 
             fn commit(&mut self) -> Result<()> {
