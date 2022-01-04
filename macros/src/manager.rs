@@ -332,10 +332,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     metadata_trait.generics = parsed.generics.clone();
 
     // group of manager.
-    let stateless_struct_ident = Ident::new(
-        &format!("ABCFManager{}Sl", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateless_struct_ident =
+        Ident::new(&format!("ABCFManager{}Sl", parsed.ident), Span::call_site());
 
     let mut stateless_struct: ItemStruct = parse_quote! {
         pub struct #stateless_struct_ident {
@@ -372,7 +370,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     stateless_struct_tree.generics = parsed.generics.clone();
 
     let sl_tx_struct_ident = Ident::new(
-        &format!("ABCFManager{}SlTx", parsed.ident.to_string()),
+        &format!("ABCFManager{}SlTx", parsed.ident),
         Span::call_site(),
     );
 
@@ -386,7 +384,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_tx.generics.params.push(parse_quote!('a));
 
     let sl_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFManager{}SlTxCache", parsed.ident.to_string()),
+        &format!("ABCFManager{}SlTxCache", parsed.ident),
         Span::call_site(),
     );
 
@@ -456,10 +454,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     // stateful define
 
-    let stateful_struct_ident = Ident::new(
-        &format!("ABCFManager{}Sf", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateful_struct_ident =
+        Ident::new(&format!("ABCFManager{}Sf", parsed.ident), Span::call_site());
 
     let mut stateful_struct: ItemStruct = parse_quote! {
         pub struct #stateful_struct_ident {
@@ -521,7 +517,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     stateful_merkle.generics = parsed.generics.clone();
 
     let sf_tx_struct_ident = Ident::new(
-        &format!("ABCFManager{}SfTx", parsed.ident.to_string()),
+        &format!("ABCFManager{}SfTx", parsed.ident),
         Span::call_site(),
     );
 
@@ -535,7 +531,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_tx.generics.params.push(parse_quote!('a));
 
     let sf_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFManager{}SfTxCache", parsed.ident.to_string()),
+        &format!("ABCFManager{}SfTxCache", parsed.ident),
         Span::call_site(),
     );
 

@@ -94,20 +94,9 @@ pub fn build_dependence_for_module(
 ) -> (Vec<ItemStruct>, ItemImpl) {
     let mut result_item = Vec::new();
 
-    let rpc_ident = Ident::new(
-        &format!("ABCFDeps{}RPC", store_name.to_string()),
-        Span::call_site(),
-    );
-
-    let app_ident = Ident::new(
-        &format!("ABCFDeps{}App", store_name.to_string()),
-        Span::call_site(),
-    );
-
-    let txn_ident = Ident::new(
-        &format!("ABCFDeps{}Txn", store_name.to_string()),
-        Span::call_site(),
-    );
+    let rpc_ident = Ident::new(&format!("ABCFDeps{}RPC", store_name), Span::call_site());
+    let app_ident = Ident::new(&format!("ABCFDeps{}App", store_name), Span::call_site());
+    let txn_ident = Ident::new(&format!("ABCFDeps{}Txn", store_name), Span::call_site());
 
     for attr in attrs {
         if attr.path.is_ident("dependence") {
@@ -397,27 +386,25 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         Ident::new(&format!("ABCFModule{}Sl", parsed.ident), Span::call_site());
 
     let stateless_tx_struct_ident = Ident::new(
-        &format!("ABCFModule{}SlTx", parsed.ident.to_string()),
+        &format!("ABCFModule{}SlTx", parsed.ident),
         Span::call_site(),
     );
 
     let stateless_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFModule{}SlTxCache", parsed.ident.to_string()),
+        &format!("ABCFModule{}SlTxCache", parsed.ident),
         Span::call_site(),
     );
 
-    let stateful_struct_ident = Ident::new(
-        &format!("ABCFModule{}Sf", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateful_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sf", parsed.ident), Span::call_site());
 
     let stateful_tx_struct_ident = Ident::new(
-        &format!("ABCFModule{}SfTx", parsed.ident.to_string()),
+        &format!("ABCFModule{}SfTx", parsed.ident),
         Span::call_site(),
     );
 
     let stateful_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFModule{}SfTxCache", parsed.ident.to_string()),
+        &format!("ABCFModule{}SfTxCache", parsed.ident),
         Span::call_site(),
     );
 
