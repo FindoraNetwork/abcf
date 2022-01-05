@@ -1,5 +1,3 @@
-use abcf::module::Event;
-use abcf::module::EventValue;
 use abcf_macros::Event as MacroEvent;
 use abcf_sdk::error::*;
 use abcf_sdk::jsonrpc::Request;
@@ -7,7 +5,6 @@ use abcf_sdk::providers::{Provider, WsProvider};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
-use std::collections::HashMap;
 use tokio::runtime::Runtime;
 
 pub async fn subscribe<P: Provider>(param: Value, p: &mut P) -> Result<Option<Value>> {
@@ -16,12 +13,12 @@ pub async fn subscribe<P: Provider>(param: Value, p: &mut P) -> Result<Option<Va
         .request::<Value, String>("subscribe", &subscribe_req)
         .await?;
 
-    return if let Some(val) = resp {
+    if let Some(val) = resp {
         let json = serde_json::from_str::<Value>(&val)?;
         Ok(Some(json))
     } else {
         Ok(None)
-    };
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MacroEvent)]
@@ -42,7 +39,7 @@ fn main() {
         let r = subscribe(query, &mut provider).await;
         println!("{:?}", r);
 
-        let mut te = TestEvent {
+        let _te = TestEvent {
             jsonrpc: "".to_string(),
             id: 0,
             result: Default::default(),

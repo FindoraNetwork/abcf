@@ -2,7 +2,6 @@ use crate::utils::ParseField;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use std::mem::replace;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, Arm, Attribute,
     FieldValue, Fields, FnArg, GenericParam, ItemImpl, ItemStruct, Lit, LitStr, MetaNameValue,
@@ -24,7 +23,7 @@ impl Parse for FieldParsedMetaName {
             let key = mnv
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "merkle" => {
@@ -38,7 +37,7 @@ impl Parse for FieldParsedMetaName {
         }
 
         Ok(Self {
-            merkle: merkle.ok_or(input.error("name must set"))?,
+            merkle: merkle.ok_or_else(|| input.error("name must set"))?,
         })
     }
 }
@@ -64,7 +63,7 @@ impl Parse for PunctuatedMetaNameValue {
             let key = mnv
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "name" => name = Some(mnv.lit),
@@ -76,10 +75,10 @@ impl Parse for PunctuatedMetaNameValue {
         }
 
         Ok(Self {
-            name: name.ok_or(input.error("name must set"))?,
-            version: version.ok_or(input.error("verison must set"))?,
-            impl_version: impl_version.ok_or(input.error("impl_version must set"))?,
-            target_height: target_height.ok_or(input.error("target_height must set"))?,
+            name: name.ok_or_else(|| input.error("name must set"))?,
+            version: version.ok_or_else(|| input.error("verison must set"))?,
+            impl_version: impl_version.ok_or_else(|| input.error("impl_version must set"))?,
+            target_height: target_height.ok_or_else(|| input.error("target_height must set"))?,
         })
     }
 }
@@ -94,20 +93,9 @@ pub fn build_dependence_for_module(
 ) -> (Vec<ItemStruct>, ItemImpl) {
     let mut result_item = Vec::new();
 
-    let rpc_ident = Ident::new(
-        &format!("ABCFDeps{}RPC", store_name.to_string()),
-        Span::call_site(),
-    );
-
-    let app_ident = Ident::new(
-        &format!("ABCFDeps{}App", store_name.to_string()),
-        Span::call_site(),
-    );
-
-    let txn_ident = Ident::new(
-        &format!("ABCFDeps{}Txn", store_name.to_string()),
-        Span::call_site(),
-    );
+    let rpc_ident = Ident::new(&format!("ABCFDeps{}RPC", store_name), Span::call_site());
+    let app_ident = Ident::new(&format!("ABCFDeps{}App", store_name), Span::call_site());
+    let txn_ident = Ident::new(&format!("ABCFDeps{}Txn", store_name), Span::call_site());
 
     for attr in attrs {
         if attr.path.is_ident("dependence") {
@@ -200,7 +188,7 @@ pub fn build_dependence_for_module(
         }
     }
 
-    if result_item.len() == 0 {
+    if result_item.is_empty() {
         let r_struct: ItemStruct = parse_quote!(
             pub struct #rpc_ident<
                 '__abcf_deps,
@@ -280,12 +268,12 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut stateful_tree_match_arms = Vec::new();
 
     if let Fields::Named(fields) = &mut parsed.fields {
-        let origin_fields = replace(&mut fields.named, Punctuated::new());
+        let origin_fields = core::mem::take(&mut fields.named);
 
         for field in origin_fields {
             let mut f = field;
             let mut is_memory = true;
-            let attrs = replace(&mut f.attrs, Vec::new());
+            let attrs = std::mem::take(&mut f.attrs);
             for attr in attrs {
                 if attr.path.is_ident("stateless") {
                     let mut target_field = f.clone();
@@ -397,27 +385,25 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         Ident::new(&format!("ABCFModule{}Sl", parsed.ident), Span::call_site());
 
     let stateless_tx_struct_ident = Ident::new(
-        &format!("ABCFModule{}SlTx", parsed.ident.to_string()),
+        &format!("ABCFModule{}SlTx", parsed.ident),
         Span::call_site(),
     );
 
     let stateless_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFModule{}SlTxCache", parsed.ident.to_string()),
+        &format!("ABCFModule{}SlTxCache", parsed.ident),
         Span::call_site(),
     );
 
-    let stateful_struct_ident = Ident::new(
-        &format!("ABCFModule{}Sf", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateful_struct_ident =
+        Ident::new(&format!("ABCFModule{}Sf", parsed.ident), Span::call_site());
 
     let stateful_tx_struct_ident = Ident::new(
-        &format!("ABCFModule{}SfTx", parsed.ident.to_string()),
+        &format!("ABCFModule{}SfTx", parsed.ident),
         Span::call_site(),
     );
 
     let stateful_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFModule{}SfTxCache", parsed.ident.to_string()),
+        &format!("ABCFModule{}SfTxCache", parsed.ident),
         Span::call_site(),
     );
 

@@ -21,16 +21,12 @@ pub fn event(input: TokenStream) -> TokenStream {
     parsed.fields.iter().for_each(|f| {
         let mut index = false;
         f.attrs.iter().for_each(|a| {
-            a.path
-                .segments
-                .iter()
-                .for_each(|s| match s.ident.to_string().as_str() {
-                    "abcf" => {
-                        index_is_false_str += &*(count.to_string() + ",");
-                        index = true;
-                    }
-                    _ => {}
-                });
+            a.path.segments.iter().for_each(|s| {
+                if s.ident.to_string().as_str() == "abcf" {
+                    index_is_false_str += &*(count.to_string() + ",");
+                    index = true;
+                }
+            });
         });
         key_vec.push(f.ident.as_ref());
         key_str_vec.push(f.ident.clone().unwrap().to_string());

@@ -27,13 +27,11 @@ impl<R: Serialize> Request<R> {
 
     pub fn new_to_str(method: &str, params: R) -> String {
         let req = Request::new(method, params);
-        let json = serde_json::to_string(&req).unwrap();
-        json
+        serde_json::to_string(&req).unwrap()
     }
 
     pub fn new_to_value(method: &str, params: R) -> Value {
         let req = Request::new(method, params);
-        let value = serde_json::to_value(req).unwrap();
-        value
+        serde_json::to_value(req).unwrap()
     }
 }

@@ -102,26 +102,15 @@ impl Application for MockModule {
 #[abcf::methods]
 impl MockModule {}
 
+#[derive(Default)]
 pub struct MockTransaction {}
 
-impl Default for MockTransaction {
-    fn default() -> Self {
-        MockTransaction {}
-    }
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct SimpleNodeTransaction {
     pub v: u64,
 }
 
 impl abcf::Transaction for SimpleNodeTransaction {}
-
-impl Default for SimpleNodeTransaction {
-    fn default() -> Self {
-        Self { v: 0 }
-    }
-}
 
 impl abcf::module::FromBytes for SimpleNodeTransaction {
     fn from_bytes(bytes: &[u8]) -> abcf::Result<Self>

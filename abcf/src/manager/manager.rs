@@ -5,7 +5,8 @@ use crate::{
     framework::{context::CallContext, EventContextImpl},
     module::{Application, Module, ModuleMetadata, RPCs},
     Error, ModuleError, ModuleResult, Result,
-};Ause alloc::collections::BTreeMap;
+};
+use alloc::collections::BTreeMap;
 use alloc::{
     boxed::Box,
     string::{String, ToString},
@@ -194,7 +195,7 @@ impl<S: bs3::Store> tm_abci::Application for Node<S> {
             }
         }
 
-        let check_tx_events = mem::replace(&mut events.check_tx_events, Vec::new());
+        let check_tx_events = mem::take(&mut events.check_tx_events);
 
         match serde_json::to_vec(&data_map) {
             Ok(v) => resp.data = v,
@@ -227,7 +228,7 @@ impl<S: bs3::Store> tm_abci::Application for Node<S> {
             app.begin_block(&mut context, &req).await;
         }
 
-        let begin_block_events = mem::replace(&mut events.begin_block_events, Vec::new());
+        let begin_block_events = mem::take(&mut events.begin_block_events);
 
         abci::ResponseBeginBlock {
             events: begin_block_events,
@@ -275,7 +276,7 @@ impl<S: bs3::Store> tm_abci::Application for Node<S> {
             }
         }
 
-        let deliver_tx_events = mem::replace(&mut events.deliver_tx_events, Vec::new());
+        let deliver_tx_events = mem::take(&mut events.deliver_tx_events);
 
         match serde_json::to_vec(&data_map) {
             Ok(v) => resp.data = v,
@@ -317,7 +318,7 @@ impl<S: bs3::Store> tm_abci::Application for Node<S> {
             resp.consensus_param_updates = resp.consensus_param_updates;
         }
 
-        let end_block_events = mem::replace(&mut events.end_block_events, Vec::new());
+        let end_block_events = mem::take(&mut events.end_block_events);
 
         resp.validator_updates = validator_updates_vec;
         resp.events = end_block_events;

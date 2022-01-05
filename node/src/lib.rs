@@ -18,7 +18,9 @@ where
     pub fn new(app: A, home: &str) -> Result<Self> {
         let path = PathBuf::from(home);
         if !path.exists() {
-            tendermint_sys::init_home(home)?;
+            // FIXME: it was not implement well, the second arg NodeType was not passing into
+            // init_home function
+            tendermint_sys::init_home(home, tendermint_sys::NodeType::FullNode)?;
         }
 
         Ok(Self { app, path })

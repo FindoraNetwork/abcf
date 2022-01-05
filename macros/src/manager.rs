@@ -33,7 +33,7 @@ impl Parse for ManagerMetaInfo {
             let key = meta
                 .path
                 .get_ident()
-                .ok_or(input.error("no attr key"))?
+                .ok_or_else(|| input.error("no attr key"))?
                 .to_string();
             match key.as_str() {
                 "name" => name = Some(meta.lit),
@@ -56,11 +56,11 @@ impl Parse for ManagerMetaInfo {
         }
 
         Ok(Self {
-            name: name.ok_or(input.error("name must set"))?,
-            digest: digest.ok_or(input.error("digest must set"))?,
-            transaction: transaction.ok_or(input.error("digest must set"))?,
-            version: version.ok_or(input.error("verison must set"))?,
-            impl_version: impl_version.ok_or(input.error("impl_version must set"))?,
+            name: name.ok_or_else(|| input.error("name must set"))?,
+            digest: digest.ok_or_else(|| input.error("digest must set"))?,
+            transaction: transaction.ok_or_else(|| input.error("digest must set"))?,
+            version: version.ok_or_else(|| input.error("verison must set"))?,
+            impl_version: impl_version.ok_or_else(|| input.error("impl_version must set"))?,
         })
     }
 }
@@ -143,7 +143,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let sf_struct_item: ParseField = parse_quote!(pub #key: abcf::Stateful<#ty>);
         stateful_struct_items.push(sf_struct_item);
 
-        let tree_arm: Arm = parse_quote!(#name_lit_str => Ok(self.#key.get(inner_key, height)?));
+        let tree_arm: Arm = parse_quote!(#name_lit_str => self.#key.get(inner_key, height));
         tree_match_arms.push(tree_arm);
 
         let sl_tx_item: ParseField = parse_quote!(#key: abcf::StatelessBatch<'a, #ty>);
@@ -170,7 +170,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let tei: ExprMethodCall = parse_quote!(self.#key.execute(transaction.#key));
         tx_execute_items.push(tei);
 
-        let attrs = std::mem::take(&mut item.attrs);
+        let attrs = core::mem::take(&mut item.attrs);
 
         let mut metas = Vec::new();
 
@@ -181,7 +181,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     .parse_args_with(parser)
                     .unwrap()
                     .iter()
-                    .map(|e| e.clone())
+                    .cloned()
                     .collect::<Vec<MetaNameValue>>();
 
                 metas.append(&mut imetas);
@@ -280,7 +280,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     // add <S> on manager.
     let backked_s: ParseField = parse_quote!(__marker_s: core::marker::PhantomData<S>);
     if let Fields::Named(fields) = &mut parsed.fields {
-        fields.named.push(backked_s.inner.clone());
+        fields.named.push(backked_s.inner);
     };
 
     parsed
@@ -332,10 +332,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     metadata_trait.generics = parsed.generics.clone();
 
     // group of manager.
-    let stateless_struct_ident = Ident::new(
-        &format!("ABCFManager{}Sl", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateless_struct_ident =
+        Ident::new(&format!("ABCFManager{}Sl", parsed.ident), Span::call_site());
 
     let mut stateless_struct: ItemStruct = parse_quote! {
         pub struct #stateless_struct_ident {
@@ -372,7 +370,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     stateless_struct_tree.generics = parsed.generics.clone();
 
     let sl_tx_struct_ident = Ident::new(
-        &format!("ABCFManager{}SlTx", parsed.ident.to_string()),
+        &format!("ABCFManager{}SlTx", parsed.ident),
         Span::call_site(),
     );
 
@@ -386,7 +384,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_tx.generics.params.push(parse_quote!('a));
 
     let sl_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFManager{}SlTxCache", parsed.ident.to_string()),
+        &format!("ABCFManager{}SlTxCache", parsed.ident),
         Span::call_site(),
     );
 
@@ -410,7 +408,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn height(&self) -> Result<i64> {
-                Ok(self.#__module1.height()?)
+                self.#__module1.height()
             }
 
             fn commit(&mut self) -> Result<()> {
@@ -456,10 +454,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
     // stateful define
 
-    let stateful_struct_ident = Ident::new(
-        &format!("ABCFManager{}Sf", parsed.ident.to_string()),
-        Span::call_site(),
-    );
+    let stateful_struct_ident =
+        Ident::new(&format!("ABCFManager{}Sf", parsed.ident), Span::call_site());
 
     let mut stateful_struct: ItemStruct = parse_quote! {
         pub struct #stateful_struct_ident {
@@ -521,7 +517,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     stateful_merkle.generics = parsed.generics.clone();
 
     let sf_tx_struct_ident = Ident::new(
-        &format!("ABCFManager{}SfTx", parsed.ident.to_string()),
+        &format!("ABCFManager{}SfTx", parsed.ident),
         Span::call_site(),
     );
 
@@ -535,7 +531,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     sf_tx.generics.params.push(parse_quote!('a));
 
     let sf_tx_cache_struct_ident = Ident::new(
-        &format!("ABCFManager{}SfTxCache", parsed.ident.to_string()),
+        &format!("ABCFManager{}SfTxCache", parsed.ident),
         Span::call_site(),
     );
 
@@ -571,7 +567,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             fn height(&self) -> Result<i64> {
-                Ok(self.#__module1.height()?)
+                self.#__module1.height()
             }
 
             fn commit(&mut self) -> Result<()> {

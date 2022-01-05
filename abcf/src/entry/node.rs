@@ -168,7 +168,7 @@ where
             }
         }
 
-        let events = mem::replace(&mut self.events.deliver_tx_events, Vec::new());
+        let events = mem::take(&mut self.events.deliver_tx_events);
 
         resp.events = events;
 
@@ -185,9 +185,10 @@ where
     M: Module + Application + RPCs,
 {
     async fn init_chain(&mut self, _request: RequestInitChain) -> ResponseInitChain {
-        let mut resp = ResponseInitChain::default();
-
-        resp.app_hash = self.stateful.root().expect("get app hash failed").to_vec();
+        let resp = ResponseInitChain {
+            app_hash: self.stateful.root().expect("get app hash failed").to_vec(),
+            ..Default::default()
+        };
 
         self.stateful
             .commit()
@@ -201,10 +202,11 @@ where
     }
 
     async fn info(&mut self, _request: RequestInfo) -> ResponseInfo {
-        let mut resp = ResponseInfo::default();
-
-        resp.version = String::from(self.module.metadata().impl_version);
-        resp.app_version = self.module.metadata().version;
+        let mut resp = ResponseInfo {
+            version: String::from(self.module.metadata().impl_version),
+            app_version: self.module.metadata().version,
+            ..Default::default()
+        };
 
         // compare height.
         let stateful_height = self
@@ -245,7 +247,7 @@ where
     }
 
     async fn query(&mut self, request: RequestQuery) -> ResponseQuery {
-        let mut paths = request.path.splitn(2, "/");
+        let mut paths = request.path.splitn(2, '/');
 
         let mut resp = ResponseQuery::default();
 
@@ -321,7 +323,7 @@ where
 
         self.module.begin_block(&mut ctx, req).await;
 
-        let events = mem::replace(begin_block_events, Vec::new());
+        let events = mem::take(begin_block_events);
 
         resp.events = events;
 
@@ -348,7 +350,7 @@ where
         resp.consensus_param_updates = result.consensus_param_updates;
         resp.validator_updates = result.validator_updates;
 
-        let events = mem::replace(end_block_events, Vec::new());
+        let events = mem::take(end_block_events);
 
         resp.events = events;
 
