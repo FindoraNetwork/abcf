@@ -582,6 +582,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
     sl_tx.generics = parsed.generics.clone();
     sl_tx.generics.params.push(parse_quote!('a));
 
+    let mut sl_tx_methods: ItemImpl = parse_quote! {
+        impl #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            pub fn execute(&mut self, transaction: #stateless_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>) {
+                #(self.#stateless_arg.execute(transaction.#stateless_arg);)*
+            }
+        }
+    };
+
+    sl_tx_methods.generics = parsed.generics.clone();
+    sl_tx_methods.generics.params.push(parse_quote!('a));
+
     let mut sl_tx_clone: ItemImpl = parse_quote! {
         impl Clone for #stateless_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
             fn clone(&self) -> Self {
@@ -671,6 +682,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
     sf_tx.generics = parsed.generics.clone();
     sf_tx.generics.params.push(parse_quote!('a));
+
+    let mut sf_tx_methods: ItemImpl = parse_quote! {
+        impl #stateful_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
+            pub fn execute(&mut self, transaction: #stateful_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>) {
+                #(self.#stateful_arg.execute(transaction.#stateful_arg);)*
+            }
+        }
+    };
+
+    sf_tx_methods.generics = parsed.generics.clone();
+    sf_tx_methods.generics.params.push(parse_quote!('a));
 
     let mut sf_tx_clone: ItemImpl = parse_quote! {
         impl Clone for #stateful_tx_struct_ident<'a, #(#lifetime_names,)* #(#generics_names,)*> {
@@ -822,6 +844,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
             #sl_tx
 
+            #sl_tx_methods
+
             #sl_tx_clone
 
             #sl_cache
@@ -833,6 +857,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             #stateful_struct
 
             #sf_tx
+
+            #sf_tx_methods
 
             #sf_tx_clone
 
