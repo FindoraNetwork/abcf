@@ -117,6 +117,7 @@ pub fn build_dependence_for_module(
             let mut r_fields = Vec::new();
             let mut a_fields = Vec::new();
             let mut t_fields = Vec::new();
+            // let mut t_
 
             for meta in metas {
                 let name = meta.path.get_ident();
@@ -587,6 +588,10 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             pub fn execute(&mut self, transaction: #stateless_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>) {
                 #(self.#stateless_arg.execute(transaction.#stateless_arg);)*
             }
+
+            pub fn cache(self) -> #stateless_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+                #stateless_struct_ident::<#(#lifetime_names,)* #(#generics_names,)*>::cache(self)
+            }
         }
     };
 
@@ -688,6 +693,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             pub fn execute(&mut self, transaction: #stateful_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*>) {
                 #(self.#stateful_arg.execute(transaction.#stateful_arg);)*
             }
+
+            pub fn cache(self) -> #stateful_tx_cache_struct_ident<#(#lifetime_names,)* #(#generics_names,)*> {
+                #stateful_struct_ident::<#(#lifetime_names,)* #(#generics_names,)*>::cache(self)
+            }
+
+            // pub fn execute_tx(&mut self, o: Self) {
+                // use abcf::module::StorageTransaction;
+                //
+                // let cache = #stateful_struct_ident::<#(#lifetime_names,)* #(#generics_names,)*>::cache(o);
+                // self.execute(cache);
+            // }
         }
     };
 
