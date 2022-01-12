@@ -105,6 +105,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut tree_match_arms = Vec::new();
     let mut key_item = Vec::new();
 
+    let mut module_type_items = Vec::new();
+
     let mut sl_tx_items = Vec::new();
     let mut sl_cache_items = Vec::new();
 
@@ -123,6 +125,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut app_deps = Vec::new();
     let mut txn_deps = Vec::new();
 
+    let mut deliver_tx_execute = Vec::new();
+
     // list items.
     for item in &mut parsed.fields {
         let key = item.ident.as_ref().expect("module must a named struct");
@@ -133,6 +137,8 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
 
         let fv: FieldValue = parse_quote!(#key);
         init_items.push(fv);
+
+        module_type_items.push(ty.clone());
 
         let fa: FnArg = parse_quote!(#key: #ty);
         fn_items.push(fa);
@@ -190,6 +196,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         let mut app_key_map = Vec::new();
         let mut rpc_key_map = Vec::new();
         let mut txn_key_map = Vec::new();
+        let mut txn_cache_map = Vec::new();
 
         for meta in metas {
             let name_key = meta.path.get_ident();
@@ -226,6 +233,18 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                 };
 
                 txn_key_map.push(map);
+
+                let execute: syn::ExprBlock = parse_quote! {
+                    {
+                        let cache = ctx.deps.#name_key.stateful.cache();
+                        context.stateful.#get_key.execute(cache);
+
+                        let cache = ctx.deps.#name_key.stateless.cache();
+                        context.stateless.#get_key.execute(cache);
+                    }
+                };
+
+                txn_cache_map.push(execute);
             }
         }
 
@@ -248,6 +267,14 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
         };
 
         txn_deps.push(t_dep);
+
+        let execute_stmt: syn::ExprBlock = parse_quote! {
+            {
+                #(#txn_cache_map)*
+            }
+        };
+
+        deliver_tx_execute.push(execute_stmt);
 
         let r_dep: syn::ExprStruct = parse_quote! {
             abcf::manager::RPCDependence::<#ty> {
@@ -712,6 +739,7 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                     use abcf::Error;
                     use abcf::Application;
                     use std::convert::TryInto;
+                    use abcf::module::StorageTransaction;
 
                     let req_tx =
                         #transaction::from_bytes(&_req.tx).map_err(|e| abcf::ModuleError {
@@ -751,6 +779,14 @@ pub fn manager(args: TokenStream, input: TokenStream) -> TokenStream {
                                 namespace: String::from(name.clone()),
                                 error: e,
                             })?;
+
+                        #deliver_tx_execute
+
+                        let stateful_cache = ctx.stateful.cache();
+                        let stateless_cache = ctx.stateless.cache();
+
+                        context.stateful.#key_item.execute(stateful_cache);
+                        context.stateless.#key_item.execute(stateless_cache);
 
                         data_map.insert(name.clone(), result.data);
                         resp_deliver_tx.gas_used += result.gas_used;
