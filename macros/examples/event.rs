@@ -26,12 +26,12 @@ fn main() {
 
         assert_eq!(
             abci_event.attributes[0].key,
-            String::from("age").as_bytes().to_vec()
+            String::from("age")
         );
 
         assert_eq!(
             abci_event.attributes[0].value,
-            serde_json::to_vec(&e.age).unwrap()
+            serde_json::to_string(&e.age).unwrap()
         );
     }
 }

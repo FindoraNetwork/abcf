@@ -44,9 +44,9 @@ pub fn event(input: TokenStream) -> TokenStream {
                 let mut attributes = Vec::new();
 
                 #(
-                    let key_byte = #key_str_vec.as_bytes().to_vec();
+                    let key_byte = #key_str_vec.to_string();
 
-                    let value_byte = self.#key_vec.to_value_bytes()?;
+                    let value_byte = self.#key_vec.to_value_string()?;
                     let index = #index_vec;
 
                     let a = abcf::tm_protos::abci::EventAttribute{
