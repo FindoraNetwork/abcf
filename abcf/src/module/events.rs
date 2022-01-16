@@ -12,9 +12,9 @@ pub trait Event: Debug {
     /// Build this event to abci event.
     fn to_abci_event(&self) -> Result<abci::Event>;
 
-    fn from_abci_event(&mut self, e: abci::Event) -> Result<()>;
+    fn abci_event_to(&mut self, e: abci::Event) -> Result<()>;
 
-    fn from_abci_event_string(&mut self, str: String) -> Result<()>;
+    fn abci_event_string_to(&mut self, str: String) -> Result<()>;
 }
 
 /// Define event attributes.
