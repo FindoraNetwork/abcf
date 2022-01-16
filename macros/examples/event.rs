@@ -24,10 +24,7 @@ fn main() {
         assert!(abci_event.attributes[0].index);
         assert!(abci_event.attributes[3].index);
 
-        assert_eq!(
-            abci_event.attributes[0].key,
-            String::from("age")
-        );
+        assert_eq!(abci_event.attributes[0].key, String::from("age"));
 
         assert_eq!(
             abci_event.attributes[0].value,
