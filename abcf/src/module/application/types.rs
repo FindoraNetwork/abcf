@@ -1,5 +1,5 @@
 use alloc::{string::String, vec::Vec};
-use tm_protos::abci::{ConsensusParams, ValidatorUpdate};
+use tm_protos::{abci::ValidatorUpdate, types::ConsensusParams};
 
 pub use tm_protos::abci::{RequestBeginBlock, RequestEndBlock};
 

@@ -44,9 +44,9 @@ pub fn event(input: TokenStream) -> TokenStream {
                 let mut attributes = Vec::new();
 
                 #(
-                    let key_byte = #key_str_vec.as_bytes().to_vec();
+                    let key_byte = #key_str_vec.to_string();
 
-                    let value_byte = self.#key_vec.to_value_bytes()?;
+                    let value_byte = self.#key_vec.to_value_string()?;
                     let index = #index_vec;
 
                     let a = abcf::tm_protos::abci::EventAttribute{
@@ -68,11 +68,11 @@ pub fn event(input: TokenStream) -> TokenStream {
                 #name
             }
 
-            fn from_abci_event(&mut self, e: abcf::tm_protos::abci::Event) -> abcf::Result<()> {
+            fn abci_event_to(&mut self, e: abcf::tm_protos::abci::Event) -> abcf::Result<()> {
                 Ok(())
             }
 
-            fn from_abci_event_string(&mut self, str: String) -> abcf::Result<()> {
+            fn abci_event_string_to(&mut self, str: String) -> abcf::Result<()> {
                 let event = serde_json::from_str::<#struct_name>(&str)?;
                 *self = event;
                 Ok(())
