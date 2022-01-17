@@ -17,6 +17,7 @@ use bs3::model::{Map, Value};
 use bs3::MapStore;
 use serde::{Deserialize, Serialize};
 use sha3::Sha3_512;
+use tendermint_sys::NodeType;
 
 /// Module's Event
 #[derive(Clone, Debug, Deserialize, Serialize, Event)]
@@ -187,7 +188,7 @@ fn main() {
     };
 
     let entry = abcf::entry::Node::new(stateless, stateful, simple_node);
-    let node = abcf_node::Node::new(entry, "./target/abcf").unwrap();
+    let node = abcf_node::Node::new(entry, "./target/abcf", NodeType::Validator).unwrap();
     node.start().unwrap();
     std::thread::park();
 }
