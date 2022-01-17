@@ -1,8 +1,6 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use super::event::Event;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
     #[serde(serialize_with = "super::serialize")]
