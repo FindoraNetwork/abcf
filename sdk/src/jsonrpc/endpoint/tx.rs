@@ -1,8 +1,6 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use super::event::Event;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
     #[serde(serialize_with = "super::serialize")]
@@ -28,22 +26,13 @@ pub struct Response {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResultResponse {
-    pub code: i64,
+    pub code: String,
+
+    pub data: String,
+
+    pub log: String,
 
     pub codespace: String,
 
-    #[serde(deserialize_with = "super::deserialize_bytes")]
-    pub data: Vec<u8>,
-
-    pub events: Vec<Event>,
-
-    #[serde(deserialize_with = "super::deserialize_i64")]
-    pub gas_used: i64,
-
-    #[serde(deserialize_with = "super::deserialize_i64")]
-    pub gas_wanted: i64,
-
-    pub info: String,
-
-    pub log: String,
+    pub hash: String,
 }
