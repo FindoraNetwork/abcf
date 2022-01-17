@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 mod error;
 pub use error::{Error, Result};
+use tendermint_sys::NodeType;
 use tm_abci::Application;
 
 pub struct Node<A: Application> {
@@ -15,12 +16,12 @@ impl<A> Node<A>
 where
     A: Application + 'static,
 {
-    pub fn new(app: A, home: &str) -> Result<Self> {
+    pub fn new(app: A, home: &str, node_type: NodeType) -> Result<Self> {
         let path = PathBuf::from(home);
         if !path.exists() {
             // FIXME: it was not implement well, the second arg NodeType was not passing into
             // init_home function
-            tendermint_sys::init_home(home, tendermint_sys::NodeType::FullNode)?;
+            tendermint_sys::init_home(home, node_type)?;
         }
 
         Ok(Self { app, path })
