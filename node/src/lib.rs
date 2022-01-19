@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 mod error;
 pub use error::{Error, Result};
-use tendermint_sys::NodeType;
+pub use tendermint_sys::NodeType;
 use tm_abci::Application;
 
 pub struct Node<A: Application> {
