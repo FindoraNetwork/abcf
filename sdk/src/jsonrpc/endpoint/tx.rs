@@ -26,7 +26,7 @@ pub struct Response {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResultResponse {
-    pub code: String,
+    pub code: i64,
 
     pub data: String,
 
