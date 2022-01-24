@@ -7,7 +7,17 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// post
-pub struct HttpPostProvider {}
+pub struct HttpPostProvider {
+    pub url: String,
+}
+
+impl HttpPostProvider {
+    pub fn new(url: &str) -> Self {
+        Self {
+            url: String::from(url),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl Provider for HttpPostProvider {
@@ -16,12 +26,10 @@ impl Provider for HttpPostProvider {
         Req: Serialize + Sync + Send,
         Resp: for<'de> Deserialize<'de> + Send + Sync,
     {
-        let url = "http://127.0.0.1:26657";
-
         let req = Request::new(method, params);
 
         let resp = reqwest::Client::new()
-            .post(url)
+            .post(self.url)
             .json(&req)
             .send()
             .await?
@@ -45,6 +53,14 @@ impl Provider for HttpPostProvider {
 /// get
 pub struct HttpGetProvider {}
 
+impl HttpGetProvider {
+    pub fn new(url: &str) -> Self {
+        Self {
+            url: String::from(url),
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl Provider for HttpGetProvider {
     async fn request<Req, Resp>(&mut self, method: &str, params: &Req) -> Result<Option<Resp>>
@@ -62,7 +78,7 @@ impl Provider for HttpGetProvider {
         let querys: Vec<(String, Value)> = map.iter().map(|v| (v.0.clone(), v.1.clone())).collect();
         log::debug!(" Queries is {:?}", querys);
 
-        let url = String::from("http://127.0.0.1:26657") + "/" + method;
+        let url = self.url + "/" + method;
 
         let resp = reqwest::Client::new()
             .get(url)
