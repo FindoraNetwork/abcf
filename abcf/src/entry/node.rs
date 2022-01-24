@@ -133,7 +133,7 @@ where
     async fn _deliver_tx(&mut self, req: RequestDeliverTx) -> ResponseDeliverTx {
         let mut resp = ResponseDeliverTx::default();
 
-        let result = {
+        let (result, sf_cache, sl_cache) = {
             let deliver_tx_events = &mut self.events.deliver_tx_events;
 
             let stateful_tx = self.stateful.transaction();
@@ -145,7 +145,11 @@ where
                 stateful: stateful_tx,
             };
 
-            self.module.deliver_tx(&mut ctx, req).await
+            let result = self.module.deliver_tx(&mut ctx, req).await;
+
+            let stateful_cache = Stateful::<M>::cache(ctx.stateful);
+            let stateless_cache = Stateless::<M>::cache(ctx.stateless);
+            (result, stateful_cache, stateless_cache)
         };
 
         match result {
@@ -160,9 +164,6 @@ where
                 resp.codespace = e.namespace;
             }
         }
-
-        let stateful_cache = Stateful::<M>::cache(ctx.stateful);
-        let stateless_cache = Stateless::<M>::cache(ctx.stateless);
 
         self.stateful.execute(sf_cache);
         self.stateless.execute(sl_cache);
