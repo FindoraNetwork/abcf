@@ -161,6 +161,12 @@ where
             }
         }
 
+        let stateful_cache = Stateful::<M>::cache(ctx.stateful);
+        let stateless_cache = Stateless::<M>::cache(ctx.stateless);
+
+        self.stateful.execute(sf_cache);
+        self.stateless.execute(sl_cache);
+
         let events = mem::take(&mut self.events.deliver_tx_events);
 
         resp.events = events;
