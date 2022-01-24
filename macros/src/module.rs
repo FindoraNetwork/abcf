@@ -304,9 +304,12 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                             }
 
                             let v = ss.tree_get(&key_vec.to_vec())
-                                .map_err(|_|abcf::ModuleError {
-                                    namespace: String::from(#name),
-                                    error: abcf::Error::QueryPathFormatError,
+                                .map_err(|e|{
+                                    abcf::log::debug!("tree_get error:{:?}",e);
+                                    abcf::ModuleError {
+                                        namespace: String::from(#name),
+                                        error: abcf::Error::QueryPathFormatError,
+                                    }
                                 })?;
                             Ok(v)
                         }
@@ -358,9 +361,12 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                             }
 
                             let v = ss.tree_get(&key_vec.to_vec())
-                                .map_err(|_|abcf::ModuleError {
-                                    namespace: String::from(#name),
-                                    error: abcf::Error::QueryPathFormatError,
+                                .map_err(|e|{
+                                    abcf::log::debug!("tree_get error:{:?}",e);
+                                    abcf::ModuleError {
+                                        namespace: String::from(#name),
+                                        error: abcf::Error::QueryPathFormatError,
+                                    }
                                 })?;
                             Ok(v)
                         }
@@ -542,7 +548,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 
                 let mut key_vec = abcf::hex::decode(inner_key)
                     .map_err(|e|{
-                    abcf::log::debug!("hex::decode:{}",e.to_string());
+                    abcf::log::debug!("stateless hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
@@ -801,9 +807,11 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     error: abcf::Error::QueryPathFormatError,
                 })?;
 
+                let inner_key = &inner_key.to_string()[2..];
+
                 let mut key_vec = abcf::hex::decode(inner_key)
                     .map_err(|e|{
-                    abcf::log::debug!("hex::decode:{}",e.to_string());
+                    abcf::log::debug!("stateful hex::decode:{}",e.to_string());
                     abcf::ModuleError::new(#name,
                         abcf::Error::QueryPathFormatError)
                 })?;
