@@ -29,7 +29,7 @@ impl Provider for HttpPostProvider {
         let req = Request::new(method, params);
 
         let resp = reqwest::Client::new()
-            .post(self.url)
+            .post(self.url.clone())
             .json(&req)
             .send()
             .await?
@@ -51,7 +51,9 @@ impl Provider for HttpPostProvider {
 }
 
 /// get
-pub struct HttpGetProvider {}
+pub struct HttpGetProvider {
+    pub url: String,
+}
 
 impl HttpGetProvider {
     pub fn new(url: &str) -> Self {
@@ -78,7 +80,7 @@ impl Provider for HttpGetProvider {
         let querys: Vec<(String, Value)> = map.iter().map(|v| (v.0.clone(), v.1.clone())).collect();
         log::debug!(" Queries is {:?}", querys);
 
-        let url = self.url + "/" + method;
+        let url = self.url.clone() + "/" + method;
 
         let resp = reqwest::Client::new()
             .get(url)
