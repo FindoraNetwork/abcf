@@ -72,13 +72,16 @@ impl Provider for HttpGetProvider {
     {
         let req = serde_json::to_value(params)?;
 
-        let map = match req {
-            serde_json::Value::Object(m) => m,
+        let querys = match req {
+            serde_json::Value::Object(m) => {
+                let querys: Vec<(String, Value)> = m.iter().map(|v| (v.0.clone(), v.1.clone())).collect();
+                log::debug!(" Queries is {:?}", querys);
+                querys
+            },
+            serde_json::Value::Null => Vec::new(),
             _ => return Err(Error::NotImpl),
         };
 
-        let querys: Vec<(String, Value)> = map.iter().map(|v| (v.0.clone(), v.1.clone())).collect();
-        log::debug!(" Queries is {:?}", querys);
 
         let url = self.url.clone() + "/" + method;
 

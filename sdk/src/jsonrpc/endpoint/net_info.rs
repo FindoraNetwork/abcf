@@ -11,6 +11,7 @@ pub struct PeerInfo {
 pub struct Response {
     pub listening: bool,
     pub listeners: Vec<String>,
-    pub n_peers: u32,
-    pub peers: PeerInfo,
+    #[serde(deserialize_with = "super::deserialize_u64")]
+    pub n_peers: u64,
+    pub peers: Option<Vec<PeerInfo>>,
 }

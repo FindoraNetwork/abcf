@@ -5,6 +5,7 @@ pub mod tx;
 pub mod unsubscribe;
 
 pub mod net_info;
+pub mod status;
 
 #[derive(Debug)]
 pub enum Response {
