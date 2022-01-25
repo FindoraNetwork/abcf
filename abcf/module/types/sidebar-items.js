@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["RequestBeginBlock",""],["RequestCheckTx",""],["RequestDeliverTx",""],["RequestEndBlock",""],["ResponseCheckTx","Response for check_tx"],["ResponseDeliverTx","Response for deliver_tx."],["ResponseEndBlock","Response for end_block"]]});

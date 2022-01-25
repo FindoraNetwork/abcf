@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["HttpGetProvider","get"],["HttpPostProvider","post"],["WsProvider",""]],"trait":[["Provider",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error",""],["NodeType",""]],"fn":[["init_home",""]],"mod":[["raw","`tmgo`’s FFI wrap."]],"struct":[["Node","Tendermint node"]],"type":[["Result",""]]});

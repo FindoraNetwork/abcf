@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["MemoryBackend","The data is finally stored in the B-tree key:Vec like: bytes({name_space}-ty) bytes({name_space}-kw-{hex(1)}-{:00000000000000000001}) value:Vec like: bytes(Operation::Update(1)) Bytes(Operation::Remove)"],["MemoryRange","Range used to host the b-tree"]]});

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["bs3"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/double_ended/trait.DoubleEndedIterator.html\" title=\"trait core::iter::traits::double_ended::DoubleEndedIterator\">DoubleEndedIterator</a> for <a class=\"struct\" href=\"bs3/backend/memory/struct.MemoryRange.html\" title=\"struct bs3::backend::memory::MemoryRange\">MemoryRange</a>&lt;'a&gt;","synthetic":false,"types":["bs3::backend::memory::MemoryRange"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

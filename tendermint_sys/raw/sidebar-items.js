@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["init_config","Init config file"],["new_node","Creat a tendermint node from configure."],["start_node","Start tendermint node."],["stop_node","Stop tendermint node."]],"struct":[["ByteBufferReturn",""]],"type":[["AbciCallbackPtr","This function pointer will called when abci messages are trigged."],["NodeType","Tendermint node index."]]});

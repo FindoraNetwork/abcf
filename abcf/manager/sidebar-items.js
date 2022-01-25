@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ModuleType",""]],"mod":[["context",""]],"struct":[["Genesis","Genesis for module."],["ModuleMetadata","Metadata of module."]],"trait":[["Module","Module."],["ModuleStorage",""]]});
