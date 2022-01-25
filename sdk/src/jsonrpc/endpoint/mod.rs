@@ -4,6 +4,8 @@ pub mod subscribe;
 pub mod tx;
 pub mod unsubscribe;
 
+pub mod net_info;
+
 #[derive(Debug)]
 pub enum Response {
     AbciQuery(abci_query::Response),
