@@ -10,7 +10,6 @@ build = "build.rs"
 tendermint-sys = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 tm-abci = { git = "https://github.com/FindoraNetwork/tendermint-sys.git" }
 abcf = { path = "../abcf" }
-bs3 = { git = "https://github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.11", features = ["nightly", "cbor"] }
 
 [dev-dependencies]
 # abcf-macros = { path = "../macros" }
@@ -22,4 +21,5 @@ digest = "0.9.0"
 sha3 = "0.9"
 tokio = { version = "1", features = ["full"] }
 abcf-sdk = { path="../sdk",features = ["http"] }
+bs3 = { git = "https://github.com/FindoraNetwork/bs3.git", default-features = false, tag = "0.1.12", features = ["nightly", "cbor"] }
 

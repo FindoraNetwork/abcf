@@ -7,7 +7,7 @@ pub struct Request {
     pub path: String,
 
     #[serde(serialize_with = "super::serialize")]
-    pub data: String,
+    pub data: Vec<u8>,
 
     pub height: Option<String>,
 
