@@ -11,7 +11,7 @@ use tm_protos::abci::{
 
 use crate::{
     module::StorageTransaction, Error, Merkle, Module, ModuleError, ModuleResult, Stateful,
-    Stateless, Storage,
+    Stateless, Storage, Result,
 };
 
 use super::{
@@ -45,6 +45,11 @@ where
             marker_d: PhantomData,
             events: EventContextImpl::default(),
         }
+    }
+
+    pub fn height(&self) -> Result<i64> {
+        let height = self.stateful.height()?;
+        Ok(height)
     }
 
     async fn call_rpc(
